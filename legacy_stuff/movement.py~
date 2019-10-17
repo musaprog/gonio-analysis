@@ -1,0 +1,395 @@
+'''
+Analyse movement
+'''
+
+import cv2
+import os
+import json
+
+import numpy as np
+
+import matplotlib.pyplot as plt
+import matplotlib.patches
+
+
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import proj3d
+
+
+from pupil_detection.training.mark_positives import Marker
+def importImages(path):
+    '''
+    Import images from following save structure
+
+    path
+        0,0
+            .tif files
+        20,20
+            .tif files
+        0,10
+            .tif files
+        ...
+
+
+    '''
+
+    images = {}
+
+    # Seatch for properly named folders
+    image_folders = []
+    folders = os.listdir(path)
+
+    for folder in folders:
+        try:
+            horizontal, pitch = folder.split(',')
+            horizontal = int(horizontal)
+            pitch = int(pitch)
+        except:
+            continue
+
+        image_folders.append(folder)
+
+    # Import all tif images
+    for folder in image_folders:
+        
+        files = os.listdir(os.path.join(path,folder))
+        images[folder] = [os.path.join(path,folder,f) for f in files if f.endswith('.tif')]
+        images[folder].sort()
+
+    return images
+
+
+
+
+class Movemeter:
+
+    def __init__(self, stack_fns):
+        
+        self.stack_fns = stack_fns
+
+    
+    def __imread(self, fn):
+
+        image = cv2.imread(fn)
+        r, image = cv2.threshold(image, np.mean(image)*2, 0, 2)   
+        normalized = np.zeros(image.shape)
+        image = cv2.normalize(image, normalized, 0, 255, cv2.NORM_MINMAX)
+        image = cv2.blur(image, (3,3))
+        
+        x, y, n = image.shape
+        image = cv2.resize(image, (y*3, x*3))
+        return image 
+
+
+    def __bgSubstraction(self, fns):
+
+        previous_image = self.__imread(fns[0])
+        diff = np.zeros(previous_image.shape)
+        
+        for fn in fns[1:]:
+            image = self.__imread(fn)
+            
+            diff += np.abs(image - previous_image)
+
+            previous_image = image
+
+        return diff
+
+    def __findTranslation(self, im, im_ref):
+        
+        cx,cy,cw,ch = self.crop
+        
+        res = cv2.matchTemplate(im[cy:cy+ch, cx:cx+cw], im_ref, cv2.TM_CCOEFF_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+    
+        x, y = max_loc
+        x -= cx
+        y -= cy
+        #bottom_right = (top_left[0] + w, top_left[1] + h)
+        #cv2.rectangle(img,top_left, bottom_right, 255, 2)
+        return (x, y)
+    
+
+    def askCrop(self):
+        #image = self.__bgSubstraction(self.stack_fns)
+        image = self.__imread(self.stack_fns[0])
+        self.crop = cv2.selectROI(image)
+        #self.crop = [int(i) for i in list(np.asarray(crop)/3)]
+    
+        cv2.destroyAllWindows() 
+
+    def setCrop(self, crop):
+        self.crop = crop
+
+    def measureMovement(self):
+        
+        previous_image = self.__imread(self.stack_fns[0])
+
+        X = []
+        Y = []
+
+        for fn in self.stack_fns[1:]:
+            image = self.__imread(fn)
+            
+            x, y = self.__findTranslation(image, previous_image)
+            X.append(x)
+            Y.append(y)
+
+            previous_image = image
+
+        X = np.cumsum(X)
+        Y = np.cumsum(Y)
+
+        X = X-X[0]
+        Y = Y-Y[0]
+
+
+        return X.tolist(), Y.tolist()
+
+
+class AnalyserDrosoM():
+
+    def __init__(self, data_path, folder, clean_tmp=False):
+        '''
+        INPUT ARGUMENTS     DESCRIPTION 
+        data_path           directory where DrosoM folder lies
+        folder              Name of the DrosoM folder, for example "DrosoM1"
+        
+        '''
+        self.data_path = data_path
+        self.folder = folder
+        
+        self.CROPS_SAVEFN = "tmp_dir/dynamic_{}_crops.json".format(folder)
+        self.MOVEMENTS_SAVEFN = "tmp_dir/dynamic_{}_movements.json".format(folder)
+    
+        self.stacks = importImages(os.path.join(self.data_path, self.folder))
+
+
+    def __fileOpen(self, fn):
+        with open(fn, 'r') as fp:
+            data = json.load(fp)
+        return data
+
+    def __fileSave(self, fn, data):
+        with open(fn, 'w') as fp:
+            json.dump(data, fp)
+    
+
+    def analyseDrosoM(self, clean_tmp=False):
+        '''
+        Run movement analysis on a DrosoM{i} folder.
+        
+        INPUT ARGUMENTS
+        clean_tmp           If True do not use ready results from tmp_dir
+        '''
+
+
+        if not clean_tmp:
+           
+            if os.path.exists(self.MOVEMENTS_SAVEFN):
+                self.movements = self.__fileOpen(self.MOVEMENTS_SAVEFN)
+        else:
+
+            self.movements = {}
+            meters = []
+
+            # Load crops if they exist
+            CROPS_EXIST = os.path.exists(self.MOVEMENTS_SAVEFN)
+            if CROPS_EXIST:
+                crops = self.__fileOpen(self.MOVEMENTS_SAVEFN)
+                
+            
+            # Create movemeters and set (and ask) crops
+            for i, angle in enumerate(self.stacks):
+                
+                meter = Movemeter(self.stacks[angle])
+                
+                if CROPS_EXIST:
+                    meter.setCrop(crops[i])
+                else:
+                    meter.askCrop()
+                
+                meters.append(meter)
+
+            # Save crops
+            with open(self.CROPS_SAVEFN, 'w') as fp:
+                json.dump([meter.crop for meter in meters], fp)
+
+
+            # Measure movement
+            for angle, meter in zip(stacks.keys(), meters):
+                
+                x, y = meter.measureMovement() 
+                self.movements[angle] = {'x': x, 'y':y}
+
+
+            # Save momevemtns
+            with open(self.MOVEMENTS_SAVEFN, 'w') as fp:
+                json.dump(results, fp)
+        
+
+    def plotDirection2D(self):
+        
+        fig, ax = plt.subplots()
+        X = [np.max(x['x'])-np.min(x['x']) for x in self.movements.values()]
+        Y = [np.max(x['y'])-np.min(x['y']) for x in self.movements.values()]
+        
+        X = np.asarray(X)/ np.max(X) *10
+        Y = np.asarray(Y)/ np.max(Y) *10
+
+
+        HOR = []
+        PIT = []
+
+        # Direction
+        for angle, x, y in zip(self.movements.keys(), X, Y):
+            
+
+            horizontal, pitch = [int(a) for a in angle.split(',')] 
+            HOR.append(horizontal)
+            PIT.append(pitch)
+
+            # Correct angles
+            f = x * np.cos(np.radians(pitch)) + y * np.sin(np.radians(pitch))
+            s = x * np.sin(np.radians(pitch)) + y * np.cos(np.radians(pitch))
+
+            ar = matplotlib.patches.Arrow(horizontal, pitch, f, s)
+           
+            ax.add_patch(ar)
+
+        ax.set_xlim(-180, 180)
+        ax.set_ylim(-90, 90)
+        ax.set_xlabel('Horizontal angle (degrees)')
+        ax.set_ylabel('Pitch angle (degrees)')
+        plt.show()
+
+
+
+    class Arrow3D(FancyArrowPatch):
+        def __init__(self, xs, ys, zs, *args, **kwargs):
+            FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
+            self._verts3d = xs, ys, zs
+
+        def draw(self, renderer):
+            xs3d, ys3d, zs3d = self._verts3d
+            xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+            self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+            FancyArrowPatch.draw(self, renderer)
+    
+    def __toCartesian(self, r, th, fi):
+        xs = r * np.sin(np.radians(th)) * np.cos(np.radians(fi))
+        ys = r * np.sin(np.radians(th)) * np.sin(np.radians(fi))
+        zs = r * np.cos(np.radians(th))
+        return xs, ys, zs
+    
+    def __imcoor2Cartesian(self, xi, yi, th, fi):
+        th = np.radians(th)
+        fi = np.radians(fi)
+
+        x = np.cos(fi) * yi
+        y = np.sin(fi) * yi * np.cos(th) + xi * np.sin(th) * np.sin(fi)
+        z = x * np.cos(th) * np.cos(fi) + y * np.sin(th) * np.sin(fi)
+        return x,y,z
+
+    def plotDirection3D(self, relh0, relp0):
+
+        fig = plt.figure(figsize=(15,15))
+        ax = fig.add_subplot(111, projection='3d')
+
+        X = [np.max(x['x'])-np.min(x['x']) for x in self.movements.values()]
+        Y = [np.max(x['y'])-np.min(x['y']) for x in self.movements.values()]
+        X = np.asarray(X)/ np.max(X)
+        Y = np.asarray(Y)/ np.max(Y)
+
+    
+
+        # Direction
+        for angle, x, y in zip(self.movements.keys(), X, Y):
+            # x is front/back for
+            # y is sideways
+
+            horizontal, pitch = [int(a) for a in angle.split(',')] 
+            pitch -= relp0
+            horizontal -= relh0
+
+            xs0, ys0, zs0 = self.__toCartesian(1, pitch, horizontal)
+            
+
+            # Small angle approximation
+            xs1, ys1, zs1 = self.__imcoor2Cartesian(x, y, pitch, horizontal)
+            
+            SCALER = 1 
+            xs1 = (xs0+xs1) * SCALER
+            ys1 = (ys0+ys1) * SCALER
+            zs1 = (zs0+zs1) * SCALER
+            
+
+
+
+            ar = self.Arrow3D([xs0, xs1], [ys0, ys1], [zs0, zs1], arrowstyle="-|>", lw=2, mutation_scale=10)
+            ax.add_artist(ar)
+
+        #ax.set_xlim(-180, 180)
+        #ax.set_ylim(-90, 90)
+        #ax.set_xlabel('Horizontal angle (degrees)')
+        #ax.set_ylabel('Pitch angle (degrees)')
+        
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        
+        plt.show()
+
+
+
+    def plotDirection2D(self):
+        
+        fig, ax = plt.subplots()
+        X = [np.max(x['x'])-np.min(x['x']) for x in self.movements.values()]
+        Y = [np.max(x['y'])-np.min(x['y']) for x in self.movements.values()]
+        
+        X = np.asarray(X)/ np.max(X) *10
+        Y = np.asarray(Y)/ np.max(Y) *10
+
+
+        HOR = []
+        PIT = []
+
+        # Direction
+        for angle, x, y in zip(self.movements.keys(), X, Y):
+            
+
+            horizontal, pitch = [int(a) for a in angle.split(',')] 
+            HOR.append(horizontal)
+            PIT.append(pitch)
+
+            # Correct angles
+            f = x * np.cos(np.radians(pitch)) + y * np.sin(np.radians(pitch))
+            s = x * np.sin(np.radians(pitch)) + y * np.cos(np.radians(pitch))
+
+            ar = matplotlib.patches.Arrow(horizontal, pitch, f, s)
+           
+            ax.add_patch(ar)
+
+        ax.set_xlim(-180, 180)
+        ax.set_ylim(-90, 90)
+        ax.set_xlabel('Horizontal angle (degrees)')
+        ax.set_ylabel('Pitch angle (degrees)')
+        plt.show()
+
+
+
+
+
+def main():
+    path = '/win2/'
+    folder_name = 'DrosoM1'
+
+    analyser = AnalyserDrosoM(path, folder_name)
+    
+    analyser.analyseDrosoM()
+    analyser.plotDirection3D(0, -80)
+
+if __name__ == "__main__":
+    main()

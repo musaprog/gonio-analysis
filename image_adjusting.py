@@ -11,46 +11,47 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
-from pupil_detection import detect
+# Lift this dependency
+#from pupil_detection import detect
 
 import tifffile
 
-
-class ImageAdjuster:
-
-    def __init__(self):
-        self.detector = detect.getDefaultDetector()
-
-    def determineROI(self, fns):
-        ROIs = []
-        for image in fns:
-            ROI = self.detector.detectHead(image)
-            if ROI:
-                ROIs.append(ROI)
-
-        if ROIs:
-            self.ROI = [int(z) for z in np.mean(ROIs, axis=0)[0]]
-
-
-    def autoAdjust(self, image):
-        '''
-        Tries to automatically adjust a image by first detectin fly heads and using
-        the average of these regions to autoadjust contrast.
-
-        Works best when images are not too different from each other.
-        '''
-        
-        (x,y,w,h) = self.ROI
-
-        im_ROI = image[y:y+h, x:x+w]
-        #r, image = cv2.threshold(image, np.max(im_ROI), 0, 2) 
-        image = np.clip(image, np.min(im_ROI), np.mean(im_ROI)*2)
-        normalized = np.zeros(image.shape)
-        image = cv2.normalize(image, normalized, 0, 255, cv2.NORM_MINMAX)
-        
-        return image
-
-
+#
+#class ImageAdjuster:
+#
+#    def __init__(self):
+#        self.detector = detect.getDefaultDetector()
+#
+#    def determineROI(self, fns):
+#        ROIs = []
+#        for image in fns:
+#            ROI = self.detector.detectHead(image)
+#            if ROI:
+#                ROIs.append(ROI)
+#
+#        if ROIs:
+#            self.ROI = [int(z) for z in np.mean(ROIs, axis=0)[0]]
+#
+#
+#    def autoAdjust(self, image):
+#        '''
+#        Tries to automatically adjust a image by first detectin fly heads and using
+#        the average of these regions to autoadjust contrast.
+#
+#        Works best when images are not too different from each other.
+#        '''
+#        
+#        (x,y,w,h) = self.ROI
+#
+#        im_ROI = image[y:y+h, x:x+w]
+#        #r, image = cv2.threshold(image, np.max(im_ROI), 0, 2) 
+#        image = np.clip(image, np.min(im_ROI), np.mean(im_ROI)*2)
+#        normalized = np.zeros(image.shape)
+#        image = cv2.normalize(image, normalized, 0, 255, cv2.NORM_MINMAX)
+#        
+#        return image
+#
+#
 
 class GeneralAdjuster:
     '''

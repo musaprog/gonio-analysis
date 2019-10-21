@@ -29,21 +29,28 @@ class TerminalDrosoM:
     '''
 
 
-    def __init__(self): 
+    def __init__(self, custom_args=None): 
         
         # These determine what is considered proper 
         #self.allowed_shorts = 'a'
         #self.allowed_longs = ['timeplot', '2dplot', '3dplot', 'saveonly', 'averaged', 'movie', 'magnitude', 'averaged-magnitude', 'show', 'save', 'magtrace', 'recalculate']
-        self.argv = sys.argv
+        if custom_args is None:
+            self.argv = sys.argv
+        else:
+            self.argv = custom_args
         #self.parseInputArguments()
+
 
     def help(self):
         '''
         Prints the help when the script is ran from terminal.
         '''
-        print('Usage (drosom.py):')
-        print('TODO')
+
+        print('The following arguments are supported:')
+        arguments = ['3dplot Creates an interactive 3D', 'averaged']
     
+        for line in arguments:
+            print('  {}'.format(line))
 
     def parseInputArguments(self):
         
@@ -56,10 +63,13 @@ class TerminalDrosoM:
                 raise ValueError
 
     
-    def main(self):
+    def main(self, data_folder=None):
         
-        selector = DrosoSelect()
-        directories = selector.askUser(startswith='DrosoM')
+        if data_folder is None:
+            selector = DrosoSelect()
+            directories = selector.askUser(startswith='DrosoM')
+        else:
+            directories = data_folder
 
         analysers = []
 

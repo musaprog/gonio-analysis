@@ -4,21 +4,31 @@ Note that not all modules may honour these settings.
 '''
 
 import os
+import platform
 
-# Where for example
-ANALYSES_SAVEDIR = '/home/joni/analyses/pupil'
+if platform.system == 'Linux':
+    # Where for example
+    ANALYSES_SAVEDIR = '/home/joni/analyses/pupil'
 
-# Where any temporal stuff as disk cahcing would go
-PROCESSING_TEMPDIR = '/home/joni/analyses/pupil/tmp'
+    # Where any temporal stuff as disk cahcing would go
+    PROCESSING_TEMPDIR = '/home/joni/analyses/pupil/tmp'
 
-# If lots of storage is needed
-PROCESSING_TEMPDIR_BIGFILES = '/work1/pupil/tmp'
+    # If lots of storage is needed
+    PROCESSING_TEMPDIR_BIGFILES = '/work1/pupil/tmp'
 
-# Where folders DrosoX_i, DrosoM_i are
-DROSO_DATADIR = '/home/joni/smallbrains-nas1/array1/pseudopupil_imaging'
-#DROSO_DATADIR = '/win2/imaging_data'
+    # Where folders DrosoX_i, DrosoM_i are
+    DROSO_DATADIR = '/home/joni/smallbrains-nas1/array1/pseudopupil_imaging'
+    #DROSO_DATADIR = '/win2/imaging_data'
 
-# Another way to access these directories
+elif platform.system == 'Windows':
+    DROSO_DATADIR = ''
+    ANALYSES_SAVEDIR = 'results'
+    PROCESSING_TEMPDIR = os.path.join('results', 'tmp')
+    PROCESSING_TEMPDIR_BIGFILES = PROCESSING_TEMPDIR
+else:
+    raise OSError('Unkown platform (not Windows or Linux)')
+
+# Just another way to access these directories
 ALLDIRS= {'ANALYSES_SAVEDIR': ANALYSES_SAVEDIR,
         'PROCESSING_TEMPDIR': PROCESSING_TEMPDIR,
         'PROCESSING_TEMPDIR_BIGFILES': PROCESSING_TEMPDIR_BIGFILES,

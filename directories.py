@@ -6,7 +6,7 @@ Note that not all modules may honour these settings.
 import os
 import platform
 
-if platform.system == 'Linux':
+if platform.system() == 'Linux':
     # Where for example
     ANALYSES_SAVEDIR = '/home/joni/analyses/pupil'
 
@@ -20,8 +20,8 @@ if platform.system == 'Linux':
     DROSO_DATADIR = '/home/joni/smallbrains-nas1/array1/pseudopupil_imaging'
     #DROSO_DATADIR = '/win2/imaging_data'
 
-elif platform.system == 'Windows':
-    DROSO_DATADIR = ''
+elif platform.system() == 'Windows':
+    DROSO_DATADIR = 'data'
     ANALYSES_SAVEDIR = 'results'
     PROCESSING_TEMPDIR = os.path.join('results', 'tmp')
     PROCESSING_TEMPDIR_BIGFILES = PROCESSING_TEMPDIR

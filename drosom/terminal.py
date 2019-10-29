@@ -32,13 +32,10 @@ class TerminalDrosoM:
     def __init__(self, custom_args=None): 
         
         # These determine what is considered proper 
-        #self.allowed_shorts = 'a'
-        #self.allowed_longs = ['timeplot', '2dplot', '3dplot', 'saveonly', 'averaged', 'movie', 'magnitude', 'averaged-magnitude', 'show', 'save', 'magtrace', 'recalculate']
         if custom_args is None:
             self.argv = sys.argv
         else:
             self.argv = custom_args
-        #self.parseInputArguments()
 
 
     def help(self):
@@ -52,16 +49,6 @@ class TerminalDrosoM:
         for line in arguments:
             print('  {}'.format(line))
 
-    def parseInputArguments(self):
-        
-        self.args = []
-        
-        for arg in sys.argv[1:]:
-            if not arg in self.allowed_longs:
-                print('Invalid option {}'.format(arg))
-                self.help()
-                raise ValueError
-
     
     def main(self, data_folder=None):
         
@@ -70,7 +57,7 @@ class TerminalDrosoM:
             directories = selector.askUser(startswith='DrosoM')
         else:
             directories = data_folder
-
+        print(directories)
         analysers = []
 
         # Set up analysers at the selected DrosoM folders
@@ -102,9 +89,13 @@ class TerminalDrosoM:
                 analyser.timePlot()
             if 'magtrace' in self.argv:
                 plotter.plotTimeCourses(analyser)
-            if '2dplot' in self.argv:
+            if '2d_vectormap' in self.argv:
                 plotter.plotDirection2D(analyser)
-            if '3dplot' in self.argv:
+            
+            if 'trajectories' in self.argv:
+                plotter.plot_2d_trajectories(analyser)
+            
+            if 'vectormap' in self.argv:
                 plotter.plot_3d_vectormap(analyser)
 
             if 'magnitude' in self.argv:

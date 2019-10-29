@@ -33,7 +33,7 @@ def main():
     tk_window.destroy()
 
     terminal = TerminalDrosoM( custom_args=args )
-    terminal.main( data_folder=specimen_folder )
+    terminal.main( data_folder = [specimen_folder] )
     
 
 

@@ -70,8 +70,64 @@ class MPlotter:
         for ax in [self.plots[plot_name]['ax'] for plot_name in self.plots]:
             ax.set_xlim(limits[0]-10, limits[1]+10)
             ax.set_ylim(limits[2]-10, limits[3]+10)
+    
+    
+    def plot_2d_trajectories(self, manalyser):
+        '''
+        Plot 2D movement trajectories of the pseudopupils, separetly for each imaged position.
+        '''
+        
+        plt_limits = [[],[],[],[]]
+
+        figure_content = []
+
+        for eye in ['left', 'right']:
+            angles, movements = manalyser.get_raw_xy_traces(eye)
+            
+            for movement in movements:
+                subfig_dict = {'eye': eye}
+                
+                x, y = [[],[]]
+                for repeat in movement:
+                    x.extend(repeat['x'])
+                    y.extend(repeat['y'])
+                    
+                plt_limits[0].append(np.min(x))
+                plt_limits[1].append(np.max(x))
+                plt_limits[2].append(np.min(y))
+                plt_limits[3].append(np.max(y))
+
+                subfig_dict = {'x': x, 'y': y, **subfig_dict}
+                figure_content.append(subfig_dict)
+        
+        ROWS, COLS = (8, 6)
+        i_page = 0
+        
+
+        for i, data in enumerate(figure_content):
+            
+            if i == i_page * ROWS * COLS:
+                fig = plt.figure()
+                i_page += 1
+
+        
+            ax = plt.subplot(ROWS, COLS, i - ((i_page-1) * ROWS * COLS)+1)
+            ax.axis('off')
+            cmap = matplotlib.cm.get_cmap('inferno', len(data['x']))
+            
+            for i_point in range(1, len(data['x'])):
+                ax.plot([data['x'][i_point], data['x'][i_point-1]], [data['y'][i_point], data['y'][i_point-1]], color=cmap(i_point/len(data['x'])))
+                
+                
+                #ax.set_xlim([np.percentile(plt_limits[0], 99), np.percentile(plt_limits[1], 99)])
+                #ax.set_ylim([np.percentile(plt_limits[2], 99), np.percentile(plt_limits[3], 99)])
 
 
+
+            #ax.suptitle('{} eye, {}'.format(data['eye'], data['time']))
+        
+        plt.show()
+    
     def plotDirection2D(self, manalyser):
         '''
         manalyser       Instance of MAnalyser class or MAverager class (having get2DVectors method)
@@ -104,7 +160,6 @@ class MPlotter:
                 if scaler != 0:
                     x /= scaler
                     y /= scaler /2.4    # FIXME
-
 
                 #ar = matplotlib.patches.Arrow(horizontal, pitch, xc, yc)
                 ar = matplotlib.patches.FancyArrowPatch((horizontal, pitch), (horizontal-x, pitch+y), mutation_scale=10, color=color, picker=True)
@@ -296,11 +351,11 @@ class MPlotter:
         for color, eye in zip(['red', 'blue'], ['left', 'right']):
             
             vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True)
-            vector_plot(ax[0], *vectors_3d)
+            vector_plot(axes[0], *vectors_3d, color='blue', mutation_scale=15)
 
             if with_optic_flow:
                 flow_vectors = [flow_direction(P0, xrot=with_optic_flow) for P0 in vectors_3d[0]]
-                vector_plot(ax[1], vectors_3d[0], flow_vectors)        
+                vector_plot(axes[1], vectors_3d[0], flow_vectors)        
 
 
             
@@ -365,13 +420,13 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def vector_plot(ax, points, vectors, color='black'):
+def vector_plot(ax, points, vectors, color='black', mutation_scale=3):
     '''
     Plot vectors on ax.
     '''
     for point, vector in zip(points, vectors):
         ar = Arrow3D(*point, *(point+vector), arrowstyle="-|>", lw=1,
-                mutation_scale=3, color=color)
+                mutation_scale=mutation_scale, color=color)
         ax.add_artist(ar)
     
     # With patches limits are not automatically adjusted

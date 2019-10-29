@@ -302,6 +302,9 @@ class MAnalyser(VectorGettable):
     def timePlot(self):
         '''
         Not sure anymore what this is but probably movement magnitude over time.
+
+        UPDATE
+        probably the magnitude of the movement as a function of ISI
         '''
 
         data = []
@@ -316,9 +319,22 @@ class MAnalyser(VectorGettable):
             print(d['time'])
 
         X = [0]
-        X.extend( [(datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S.%f')).total_seconds()
-            for i in range(1, len(data))] )
+        #X.extend( [(datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S.%f')).total_seconds()
+        #    for i in range(1, len(data))] )
         
+        for i in range(1, len(data)):
+            # We need these try blocks because sometimmes seconds are integer and we have no %f
+            try:
+                this_time = datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S.%f')
+            except ValueError:
+                this_time = datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S') 
+            try:
+                previous_time = datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S.%f')
+            except ValueError:
+                previous_time = datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S') 
+            
+            X.append((this_time-previous_time).total_seconds())
+
         xx = [x['x'][-1]-x['x'][0] for x in data]
         yy = [x['y'][-1]-x['y'][0] for x in data]
         Z = [math.sqrt(x**2+y**2) for (x,y) in zip(xx, yy)]
@@ -361,6 +377,18 @@ class MAnalyser(VectorGettable):
             #ROIs.extend([ROI]*len(fns))
             ROIs.extend(ROI)
         return images, ROIs
+
+    
+    def get_raw_xy_traces(self, eye):
+        '''
+        Return angles, values
+        angles      Each recorded fly orientation in steps
+        values      X and Y
+        '''
+        angles = [list(ast.literal_eval(angle)) for angle in self.movements[eye]]
+        movement_dict = [self.movements[eye][str(angle)] for angle in angles]
+        
+        return angles, movement_dict
 
 
     def get2DVectors(self, eye, mirror_horizontal=True, mirror_pitch=True, correct_level=True):

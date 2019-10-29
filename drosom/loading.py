@@ -53,7 +53,7 @@ def load_data(drosom_folder):
     
     stacks_dictionary = {}
 
-    pos_folders = os.listdir(drosom_folder)
+    pos_folders = [fn for fn in os.listdir(drosom_folder) if os.path.isdir(os.path.join(drosom_folder, fn))]
 
     # Import all tif images
     for folder in pos_folders:

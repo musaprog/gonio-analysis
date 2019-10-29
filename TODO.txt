@@ -1,4 +1,8 @@
 
+adm_gui
+	change so that cancel cancles the thing, not opening a new window
+
+
 DrosoM
 - Movement values from pixels to micrometers
 - Lazy imports for big libraries?

@@ -21,9 +21,9 @@ if platform.system() == 'Linux':
     #DROSO_DATADIR = '/win2/imaging_data'
 
 elif platform.system() == 'Windows':
-    DROSO_DATADIR = 'data'
-    ANALYSES_SAVEDIR = 'results'
-    PROCESSING_TEMPDIR = os.path.join('results', 'tmp')
+    DROSO_DATADIR = '../DATA'
+    ANALYSES_SAVEDIR = '../RESULTS'
+    PROCESSING_TEMPDIR = os.path.join(ANALYSES_SAVEDIR, 'tmp')
     PROCESSING_TEMPDIR_BIGFILES = PROCESSING_TEMPDIR
 else:
     raise OSError('Unkown platform (not Windows or Linux)')

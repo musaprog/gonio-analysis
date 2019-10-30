@@ -1,6 +1,5 @@
 
 adm_gui
-	change so that cancel cancles the thing, not opening a new window
 
 
 DrosoM

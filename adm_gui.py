@@ -26,10 +26,17 @@ def main():
 
     tk_window = tk.Tk()
     tk_window.withdraw()
-
+    
     args = simpledialog.askstring("Pass options", readme, parent=tk_window)
+    
+    if args is None:
+        return 0
+    
     specimen_folder = filedialog.askdirectory(title='Select data folder(s)', parent=tk_window)
     
+    if specimen_folder is None:
+        return 0
+
     tk_window.destroy()
 
     terminal = TerminalDrosoM( custom_args=args )

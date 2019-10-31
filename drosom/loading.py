@@ -45,6 +45,8 @@ def load_data(drosom_folder):
         stacks_dictionary = {"(hor1, pitch1): [[stack_rep1], [stack_rep2], ...]"},
         
         where stack_rep1 = [image1_fn, image2_fn, ...].
+    
+    Horizontal and pitch are given in rotatry encoder steps, not degrees.
 
     '''
     repetition_indicator = 'rep'

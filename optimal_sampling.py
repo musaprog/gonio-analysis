@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 
-from coordinates import camera2Fly
+from pupil.coordinates import camera2Fly
 
 
 def distance(a, b):

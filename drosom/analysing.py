@@ -97,7 +97,7 @@ class MAnalyser(VectorGettable):
         
         # For cahcing frequently used data
         self.cahced = {'3d_vectors': None}
-
+    
 
     def __fileOpen(self, fn):
         with open(fn, 'r') as fp:
@@ -110,12 +110,35 @@ class MAnalyser(VectorGettable):
             json.dump(data, fp)
     
     
+    def list_imagefolders(self, list_special=True):
+        '''
+        Returns a list of the images containing folders (subfolders).
+        
+        list_special        Sets wheter to list also image folders with suffixes
+        '''
+        image_folders = []
+        special_image_folders = []
+
+        for key in self.stacks.keys():
+            try:
+                horizontal, vertical = ast.literal_eval(key)
+            except (SyntaxError, ValueError):
+                special_image_folders.append('pos'+key)   
+                continue
+
+            image_folders.append('pos'+key)
+
+        #image_folders = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder)) if os.path.isdir(os.path.join(self.data_path, self.folder, fn))]
+        
+        return sorted(image_folders) + sorted(special_image_folders)
+
+
     def getFolderName(self):
         '''
         Return the name of the data (droso) folder, such as DrosoM42
         '''
         return self.folder
-
+    
     
     @staticmethod
     def getPosFolder(image_fn):
@@ -223,6 +246,9 @@ class MAnalyser(VectorGettable):
         '''
         return (os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right')))
 
+    def is_analysed(self):
+        return all(self.isMovementsAnalysed())
+
     def loadAnalysedMovements(self):
         self.movements = {}
         with open(self.MOVEMENTS_SAVEFN.format('right'), 'r') as fp:
@@ -230,6 +256,10 @@ class MAnalyser(VectorGettable):
         with open(self.MOVEMENTS_SAVEFN.format('left'), 'r') as fp:
             self.movements['left'] = json.load(fp)
         
+
+    def load_analysed_movements(self):
+        return self.loadAnalysedMovements()
+
     def analyseMovement(self, eye):
         '''
         Performs cross-correlation analysis for the selected pseudopupils (ROIs, regions of interest)
@@ -378,7 +408,19 @@ class MAnalyser(VectorGettable):
             ROIs.extend(ROI)
         return images, ROIs
 
-    
+    def get_movements_from_folder(self, image_folder):
+        '''
+        
+        '''
+        data = {}
+        for eye in ['left', 'right']:
+            try:
+                data[eye] = self.movements[eye][image_folder[3:]]
+            except KeyError:
+                pass
+        
+        return data
+
     def get_raw_xy_traces(self, eye):
         '''
         Return angles, values

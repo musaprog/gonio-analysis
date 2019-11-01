@@ -239,6 +239,9 @@ class MAnalyser(VectorGettable):
         Returns True if a file for crops/ROIs is found.
         '''
         return os.path.exists(self.CROPS_SAVEFN)
+    
+    def is_rois_selected(self):
+        return self.isROIsSelected()
 
     def isMovementsAnalysed(self):
         '''

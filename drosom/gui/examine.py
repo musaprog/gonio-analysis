@@ -3,13 +3,15 @@ import os
 
 import numpy as np
 import tkinter as tk
+import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
+
 
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame
 from tk_steroids.matplotlib import CanvasPlotter
 
 from pupil.drosom.analysing import MAnalyser
- 
+from pupil.drosom.gui.run_measurement import MeasurementWindow
 
 
 
@@ -28,40 +30,48 @@ class ExamineView(tk.Frame):
         
         #tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
         
-        
-        # The 1st buttons frame
-        self.buttons_frame_1 = ButtonsFrame(self, ['Set data directory...'],
+        # LEFTSIDE frame
+        self.leftside_frame = tk.Frame(self)
+        self.leftside_frame.grid(row=0, column=0, sticky='NS') 
+        self.leftside_frame.grid_rowconfigure(2, weight=1) 
+
+        # The 1st buttons frame, selecting root data directory
+        self.buttons_frame_1 = ButtonsFrame(self.leftside_frame, ['Set data directory...'],
                 [self.set_data_directory, self.set_data_directory])
-        self.buttons_frame_1.grid(row=0, column=0)
+        self.buttons_frame_1.grid(row=0, column=0, sticky='NW', columnspan=2)
         
-        # The 2nd buttons frame
-        self.buttons_frame_2 = ButtonsFrame(self,
+        # The 2nd buttons frame, ROIs and movements
+        self.buttons_frame_2 = ButtonsFrame(self.leftside_frame,
                 ['Select ROIs...', 'Measure movement...'],
-                [self.set_data_directory, self.set_data_directory])
-        self.buttons_frame_2.grid(row=1, column=0)
+                [self.select_rois, self.measure_movement])
+        self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_rois, self.button_measure = self.buttons_frame_2.get_buttons()
 
-        #self.analyse_button = tk.Button(self, text='Set data directory...', command=self.set_data_directory)
-        #self.analyse_button.grid(row=0, column=1)
-       
 
-        self.specimen_box = Listbox(self, ['fly1', 'fly2'], self.on_specimen_selection)
+        # Selecting the specimen
+        self.specimen_box = Listbox(self.leftside_frame, ['fly1', 'fly2'], self.on_specimen_selection)
         self.specimen_box.grid(row=2, column=0, sticky='NS')
-        
-        self.recording_box = Listbox(self, ['rot1', 'rot2'], self.on_recording_selection)
-        self.recording_box.grid(row=2, column=1, sticky='NS')
+
        
+        # Selecting the recording
+        self.recording_box = Listbox(self.leftside_frame, ['rot1', 'rot2'], self.on_recording_selection)
+        self.recording_box.grid(row=2, column=1, sticky='NS')
+
+
+        # RIGHTSIDE frame        
+        self.rightside_frame = tk.Frame(self)
+        self.rightside_frame.grid(row=0, column=1, sticky='NS')
+        
         
         canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
-        self.tabs = Tabs(self, ['XY', 'Magnitude'], [canvas_constructor, canvas_constructor])
-        self.tabs.grid(row=0, column=2, rowspan=3)
+        self.tabs = Tabs(self.rightside_frame, ['XY', 'Magnitude'], [canvas_constructor, canvas_constructor])
+        self.tabs.grid(row=0, column=1)
 
         self.canvases = self.tabs.get_elements()
-        
-        #self.canvas = CanvasPlotter(self)
-        #self.canvas.grid(row=0, column=2, rowspan=3)
-        
+       
+
         self.default_button_bg = self.button_rois.cget('bg')
+
 
     def set_data_directory(self):
         '''
@@ -76,11 +86,33 @@ class ExamineView(tk.Frame):
             specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
 
             self.specimen_box.set_selections(specimens)
-    
+
+
     def select_rois(self):
         '''
         When the analyse_button is pressed.
         '''
+
+        # Ask confirmation if ROIs already selected
+        if self.analyser.is_rois_selected():
+            sure = messagebox.askokcancel('Reselect ROIs', 'Are you sure you want to reselect ROIs?')
+            if not sure:
+                return None
+
+        self.analyser.selectROIs()
+    
+    def measure_movement(self):
+        '''
+        When the measure movement button is pressed.
+        '''
+        
+        # Ask confirmation if ROIs already selected
+        if self.analyser.is_measured():
+            sure = messagebox.askokcancel('Reselect ROIs', 'Are you sure you want to reselect ROIs?')
+            if not sure:
+                return None
+        
+        MeasurementWindow(self.analyser)
 
     def on_specimen_selection(self, specimen):
         '''
@@ -96,22 +128,22 @@ class ExamineView(tk.Frame):
             self.button_measure.config(state=tk.NORMAL)
             
 
-            if self.analyser.is_analysed():
-                self.button_measure.config(text='Remeasure ROIs...')
+            if self.analyser.is_measured():
+                self.button_measure.config(text='Remeasure movement...')
                 self.button_measure.config(bg=self.default_button_bg)
             else:
-                self.button_measure.config(text='Measure ROIs...')
+                self.button_measure.config(text='Measure movement...')
                 self.button_measure.config(bg='green')
         else:
             self.button_rois.config(text='Select ROIs...')
             self.button_rois.config(bg='green')
 
             self.button_measure.config(state=tk.DISABLED)
-            self.button_measure.config(text='Remeasure ROIs...')
-
+            self.button_measure.config(text='Measure movement...')
+            self.button_measure.config(bg=self.default_button_bg)
 
         # Loading cached analyses and setting the recordings listbox
-        if self.analyser.is_analysed():
+        if self.analyser.is_measured():
             self.analyser.load_analysed_movements()
             recordings = self.analyser.list_imagefolders()
         else:

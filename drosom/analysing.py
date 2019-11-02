@@ -98,6 +98,8 @@ class MAnalyser(VectorGettable):
         # For cahcing frequently used data
         self.cahced = {'3d_vectors': None}
     
+        self.stop_now = False
+
 
     def __fileOpen(self, fn):
         with open(fn, 'r') as fp:
@@ -174,6 +176,7 @@ class MAnalyser(VectorGettable):
 
         return angles
 
+
     def loadROIs(self):
         '''
         Load ROIs (pseudopupils selected before) for the left/right eye.
@@ -233,7 +236,10 @@ class MAnalyser(VectorGettable):
         fig, ax = plt.subplots()
         marker = Marker(fig, ax, to_cropping, self.CROPS_SAVEFN)
         marker.run()
-        
+
+    def select_ROIs(self):
+        return self.selectROIs()
+
     def isROIsSelected(self):
         '''
         Returns True if a file for crops/ROIs is found.
@@ -249,7 +255,7 @@ class MAnalyser(VectorGettable):
         '''
         return (os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right')))
 
-    def is_analysed(self):
+    def is_measured(self):
         return all(self.isMovementsAnalysed())
 
     def loadAnalysedMovements(self):
@@ -302,6 +308,14 @@ class MAnalyser(VectorGettable):
        
 
         for stack_i, angle in enumerate(angles):
+            
+            if self.stop_now:
+                self.stop_now = False
+                self.movements = {}
+                print('{} EYE CANCELLED'.format(eye.upper()))
+                return None
+
+            
             print('Analysing {} eye pseudopupil motion from position {}, done {}/{} for this eye'.format(eye.upper(), angle, stack_i+1, len(ROIs)))
 
             print("Calculating ROI's movement...")
@@ -330,7 +344,9 @@ class MAnalyser(VectorGettable):
         #    plt.plot(data['x'])
         #    plt.plot(data['y'])
         #    plt.show()
-
+    
+    def measure_movement(self, *args, **kwargs):
+        return self.analyseMovement(*args, **kwargs)
 
     def timePlot(self):
         '''
@@ -551,6 +567,13 @@ class MAnalyser(VectorGettable):
             return points, vectors, angles
         else:
             return points, vectors
+
+
+    def stop(self):
+        '''
+        Stop long running activities (now measurement).
+        '''
+        self.stop_now = True
 
 class MAverager(VectorGettable):
     '''

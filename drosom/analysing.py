@@ -12,7 +12,7 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .loading import load_data
+from .loading import load_data, angles_from_fn
 from pupil.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector
 from pupil.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
 from pupil.optimal_sampling import optimal
@@ -202,8 +202,9 @@ class MAnalyser(VectorGettable):
         
         for image_fn, ROIs in marker_markings.items():
             
-            pos = self.getPosFolder(image_fn)[3:]
-            horizontal, pitch = ast.literal_eval(pos)
+            pos = self.getPosFolder(image_fn)
+            horizontal, pitch = angles_from_fn(pos)
+            pos = pos[3:]
 
             # ROI belonging to the eft/right eye is determined solely by
             # the horizontal angle when only 1 ROI exists for the position

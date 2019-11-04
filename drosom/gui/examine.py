@@ -100,7 +100,8 @@ class ExamineView(tk.Frame):
                 return None
 
         self.analyser.selectROIs()
-    
+
+
     def measure_movement(self):
         '''
         When the measure movement button is pressed.
@@ -113,6 +114,7 @@ class ExamineView(tk.Frame):
                 return None
         
         MeasurementWindow(self.analyser)
+
 
     def on_specimen_selection(self, specimen):
         '''
@@ -180,6 +182,7 @@ class ExamineView(tk.Frame):
         
         for canvas in self.canvases:
             canvas.update()
+
 
 
 def main():

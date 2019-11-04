@@ -6,6 +6,7 @@ TODO
 '''
 
 import os
+import ast
 
 from pupil_imsoft.anglepairs import toDegrees
 
@@ -24,6 +25,25 @@ def angleFromFn(fn):
     angles = [[hor,ver]]
     toDegrees(angles)
     return angles[0]
+
+
+def angles_from_fn(fn, prefix='pos'):
+    '''
+    Takes in a filename that somewhere contains string "pos(hor, ver)",
+    for example "pos(-30, 170)" and returns tuple (-30, 170)
+    '''
+    try:
+        i_start = fn.index(prefix) + len(prefix)
+    except ValueError:
+        raise ValueError("Cannot find prefix {} from filename {}".format(fn))
+
+    try:
+        i_end = fn[i_start:].index(')') + i_start + 1
+    except ValueError:
+        raise ValueError("Cannot find ')' after 'pos' in filename {}".format(fn))
+    
+    return ast.literal_eval(fn[i_start:i_end])
+
 
 
 def load_data(drosom_folder):

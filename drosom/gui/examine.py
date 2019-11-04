@@ -1,5 +1,6 @@
 
 import os
+import multiprocessing
 
 import numpy as np
 import tkinter as tk
@@ -10,10 +11,11 @@ import tkinter.filedialog as filedialog
 import matplotlib.pyplot as plt
 import matplotlib.cm
 
-from tk_steroids.elements import Listbox, Tabs, ButtonsFrame
+from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect
 from tk_steroids.matplotlib import CanvasPlotter
 
 from pupil.drosom.analysing import MAnalyser
+from pupil.drosom.plotting import MPlotter
 from pupil.drosom.gui.run_measurement import MeasurementWindow
 
 
@@ -22,16 +24,16 @@ class ExamineMenubar(tk.Frame):
     Menubar class for the examine GUI.
     '''
 
-    def __init__(self, parent, examine_view):
+    def __init__(self, parent):
         tk.Frame.__init__(self, parent)
 
         self.parent = parent
-        self.core = examine_view
+        self.core = parent
         self.menubar = tk.Menu(self)
         
         # File menu
         file_menu = tk.Menu(self.menubar, tearoff=0)
-        file_menu.add_command(label='Set data directory', command=self.batch_ROIs)
+        file_menu.add_command(label='Set data directory', command=self.core.set_data_directory)
         file_menu.add_command(label='Exit', command=self.on_exit)
         self.menubar.add_cascade(label='File', menu=file_menu)
         
@@ -44,23 +46,42 @@ class ExamineMenubar(tk.Frame):
         
         # Data plotting
         plot_menu = tk.Menu(self.menubar, tearoff=0)
-        plot_menu.add_command(label='Vectormap', command=self.batch_ROIs)
-        plot_menu.add_command(label='Averaged vectormap...', command=self.batch_measurement)
+        plot_menu.add_command(label='Vectormap', command=self.vectormap)
+        plot_menu.add_command(label='Averaged vectormap...', command=self.averaged_vectormap)
         self.menubar.add_cascade(label='Plot', menu=plot_menu)
         
 
         self.winfo_toplevel().config(menu=self.menubar)
     
+        self.plotter = MPlotter()
+
     def batch_ROIs(self):
         pass
 
     def batch_measurement(self):
         pass
 
-    
+    def vectormap(self):
+
+        p = multiprocessing.Process(target=self.plotter.plot_3d_vectormap, args=(self.core.analyser,))
+        p.start()
+
+    def averaged_vectormap(self):
+        
+        top = tk.Toplevel()
+        top.title('Select specimens')
+        
+        specimens = self.core._list_specimens() 
+        selector = TickSelect(top, specimens, self.vectormap)
+        selector.grid()
+        
+        tk.Button(top, text='Close', command=top.destroy).grid()
+
     def on_exit(self):
         self.winfo_toplevel().destroy()
-    
+
+
+
 class ExamineView(tk.Frame):
     '''
     The examine frame. Selection of
@@ -74,10 +95,10 @@ class ExamineView(tk.Frame):
         
         tk.Frame.__init__(self, parent)
         
-        #tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
+        tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
         
         # Uncomment to have the menubar
-        #self.menu = ExamineMenubar(self)
+        self.menu = ExamineMenubar(self)
 
         # LEFTSIDE frame
         self.leftside_frame = tk.Frame(self)
@@ -125,6 +146,19 @@ class ExamineView(tk.Frame):
         
         self.colorbar = None
 
+    def _list_specimens(self):
+        '''
+        List specimens in the data directory. May contain bad folders also (no check for contents)
+        '''
+        specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
+        return sorted(specimens)
+
+    def _get_manalyser(self, specimen_name):
+        '''
+        Gets manalyser for the specimen specified by the given name.
+        '''
+        self.analyser = MAnalyser(self.data_directory, specimen_name)
+
 
     def set_data_directory(self):
         '''
@@ -136,7 +170,9 @@ class ExamineView(tk.Frame):
         if directory:
             self.data_directory = directory
             
-            specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
+            #specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
+            specimens = self._list_specimens()
+    
 
             self.specimen_box.set_selections(specimens)
 

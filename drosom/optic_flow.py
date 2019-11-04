@@ -6,7 +6,7 @@ from math import cos, sin, radians
 
 import numpy as np
 
-from coordinates import force_to_tplane, normalize
+from pupil.coordinates import force_to_tplane, normalize
 
 def flow_direction(point, xrot=0):
     '''

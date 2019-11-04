@@ -13,6 +13,7 @@ from tkinter import filedialog, simpledialog
 # Add the directory above the pupil folder to path because
 # other needed packages may lay there
 sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
+sys.path.append(os.path.dirname(os.getcwd()))
  
 from drosom.terminal import TerminalDrosoM
 
@@ -20,7 +21,7 @@ from drosom.terminal import TerminalDrosoM
 def main():
     
     readme = ''
-    with open(os.path.join('drosom', 'README.txt'), 'r') as fp:
+    with open(os.path.join('..', 'drosom', 'README.txt'), 'r') as fp:
         for line in fp:
             readme += line
 

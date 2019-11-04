@@ -14,7 +14,48 @@ from pupil.drosom.analysing import MAnalyser
 from pupil.drosom.gui.run_measurement import MeasurementWindow
 
 
+class ExamineMenubar(tk.Frame):
+    '''
+    Menubar class for the examine GUI.
+    '''
 
+    def __init__(self, parent):
+        tk.Frame.__init__(self, parent)
+
+        self.menubar = tk.Menu(self)
+        
+        # File menu
+        file_menu = tk.Menu(self.menubar, tearoff=0)
+        file_menu.add_command(label='Set data directory', command=self.batch_ROIs)
+        file_menu.add_command(label='Exit', command=self.on_exit)
+        self.menubar.add_cascade(label='File', menu=file_menu)
+        
+        # Batch run
+        batch_menu = tk.Menu(self.menubar, tearoff=0)
+        batch_menu.add_command(label='Select ROIs', command=self.batch_ROIs)
+        batch_menu.add_command(label='Measure movements', command=self.batch_measurement)
+        self.menubar.add_cascade(label='Batch', menu=batch_menu)
+        
+        
+        # Data plotting
+        plot_menu = tk.Menu(self.menubar, tearoff=0)
+        plot_menu.add_command(label='Vectormap', command=self.batch_ROIs)
+        plot_menu.add_command(label='Averaged vectormap...', command=self.batch_measurement)
+        self.menubar.add_cascade(label='Plot', menu=plot_menu)
+        
+
+        self.winfo_toplevel().config(menu=self.menubar)
+    
+    def batch_ROIs(self):
+        pass
+
+    def batch_measurement(self):
+        pass
+
+    
+    def on_exit(self):
+        self.winfo_toplevel().destroy()
+    
 class ExamineView(tk.Frame):
     '''
     The examine frame. Selection of
@@ -30,19 +71,22 @@ class ExamineView(tk.Frame):
         
         #tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
         
+        # Uncomment to have the menubar
+        #self.menu = ExamineMenubar(self)
+
         # LEFTSIDE frame
         self.leftside_frame = tk.Frame(self)
         self.leftside_frame.grid(row=0, column=0, sticky='NS') 
         self.leftside_frame.grid_rowconfigure(2, weight=1) 
 
         # The 1st buttons frame, selecting root data directory
-        self.buttons_frame_1 = ButtonsFrame(self.leftside_frame, ['Set data directory...'],
+        self.buttons_frame_1 = ButtonsFrame(self.leftside_frame, ['Set data directory'],
                 [self.set_data_directory, self.set_data_directory])
         self.buttons_frame_1.grid(row=0, column=0, sticky='NW', columnspan=2)
         
         # The 2nd buttons frame, ROIs and movements
         self.buttons_frame_2 = ButtonsFrame(self.leftside_frame,
-                ['Select ROIs...', 'Measure movement...'],
+                ['Select ROIs', 'Measure movement'],
                 [self.select_rois, self.measure_movement])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_rois, self.button_measure = self.buttons_frame_2.get_buttons()
@@ -125,23 +169,23 @@ class ExamineView(tk.Frame):
         # Logick to set buttons inactive/active and their texts
         if self.analyser.is_rois_selected():
             
-            self.button_rois.config(text='Reselect ROIs...')
+            self.button_rois.config(text='Reselect ROIs')
             self.button_rois.config(bg=self.default_button_bg)
             self.button_measure.config(state=tk.NORMAL)
             
 
             if self.analyser.is_measured():
-                self.button_measure.config(text='Remeasure movement...')
+                self.button_measure.config(text='Remeasure movement')
                 self.button_measure.config(bg=self.default_button_bg)
             else:
-                self.button_measure.config(text='Measure movement...')
+                self.button_measure.config(text='Measure movement')
                 self.button_measure.config(bg='green')
         else:
-            self.button_rois.config(text='Select ROIs...')
+            self.button_rois.config(text='Select ROIs')
             self.button_rois.config(bg='green')
 
             self.button_measure.config(state=tk.DISABLED)
-            self.button_measure.config(text='Measure movement...')
+            self.button_measure.config(text='Measure movement')
             self.button_measure.config(bg=self.default_button_bg)
 
         # Loading cached analyses and setting the recordings listbox

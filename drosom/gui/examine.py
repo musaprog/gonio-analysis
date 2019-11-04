@@ -6,6 +6,9 @@ import tkinter as tk
 import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 
+# PLotting
+import matplotlib.pyplot as plt
+import matplotlib.cm
 
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame
 from tk_steroids.matplotlib import CanvasPlotter
@@ -19,9 +22,11 @@ class ExamineMenubar(tk.Frame):
     Menubar class for the examine GUI.
     '''
 
-    def __init__(self, parent):
+    def __init__(self, parent, examine_view):
         tk.Frame.__init__(self, parent)
 
+        self.parent = parent
+        self.core = examine_view
         self.menubar = tk.Menu(self)
         
         # File menu
@@ -108,13 +113,17 @@ class ExamineView(tk.Frame):
         
         
         canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
-        self.tabs = Tabs(self.rightside_frame, ['XY', 'Magnitude'], [canvas_constructor, canvas_constructor])
+        tab_names = ['XY', 'Magnitude', 'ROI']
+        self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))])
         self.tabs.grid(row=0, column=1)
 
         self.canvases = self.tabs.get_elements()
        
 
         self.default_button_bg = self.button_rois.cget('bg')
+
+        
+        self.colorbar = None
 
 
     def set_data_directory(self):
@@ -203,19 +212,48 @@ class ExamineView(tk.Frame):
         '''
         movement_data = self.analyser.get_movements_from_folder(selected_recording)
         
-        print(movement_data)
-        
         
         fig, ax = self.canvases[0].get_figax()
         ax.clear()
         
+        # Plot XY
         for eye, movements in movement_data.items():
             for repetition in range(len(movements)):
+                
                 x = movements[repetition]['x']
                 y = movements[repetition]['y']
-                ax.plot(x, y)
-
+                 
+                N = len(movements[repetition]['x'])
+                
+                cmap = matplotlib.cm.get_cmap('inferno', N)
+               
+                for i_point in range(1, N):
+                    ax.plot([x[i_point-1], x[i_point]], [y[i_point-1], y[i_point]], color=cmap((i_point-1)/(N-1)))
+                
         
+        # Colormap
+        
+        if not self.colorbar: 
+            time = [i for i in range(N)]
+            sm = matplotlib.cm.ScalarMappable(cmap=cmap)
+            sm.set_array(time)
+
+            self.colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
+            self.colorbar.set_label('Frame')
+        else:
+            self.colorbar.set_clim(0, N-1)
+        
+        ax.set_xlabel('Displacement in X (pixels)')
+        ax.set_ylabel('Displacement in Y (pixels)')
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+
+
+        ax.yaxis.set_ticks_position('left')
+        ax.xaxis.set_ticks_position('bottom')
+
+
+
         fig, ax = self.canvases[1].get_figax()
         ax.clear()
         
@@ -224,6 +262,9 @@ class ExamineView(tk.Frame):
                 mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
                 ax.plot(mag)
         
+
+
+
         for canvas in self.canvases:
             canvas.update()
 

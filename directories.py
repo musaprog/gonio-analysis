@@ -21,8 +21,9 @@ if platform.system() == 'Linux':
     #DROSO_DATADIR = '/win2/imaging_data'
 
 elif platform.system() == 'Windows':
-    DROSO_DATADIR = '../DATA'
-    ANALYSES_SAVEDIR = '../RESULTS'
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    DROSO_DATADIR = os.path.join(root_dir, '../DATA')
+    ANALYSES_SAVEDIR = os.path.join(root_dir, '../RESULTS')
     PROCESSING_TEMPDIR = os.path.join(ANALYSES_SAVEDIR, 'tmp')
     PROCESSING_TEMPDIR_BIGFILES = PROCESSING_TEMPDIR
 else:

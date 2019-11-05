@@ -1,6 +1,9 @@
 
 import os
 import multiprocessing
+import subprocess
+import sys
+
 
 import numpy as np
 import tkinter as tk
@@ -36,11 +39,11 @@ class ExamineMenubar(tk.Frame):
         file_menu.add_command(label='Set data directory', command=self.core.set_data_directory)
         file_menu.add_command(label='Exit', command=self.on_exit)
         self.menubar.add_cascade(label='File', menu=file_menu)
-        
+
         # Batch run
         batch_menu = tk.Menu(self.menubar, tearoff=0)
-        batch_menu.add_command(label='Select ROIs', command=self.batch_ROIs)
-        batch_menu.add_command(label='Measure movements', command=self.batch_measurement)
+        batch_menu.add_command(label='Select ALL ROIs', command=self.batch_ROIs)
+        batch_menu.add_command(label='Measure ALL movements', command=self.batch_measurement)
         self.menubar.add_cascade(label='Batch', menu=batch_menu)
         
         
@@ -49,7 +52,7 @@ class ExamineMenubar(tk.Frame):
         plot_menu.add_command(label='Vectormap', command=self.vectormap)
         plot_menu.add_command(label='Averaged vectormap...', command=self.averaged_vectormap)
         self.menubar.add_cascade(label='Plot', menu=plot_menu)
-        
+        self.plot_menu = plot_menu        
 
         self.winfo_toplevel().config(menu=self.menubar)
     
@@ -62,9 +65,21 @@ class ExamineMenubar(tk.Frame):
         pass
 
     def vectormap(self):
+        
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+        pyfile = os.path.join(root, 'adm')
 
-        p = multiprocessing.Process(target=self.plotter.plot_3d_vectormap, args=(self.core.analyser,))
-        p.start()
+        specimen_directory = self.core.analyser.get_specimen_directory()
+        print(specimen_directory)
+        arguments = '{} vectormap'.format(specimen_directory)
+
+        python = sys.executable
+
+        print('{} {} {}'.format(python, pyfile, arguments))
+        subprocess.run('{} {} {} &'.format(python, pyfile, arguments), shell=True)
+
+        #p = multiprocessing.Process(target=MPlotter().plot_3d_vectormap, args=(self.core.analyser,))
+        #p.start()
 
     def averaged_vectormap(self):
         
@@ -80,6 +95,22 @@ class ExamineMenubar(tk.Frame):
     def on_exit(self):
         self.winfo_toplevel().destroy()
 
+    def update_states(self, manalyser):
+        '''
+        Updates menu entry states (enabled/disabled) based specimen's status (ROIs set, etc)
+        '''
+        
+        rois = manalyser.is_rois_selected()
+        measurements = manalyser.is_measured()
+        
+        # Plot menu
+        if measurements and rois:
+            state = tk.NORMAL
+        else:
+            state = tk.DISABLED
+        self.plot_menu.entryconfig(0, state=state)        
+        self.plot_menu.entryconfig(1, state=state)        
+        
 
 
 class ExamineView(tk.Frame):
@@ -240,7 +271,8 @@ class ExamineView(tk.Frame):
         else:
             recordings = ['not analysed']
         self.recording_box.set_selections(recordings)
-   
+        
+        self.menu.update_states(self.analyser)
 
     def on_recording_selection(self, selected_recording):
         '''
@@ -308,6 +340,7 @@ class ExamineView(tk.Frame):
 
 def main():
     root = tk.Tk()
+    root.title('Pupil analysis - Tkinter GUI')
     ExamineView(root).grid()
     root.mainloop()
 

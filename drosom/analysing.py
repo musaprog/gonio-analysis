@@ -110,7 +110,7 @@ class MAnalyser(VectorGettable):
     def __fileSave(self, fn, data):
         with open(fn, 'w') as fp:
             json.dump(data, fp)
-    
+
     
     def list_imagefolders(self, list_special=True):
         '''
@@ -134,13 +134,17 @@ class MAnalyser(VectorGettable):
         
         return sorted(image_folders) + sorted(special_image_folders)
 
+    def get_specimen_directory(self):
+        return os.path.join(self.data_path, self.folder)
 
     def getFolderName(self):
         '''
         Return the name of the data (droso) folder, such as DrosoM42
         '''
         return self.folder
-    
+   
+    def get_specimen_name(self):
+        return self.folder
     
     @staticmethod
     def getPosFolder(image_fn):

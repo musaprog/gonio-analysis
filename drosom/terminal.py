@@ -52,14 +52,21 @@ class TerminalDrosoM:
     
     def main(self, data_folder=None):
         
-        if data_folder is None:
-            selector = DrosoSelect()
-            directories = selector.askUser(startswith='DrosoM')
+        
+        if os.path.isdir(self.argv[1]):
+            # If data_folder given as the first argv
+            directories = [self.argv[1]]
         else:
-            directories = data_folder
-        print(directories)
-        analysers = []
 
+           
+            if data_folder is None:
+                selector = DrosoSelect()
+                directories = selector.askUser(startswith='DrosoM')
+            else:
+                directories = data_folder
+        
+        analysers = []
+            
         # Set up analysers at the selected DrosoM folders
         for directory in directories: 
             path, folder_name = os.path.split(directory)

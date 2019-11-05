@@ -187,7 +187,6 @@ class MPlotter:
         distancef = lambda p1,p2: math.sqrt((p2[0]-p1[0])**2+(p2[1]-p1[1])**2)
         
         fig, ax = plt.subplots(ncols=2)
-     
         for eye_i, (color, eye) in enumerate(zip(['red', 'blue'], ['left', 'right'])):
             angles, X, Y = manalyser.get2DVectors(eye)
             
@@ -333,7 +332,9 @@ class MPlotter:
         '''
 
         fig = plt.figure(figsize=(15,15))
-        
+        fig.canvas.set_window_title(manalyser.get_specimen_name())
+
+
         if with_optic_flow:
             axes = []
             axes.append( fig.add_subplot(121, projection='3d') )

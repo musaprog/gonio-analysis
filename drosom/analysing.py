@@ -137,6 +137,16 @@ class MAnalyser(VectorGettable):
     def get_specimen_directory(self):
         return os.path.join(self.data_path, self.folder)
 
+    
+    def list_images(image_folder):
+        '''
+        List all image filenames in an image folder
+        
+        FIXME: Alphabetical order not right because no zero padding
+
+        '''
+        return sorted([fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')])
+    
     def getFolderName(self):
         '''
         Return the name of the data (droso) folder, such as DrosoM42

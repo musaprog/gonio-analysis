@@ -54,8 +54,8 @@ class TerminalDrosoM:
         
         
         if os.path.isdir(self.argv[1]):
-            # If data_folder given as the first argv
-            directories = [self.argv[1]]
+            # If data_folder given as the firsts argvs
+            directories = [arg for arg in self.argv[1:] if os.path.isdir(arg)]
         else:
 
            

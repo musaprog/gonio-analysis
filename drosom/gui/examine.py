@@ -20,6 +20,8 @@ from tk_steroids.matplotlib import CanvasPlotter
 from pupil.drosom.analysing import MAnalyser
 from pupil.drosom.plotting import MPlotter
 from pupil.drosom.gui.run_measurement import MeasurementWindow
+from pupil.drosom.gui.core import Core
+
 
 
 class ExamineMenubar(tk.Frame):
@@ -31,12 +33,12 @@ class ExamineMenubar(tk.Frame):
         tk.Frame.__init__(self, parent)
 
         self.parent = parent
-        self.core = parent
+        self.core = parent.core
         self.menubar = tk.Menu(self)
         
         # File menu
         file_menu = tk.Menu(self.menubar, tearoff=0)
-        file_menu.add_command(label='Set data directory', command=self.core.set_data_directory)
+        file_menu.add_command(label='Set data directory', command=self.parent.set_data_directory)
         file_menu.add_command(label='Exit', command=self.on_exit)
         self.menubar.add_cascade(label='File', menu=file_menu)
 
@@ -49,51 +51,37 @@ class ExamineMenubar(tk.Frame):
         
         # Data plotting
         plot_menu = tk.Menu(self.menubar, tearoff=0)
-        plot_menu.add_command(label='Vectormap', command=self.vectormap)
+        plot_menu.add_command(label='Vectormap', command=lambda: self.core.adm_subprocess('current', 'vectormap'))
+        plot_menu.add_command(label='Vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'vectormap animation')) 
         plot_menu.add_command(label='Averaged vectormap...', command=self.averaged_vectormap)
         self.menubar.add_cascade(label='Plot', menu=plot_menu)
         self.plot_menu = plot_menu        
 
         self.winfo_toplevel().config(menu=self.menubar)
-    
-        self.plotter = MPlotter()
+
 
     def batch_ROIs(self):
         pass
 
+
     def batch_measurement(self):
         pass
 
-    def vectormap(self):
-        
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-        pyfile = os.path.join(root, 'adm')
-
-        specimen_directory = self.core.analyser.get_specimen_directory()
-        print(specimen_directory)
-        arguments = '{} vectormap'.format(specimen_directory)
-
-        python = sys.executable
-
-        print('{} {} {}'.format(python, pyfile, arguments))
-        subprocess.run('{} {} {} &'.format(python, pyfile, arguments), shell=True)
-
-        #p = multiprocessing.Process(target=MPlotter().plot_3d_vectormap, args=(self.core.analyser,))
-        #p.start()
 
     def averaged_vectormap(self):
-        
         top = tk.Toplevel()
         top.title('Select specimens')
         
-        specimens = self.core._list_specimens() 
-        selector = TickSelect(top, specimens, self.vectormap)
+        specimens = self.core.list_specimens() 
+        selector = TickSelect(top, specimens, lambda specimens: self.core.adm_subprocess(specimens, 'averaged'))
         selector.grid()
         
-        tk.Button(top, text='Close', command=top.destroy).grid()
+        tk.Button(selector, text='Close', command=top.destroy).grid(row=1, column=1)
+
 
     def on_exit(self):
         self.winfo_toplevel().destroy()
+
 
     def update_states(self, manalyser):
         '''
@@ -126,6 +114,8 @@ class ExamineView(tk.Frame):
         
         tk.Frame.__init__(self, parent)
         
+        self.core = Core()
+        
         tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
         
         # Uncomment to have the menubar
@@ -150,12 +140,12 @@ class ExamineView(tk.Frame):
 
 
         # Selecting the specimen
-        self.specimen_box = Listbox(self.leftside_frame, ['fly1', 'fly2'], self.on_specimen_selection)
+        self.specimen_box = Listbox(self.leftside_frame, ['(select directory)'], self.on_specimen_selection)
         self.specimen_box.grid(row=2, column=0, sticky='NS')
 
        
         # Selecting the recording
-        self.recording_box = Listbox(self.leftside_frame, ['rot1', 'rot2'], self.on_recording_selection)
+        self.recording_box = Listbox(self.leftside_frame, [''], self.on_recording_selection)
         self.recording_box.grid(row=2, column=1, sticky='NS')
 
 
@@ -177,19 +167,6 @@ class ExamineView(tk.Frame):
         
         self.colorbar = None
 
-    def _list_specimens(self):
-        '''
-        List specimens in the data directory. May contain bad folders also (no check for contents)
-        '''
-        specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
-        return sorted(specimens)
-
-    def _get_manalyser(self, specimen_name):
-        '''
-        Gets manalyser for the specimen specified by the given name.
-        '''
-        self.analyser = MAnalyser(self.data_directory, specimen_name)
-
 
     def set_data_directory(self):
         '''
@@ -199,11 +176,9 @@ class ExamineView(tk.Frame):
         directory = filedialog.askdirectory(initialdir='/home/joni/smallbrains-nas1/array1')
         
         if directory:
-            self.data_directory = directory
+            self.core.set_data_directory(directory)
             
-            #specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
-            specimens = self._list_specimens()
-    
+            specimens = self.core.list_specimens()
 
             self.specimen_box.set_selections(specimens)
 
@@ -240,7 +215,8 @@ class ExamineView(tk.Frame):
         '''
         When a selection happens in the specimens listbox.
         '''
-        self.analyser = MAnalyser(self.data_directory, specimen)
+        self.analyser = self.core.get_manalyser(specimen)
+        self.core.set_current_specimen(specimen)
 
         # Logick to set buttons inactive/active and their texts
         if self.analyser.is_rois_selected():

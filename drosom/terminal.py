@@ -52,8 +52,8 @@ class TerminalDrosoM:
     
     def main(self, data_folder=None):
         
-        
-        if os.path.isdir(self.argv[1]):
+         
+        if len(self.argv)>1 and os.path.isdir(self.argv[1]):
             # If data_folder given as the firsts argvs
             directories = [arg for arg in self.argv[1:] if os.path.isdir(arg)]
         else:

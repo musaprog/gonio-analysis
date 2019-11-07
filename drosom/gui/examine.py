@@ -305,13 +305,17 @@ class ExamineView(tk.Frame):
             for repetition in range(len(movements)):
                 mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
                 ax.plot(mag)
-        
-
-
 
         for canvas in self.canvases:
             canvas.update()
+        
+        # Plot ROI
+        fig, ax = self.canvases[1].get_figax()
+        ax.clear()
 
+        image = self.analyser.list_images(selected_recording)[0]
+
+ 
 
 
 def main():

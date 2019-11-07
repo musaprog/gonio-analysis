@@ -138,7 +138,7 @@ class MAnalyser(VectorGettable):
         return os.path.join(self.data_path, self.folder)
 
     
-    def list_images(image_folder):
+    def list_images(self, image_folder):
         '''
         List all image filenames in an image folder
         
@@ -189,6 +189,93 @@ class MAnalyser(VectorGettable):
                 #print('Before correcting {}'.format(angles[i]))
 
         return angles
+    
+
+    def _load_descriptions_file(self):
+        '''
+        Finds and loads the descriptions file that contains imaging parameters,
+        fly sex, age, name, and (in current versions) image_folders for each setting
+        '''
+
+        descriptions = []
+
+        # The descriptions file can be in 2 locations depending version of the
+        # pupil_imsoft.
+        # The old version contains only one set of imaging_parameters, common
+        # to all of the image_folders (and thus inaccurate if settings changed)
+        current_version_loc = os.path.join(self.data_path, self.folder, self.folder+'.txt')
+        old_version_loc = os.path.join(self.data_path, self.folder+'.txt')
+        
+        print(current_version_loc)
+        print(old_version_loc)
+        
+        
+        if os.path.exists(current_version_loc):
+            
+            with open(current_version_loc, 'r') as fp:
+                for line in fp:
+                    descriptions.append(line)
+            return descriptions
+
+        if os.path.exists(old_version_loc):
+
+            with open(old_version_loc, 'r') as fp:
+                for line in fp:
+                    descriptions.append(line)
+            return descriptions
+
+        return descriptions
+
+    def get_imaging_parameters(self, image_folder):
+        '''
+        Returns the imaging parameters for the image_folder byt reading the newest
+        matching entry in the destriptions file (pupil_imsoft).
+
+        The descriptions file made by pupil_imsoft contains imaging_parameters
+        and imaged image_folders beneath. New entries are appended to this file.
+        '''
+
+        parameters = []
+        
+        try:
+            self.descriptions_file
+        except AttributeError:
+            self.descriptions_file = self._load_descriptions_file()
+        
+        # Find from the bottom, where the image_folder shows up the first time
+        location = 0
+        for location, line in enumerate(reversed(self.descriptions_file)):
+            #print(line)
+            if image_folder in line.strip('\n'):
+                break
+        
+
+        # If not found
+        if location == len(self.descriptions_file):
+            return ''
+        
+        # If found, get the parameters
+        parameters = []
+        at_parameters = False
+        for line in reversed(self.descriptions_file[0:len(self.descriptions_file)-location-2]):
+            
+            line = line.strip('\n')
+            if not line:
+                continue
+            
+            print(line)
+            
+            if self.folder+'\\' in line:
+                # If foldername entry    
+                if at_parameters == True:
+                    break
+
+            else:
+                # If parameter name+value entry
+                parameters.append(line)
+                at_parameters = True
+        
+        return reversed(parameters)
 
 
     def loadROIs(self):

@@ -1,4 +1,12 @@
+'''
 
+TODO
+- intensity series plotting
+- reading imaging parameters for each imagefolder from the descriptions file
+- multiselect ROIs (if many separate recordings at the same site)
+
+
+'''
 import os
 import multiprocessing
 import subprocess
@@ -13,10 +21,13 @@ import tkinter.filedialog as filedialog
 # PLotting
 import matplotlib.pyplot as plt
 import matplotlib.cm
+import matplotlib.widgets
+import tifffile
 
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect
 from tk_steroids.matplotlib import CanvasPlotter
 
+from pupil.directories import PROCESSING_TEMPDIR_BIGFILES
 from pupil.drosom.analysing import MAnalyser
 from pupil.drosom.plotting import MPlotter
 from pupil.drosom.gui.run_measurement import MeasurementWindow
@@ -116,6 +127,8 @@ class ExamineView(tk.Frame):
         
         self.core = Core()
         
+        self.root = self.winfo_toplevel()
+
         tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
         
         # Uncomment to have the menubar
@@ -165,7 +178,8 @@ class ExamineView(tk.Frame):
         self.default_button_bg = self.button_rois.cget('bg')
 
         
-        self.colorbar = None
+
+        self.plotter = RecordingPlotter()
 
 
     def set_data_directory(self):
@@ -250,18 +264,55 @@ class ExamineView(tk.Frame):
         
         self.menu.update_states(self.analyser)
 
+        self.plotter.set_analyser(self.analyser)
+
+
     def on_recording_selection(self, selected_recording):
         '''
         When a selection happens in the recordings listbox.
         '''
-        movement_data = self.analyser.get_movements_from_folder(selected_recording)
-        
-        
+        self.plotter.set_recording(selected_recording)
+
         fig, ax = self.canvases[0].get_figax()
         ax.clear()
+        self.plotter.xy(ax) 
+
+
+        fig, ax = self.canvases[1].get_figax()
+        ax.clear()
+        self.plotter.magnitude(ax)
         
-        # Plot XY
-        for eye, movements in movement_data.items():
+        for canvas in self.canvases:
+            canvas.update()
+        
+        
+        # Add imaging parameters
+        fig, ax = self.canvases[2].get_figax()
+        #ax.clear()
+        self.plotter.ROI(ax)
+
+
+
+class RecordingPlotter:
+
+    def __init__(self):
+        self.colorbar = None
+
+    def set_analyser(self, analyser):
+        self.analyser = analyser
+    
+    def set_recording(self, selected_recording):
+        self.selected_recording = selected_recording
+        self.movement_data = self.analyser.get_movements_from_folder(selected_recording)
+
+    def magnitude(self, ax):
+        for eye, movements in self.movement_data.items():
+            for repetition in range(len(movements)):
+                mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
+                ax.plot(mag)
+
+    def xy(self, ax):
+        for eye, movements in self.movement_data.items():
             for repetition in range(len(movements)):
                 
                 x = movements[repetition]['x']
@@ -273,15 +324,14 @@ class ExamineView(tk.Frame):
                
                 for i_point in range(1, N):
                     ax.plot([x[i_point-1], x[i_point]], [y[i_point-1], y[i_point]], color=cmap((i_point-1)/(N-1)))
-                
-        
-        # Colormap
-        
+        # Colormap    
         if not self.colorbar: 
             time = [i for i in range(N)]
             sm = matplotlib.cm.ScalarMappable(cmap=cmap)
             sm.set_array(time)
 
+
+            fig = ax.get_figure()
             self.colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
             self.colorbar.set_label('Frame')
         else:
@@ -292,30 +342,50 @@ class ExamineView(tk.Frame):
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
 
-
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
 
-
-
-        fig, ax = self.canvases[1].get_figax()
-        ax.clear()
+    def ROI(self, ax):
+        self.roi_ax = ax
+        fig = ax.get_figure()
         
-        for eye, movements in movement_data.items():
-            for repetition in range(len(movements)):
-                mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
-                ax.plot(mag)
+        try:
+            self.slider_ax
+        except AttributeError:
+            self.slider_ax = fig.add_axes([0.2, 0, 0.6, 0.1])
 
-        for canvas in self.canvases:
-            canvas.update()
+        image_fn = os.path.join(self.analyser.get_specimen_directory(), self.selected_recording, self.analyser.list_images(self.selected_recording)[0])
+        self.image = tifffile.imread(image_fn)
         
-        # Plot ROI
-        fig, ax = self.canvases[1].get_figax()
-        ax.clear()
+        try:
+            self.range_slider
+        except AttributeError:
+            self.range_slider = matplotlib.widgets.Slider(self.slider_ax, 'Range %' , 0, 100, valinit=90, valstep=1)
+            self.range_slider.on_changed(self.update_ROI_plot)
+        
+        self.update_ROI_plot(self.range_slider.val)
 
-        image = self.analyser.list_images(selected_recording)[0]
 
- 
+    def update_ROI_plot(self, slider_value):
+        
+        
+        clipped = np.clip(self.image, 0, np.percentile(self.image, slider_value))
+        clipped /= np.max(clipped)
+
+        try:
+            self.roi_imshow.set_data(clipped)
+        except AttributeError:
+            self.roi_imshow = self.roi_ax.imshow(clipped, cmap='gray')
+
+        text = '\n'.join(self.analyser.get_imaging_parameters(self.selected_recording))
+        
+        try:
+            self.roi_text.set_text(text)
+        except AttributeError:
+            self.roi_text = self.roi_ax.text(0,1, text, ha='left', va='top', fontsize='small', 
+                    transform=self.roi_ax.transAxes)
+
+
 
 
 def main():

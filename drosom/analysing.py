@@ -206,8 +206,8 @@ class MAnalyser(VectorGettable):
         current_version_loc = os.path.join(self.data_path, self.folder, self.folder+'.txt')
         old_version_loc = os.path.join(self.data_path, self.folder+'.txt')
         
-        print(current_version_loc)
-        print(old_version_loc)
+        #print(current_version_loc)
+        #print(old_version_loc)
         
         
         if os.path.exists(current_version_loc):
@@ -263,7 +263,7 @@ class MAnalyser(VectorGettable):
             if not line:
                 continue
             
-            print(line)
+            #print(line)
             
             if self.folder+'\\' in line:
                 # If foldername entry    

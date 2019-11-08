@@ -300,7 +300,7 @@ class MAnalyser(VectorGettable):
 
         with open(self.CROPS_SAVEFN, 'r') as fp:
             marker_markings = json.load(fp)
-        
+
         for image_fn, ROIs in marker_markings.items():
             
             pos = self.getPosFolder(image_fn)
@@ -326,6 +326,7 @@ class MAnalyser(VectorGettable):
                     self.ROIs['left'][pos]= ROIs[1]
                     self.ROIs['right'][pos] = ROIs[0]
                     
+        self.N_folders_having_rois = len(marker_markings)
 
     def selectROIs(self):
         '''
@@ -350,6 +351,15 @@ class MAnalyser(VectorGettable):
     
     def is_rois_selected(self):
         return self.isROIsSelected()
+        
+    def count_roi_selected_folders(self):
+        '''
+        Returns the number of imagefolders that have ROIs selected
+        '''
+        if self.is_rois_selected():
+            return self.N_folders_having_rois
+        else:
+            return 0
 
     def isMovementsAnalysed(self):
         '''

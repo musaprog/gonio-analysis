@@ -11,7 +11,7 @@ import os
 import multiprocessing
 import subprocess
 import sys
-
+import ctypes
 
 import numpy as np
 import tkinter as tk

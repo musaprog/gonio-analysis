@@ -1,6 +1,7 @@
 '''
 
 TODO
+- show statistics
 - intensity series plotting
 - reading imaging parameters for each imagefolder from the descriptions file
 - multiselect ROIs (if many separate recordings at the same site)
@@ -131,7 +132,7 @@ class ExamineView(tk.Frame):
         
         self.root = self.winfo_toplevel()
 
-        tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
+        #tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
         
         # Uncomment to have the menubar
         self.menu = ExamineMenubar(self)
@@ -145,21 +146,36 @@ class ExamineView(tk.Frame):
         self.buttons_frame_1 = ButtonsFrame(self.leftside_frame, ['Set data directory'],
                 [self.set_data_directory, self.set_data_directory])
         self.buttons_frame_1.grid(row=0, column=0, sticky='NW', columnspan=2)
-        
+
+ 
+        self.specimen_control_frame = tk.LabelFrame(self.leftside_frame, text='Specimen')
+        self.specimen_control_frame.grid(row=3, column=0, sticky='NWES', columnspan=2)
+
+       
         # The 2nd buttons frame, ROIs and movements
-        self.buttons_frame_2 = ButtonsFrame(self.leftside_frame,
+        self.buttons_frame_2 = ButtonsFrame(self.specimen_control_frame,
                 ['Select ROIs', 'Measure movement'],
                 [self.select_rois, self.measure_movement])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_rois, self.button_measure = self.buttons_frame_2.get_buttons()
+        
+        # Subframe for 2nd buttons frame
+        #self.status_frame = tk.Frame(self.leftside_frame)
+        #self.status_frame.grid(row=2)
+
+        self.status_rois = tk.Label(self.specimen_control_frame, text='ROIs selected 0/0', font=('system', 8))
+        self.status_rois.grid(row=2, column=0, sticky='W')
 
 
-        # Selecting the specimen
+
+        # Selecting the specimen 
+        tk.Label(self.leftside_frame, text='Specimens').grid(row=1, column=0)
         self.specimen_box = Listbox(self.leftside_frame, ['(select directory)'], self.on_specimen_selection)
         self.specimen_box.grid(row=2, column=0, sticky='NS')
 
        
         # Selecting the recording
+        tk.Label(self.leftside_frame, text='Image folders').grid(row=1, column=1)
         self.recording_box = Listbox(self.leftside_frame, [''], self.on_recording_selection)
         self.recording_box.grid(row=2, column=1, sticky='NS')
 
@@ -178,8 +194,6 @@ class ExamineView(tk.Frame):
        
 
         self.default_button_bg = self.button_rois.cget('bg')
-
-        
 
         self.plotter = RecordingPlotter()
 
@@ -231,6 +245,8 @@ class ExamineView(tk.Frame):
         '''
         When a selection happens in the specimens listbox.
         '''
+        self.specimen_control_frame.config(text=specimen)
+
         self.analyser = self.core.get_manalyser(specimen)
         self.core.set_current_specimen(specimen)
 
@@ -256,6 +272,9 @@ class ExamineView(tk.Frame):
             self.button_measure.config(text='Measure movement')
             self.button_measure.config(bg=self.default_button_bg)
 
+        if self.analyser.is_rois_selected():
+            self.analyser.loadROIs()
+
         # Loading cached analyses and setting the recordings listbox
         if self.analyser.is_measured():
             self.analyser.load_analysed_movements()
@@ -267,6 +286,11 @@ class ExamineView(tk.Frame):
         self.menu.update_states(self.analyser)
 
         self.plotter.set_analyser(self.analyser)
+        
+        N_rois = self.analyser.count_roi_selected_folders()
+        N_image_folders = len(self.analyser.list_imagefolders())
+        self.status_rois.config(text='ROIs selected {}/{}'.format(N_rois, N_image_folders))
+
 
 
     def on_recording_selection(self, selected_recording):

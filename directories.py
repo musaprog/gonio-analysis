@@ -8,16 +8,17 @@ import platform
 
 if platform.system() == 'Linux':
     # Where for example
-    ANALYSES_SAVEDIR = '/home/joni/analyses/pupil'
+    home = os.getenv("HOME")
+    ANALYSES_SAVEDIR = home+'/analyses/pupil'
 
     # Where any temporal stuff as disk cahcing would go
-    PROCESSING_TEMPDIR = '/home/joni/analyses/pupil/tmp'
+    PROCESSING_TEMPDIR = home+'/analyses/pupil/tmp'
 
     # If lots of storage is needed
-    PROCESSING_TEMPDIR_BIGFILES = '/work1/pupil/tmp'
+    PROCESSING_TEMPDIR_BIGFILES = home+'/pupil/tmp'
 
     # Where folders DrosoX_i, DrosoM_i are
-    DROSO_DATADIR = '/home/joni/smallbrains-nas1/array1/pseudopupil_imaging'
+    DROSO_DATADIR = home+'/smallbrains-nas1/array1/pseudopupil_imaging'
     #DROSO_DATADIR = '/win2/imaging_data'
 
 elif platform.system() == 'Windows':

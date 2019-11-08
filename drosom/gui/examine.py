@@ -132,6 +132,11 @@ class ExamineView(tk.Frame):
         
         self.root = self.winfo_toplevel()
 
+        # Make canvas plotter to stretch
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+
+
         #tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
         
         # Uncomment to have the menubar
@@ -140,7 +145,7 @@ class ExamineView(tk.Frame):
         # LEFTSIDE frame
         self.leftside_frame = tk.Frame(self)
         self.leftside_frame.grid(row=0, column=0, sticky='NS') 
-        self.leftside_frame.grid_rowconfigure(2, weight=1) 
+        self.leftside_frame.grid_rowconfigure(3, weight=1) 
 
         # The 1st buttons frame, selecting root data directory
         self.buttons_frame_1 = ButtonsFrame(self.leftside_frame, ['Set data directory'],
@@ -149,7 +154,7 @@ class ExamineView(tk.Frame):
 
  
         self.specimen_control_frame = tk.LabelFrame(self.leftside_frame, text='Specimen')
-        self.specimen_control_frame.grid(row=3, column=0, sticky='NWES', columnspan=2)
+        self.specimen_control_frame.grid(row=1, column=0, sticky='NWES', columnspan=2)
 
        
         # The 2nd buttons frame, ROIs and movements
@@ -169,15 +174,15 @@ class ExamineView(tk.Frame):
 
 
         # Selecting the specimen 
-        tk.Label(self.leftside_frame, text='Specimens').grid(row=1, column=0)
+        tk.Label(self.leftside_frame, text='Specimens').grid(row=2, column=0)
         self.specimen_box = Listbox(self.leftside_frame, ['(select directory)'], self.on_specimen_selection)
-        self.specimen_box.grid(row=2, column=0, sticky='NS')
+        self.specimen_box.grid(row=3, column=0, sticky='NS')
 
        
         # Selecting the recording
-        tk.Label(self.leftside_frame, text='Image folders').grid(row=1, column=1)
+        tk.Label(self.leftside_frame, text='Image folders').grid(row=2, column=1)
         self.recording_box = Listbox(self.leftside_frame, [''], self.on_recording_selection)
-        self.recording_box.grid(row=2, column=1, sticky='NS')
+        self.recording_box.grid(row=3, column=1, sticky='NS')
 
 
         # RIGHTSIDE frame        
@@ -188,7 +193,12 @@ class ExamineView(tk.Frame):
         canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
         tab_names = ['XY', 'Magnitude', 'ROI']
         self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))])
-        self.tabs.grid(row=0, column=1)
+        self.tabs.grid(row=0, column=1, sticky='NWES')
+
+        # Make canvas plotter to stretch
+        #self.tabs.grid_rowconfigure(1, weight=1)
+        #self.tabs.grid_columnconfigure(0, weight=1)
+
 
         self.canvases = self.tabs.get_elements()
        
@@ -196,6 +206,8 @@ class ExamineView(tk.Frame):
         self.default_button_bg = self.button_rois.cget('bg')
 
         self.plotter = RecordingPlotter()
+        
+        
 
 
     def set_data_directory(self):
@@ -304,6 +316,11 @@ class ExamineView(tk.Frame):
         self.plotter.xy(ax) 
 
 
+        # Manipulating figure size? Put it to fill the window
+        #fig.set_size_inches(1, 1, forward=True)
+        #self.canvases[0].update_size()
+
+
         fig, ax = self.canvases[1].get_figax()
         ax.clear()
         self.plotter.magnitude(ax)
@@ -316,8 +333,6 @@ class ExamineView(tk.Frame):
         fig, ax = self.canvases[2].get_figax()
         #ax.clear()
         self.plotter.ROI(ax)
-
-
 
 class RecordingPlotter:
 

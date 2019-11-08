@@ -35,6 +35,8 @@ from pupil.drosom.gui.core import Core
 
 
 
+
+
 class ExamineMenubar(tk.Frame):
     '''
     Menubar class for the examine GUI.
@@ -389,6 +391,10 @@ class RecordingPlotter:
 
 
 def main():
+    
+    if 'win' in sys.platform:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+
     root = tk.Tk()
     root.title('Pupil analysis - Tkinter GUI')
     ExamineView(root).grid()

@@ -6,7 +6,7 @@ import os
 from os import listdir
 from os.path import isdir, join
 
-from directories import DROSO_DATADIR
+from pupil.directories import DROSO_DATADIR
 
 class DrosoSelect:
     '''

@@ -164,7 +164,7 @@ class ExamineView(tk.Frame):
                 ['Select ROIs', 'Measure movement', 'Zero correct'],
                 [self.select_rois, self.measure_movement, self.antenna_level])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
-        self.button_rois, self.button_measure = self.buttons_frame_2.get_buttons()
+        self.button_rois, self.button_measure, self.button_zero = self.buttons_frame_2.get_buttons()
         
         # Subframe for 2nd buttons frame
         #self.status_frame = tk.Frame(self.leftside_frame)
@@ -179,10 +179,10 @@ class ExamineView(tk.Frame):
         self.folder_control_frame = tk.LabelFrame(self.leftside_frame, text='Image folder')
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
        
-        self.buttons_frame_2 = ButtonsFrame(self.folder_control_frame,
+        self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
                 ['Reselect ROI'],
                 [self.select_roi])
-        self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
+        self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         
 

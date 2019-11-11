@@ -20,11 +20,11 @@ import matplotlib.pyplot as plt
 import cv2
 
 
-from directories import ANALYSES_SAVEDIR
-from droso import DrosoSelect
-from drosox import XLoader
+from pupil.directories import ANALYSES_SAVEDIR
+from pupil.droso import DrosoSelect
+from pupil.drosox import XLoader
 from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
-from imageshower import ImageShower
+from pupil.imageshower import ImageShower
 
 
 

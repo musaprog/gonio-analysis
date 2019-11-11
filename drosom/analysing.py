@@ -328,16 +328,18 @@ class MAnalyser(VectorGettable):
                     
         self.N_folders_having_rois = len(marker_markings)
 
-    def selectROIs(self):
+    def selectROIs(self, **kwargs):
         '''
         Selecting the ROIs from the loaded images.
         Currently, only the first frame of each recording is shown.
+
+        kwargs      Passed to the marker constructor
         '''
         
         to_cropping = [stacks[0][0] for str_angles, stacks in self.stacks.items()]
 
         fig, ax = plt.subplots()
-        marker = Marker(fig, ax, to_cropping, self.CROPS_SAVEFN)
+        marker = Marker(fig, ax, to_cropping, self.CROPS_SAVEFN, **kwargs)
         marker.run()
 
     def select_ROIs(self):
@@ -360,6 +362,16 @@ class MAnalyser(VectorGettable):
             return self.N_folders_having_rois
         else:
             return 0
+
+    def get_rois(self, image_folder):
+        rois = []
+        for eye in ['left', 'right']:
+            try:
+                roi = self.ROIs[eye][image_folder[3:]]
+                rois.append(roi)
+            except KeyError:
+                continue
+        return rois
 
     def isMovementsAnalysed(self):
         '''

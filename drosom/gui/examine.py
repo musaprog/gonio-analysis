@@ -1,10 +1,11 @@
 '''
 
 TODO
++++ reselect single roi
 - show statistics
 - intensity series plotting
 - reading imaging parameters for each imagefolder from the descriptions file
-- multiselect ROIs (if many separate recordings at the same site)
++ multiselect ROIs (if many separate recordings at the same site)
 
 
 '''
@@ -145,7 +146,7 @@ class ExamineView(tk.Frame):
         # LEFTSIDE frame
         self.leftside_frame = tk.Frame(self)
         self.leftside_frame.grid(row=0, column=0, sticky='NS') 
-        self.leftside_frame.grid_rowconfigure(3, weight=1) 
+        self.leftside_frame.grid_rowconfigure(4, weight=1) 
 
         # The 1st buttons frame, selecting root data directory
         self.buttons_frame_1 = ButtonsFrame(self.leftside_frame, ['Set data directory'],
@@ -170,19 +171,32 @@ class ExamineView(tk.Frame):
 
         self.status_rois = tk.Label(self.specimen_control_frame, text='ROIs selected 0/0', font=('system', 8))
         self.status_rois.grid(row=2, column=0, sticky='W')
+        
+        
+        
+        # Image folder manipulations
+        self.folder_control_frame = tk.LabelFrame(self.leftside_frame, text='Image folder')
+        self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
+       
+        self.buttons_frame_2 = ButtonsFrame(self.folder_control_frame,
+                ['Reselect ROI'],
+                [self.select_roi])
+        self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
+        self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
+        
 
 
 
         # Selecting the specimen 
-        tk.Label(self.leftside_frame, text='Specimens').grid(row=2, column=0)
+        tk.Label(self.leftside_frame, text='Specimens').grid(row=3, column=0)
         self.specimen_box = Listbox(self.leftside_frame, ['(select directory)'], self.on_specimen_selection)
-        self.specimen_box.grid(row=3, column=0, sticky='NS')
+        self.specimen_box.grid(row=4, column=0, sticky='NS')
 
        
         # Selecting the recording
-        tk.Label(self.leftside_frame, text='Image folders').grid(row=2, column=1)
+        tk.Label(self.leftside_frame, text='Image folders').grid(row=3, column=1)
         self.recording_box = Listbox(self.leftside_frame, [''], self.on_recording_selection)
-        self.recording_box.grid(row=3, column=1, sticky='NS')
+        self.recording_box.grid(row=4, column=1, sticky='NS')
 
 
         # RIGHTSIDE frame        
@@ -191,7 +205,7 @@ class ExamineView(tk.Frame):
         
         
         canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
-        tab_names = ['XY', 'Magnitude', 'ROI']
+        tab_names = ['ROI', 'Magnitude', 'XY']
         self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))])
         self.tabs.grid(row=0, column=1, sticky='NWES')
 
@@ -199,6 +213,9 @@ class ExamineView(tk.Frame):
         #self.tabs.grid_rowconfigure(1, weight=1)
         #self.tabs.grid_columnconfigure(0, weight=1)
 
+        
+        self.current_specimen = None
+        self.selected_recording = None
 
         self.canvases = self.tabs.get_elements()
        
@@ -223,6 +240,15 @@ class ExamineView(tk.Frame):
             specimens = self.core.list_specimens()
 
             self.specimen_box.set_selections(specimens)
+    
+
+    def select_roi(self):
+        '''
+        Select/reselect a single ROI
+        '''
+        self.analyser.selectROIs(callback_on_exit=self.update_specimen,
+                reselect_fns=[self.selected_recording], old_markings=True)
+
 
 
     def select_rois(self):
@@ -236,7 +262,7 @@ class ExamineView(tk.Frame):
             if not sure:
                 return None
 
-        self.analyser.selectROIs()
+        self.analyser.selectROIs(callback_on_exit=self.update_specimen)
 
 
     def measure_movement(self):
@@ -251,24 +277,38 @@ class ExamineView(tk.Frame):
                 return None
         
         MeasurementWindow(self.analyser)
+        
 
+    def update_specimen(self):
+        self.on_specimen_selection(self.current_specimen)
 
     def on_specimen_selection(self, specimen):
         '''
         When a selection happens in the specimens listbox.
         '''
+        self.current_specimen = specimen
         self.specimen_control_frame.config(text=specimen)
 
         self.analyser = self.core.get_manalyser(specimen)
         self.core.set_current_specimen(specimen)
-
+        
+        # Recordings box
+        recordings = self.analyser.list_imagefolders()
+        self.recording_box.set_selections(recordings)
+        
+        
         # Logick to set buttons inactive/active and their texts
         if self.analyser.is_rois_selected():
             
+            self.recording_box.enable()
+
+  
             self.button_rois.config(text='Reselect ROIs')
             self.button_rois.config(bg=self.default_button_bg)
             self.button_measure.config(state=tk.NORMAL)
             
+            self.button_one_roi.config(state=tk.NORMAL)
+           
 
             if self.analyser.is_measured():
                 self.button_measure.config(text='Remeasure movement')
@@ -277,6 +317,8 @@ class ExamineView(tk.Frame):
                 self.button_measure.config(text='Measure movement')
                 self.button_measure.config(bg='green')
         else:
+            self.recording_box.disable()
+
             self.button_rois.config(text='Select ROIs')
             self.button_rois.config(bg='green')
 
@@ -284,16 +326,17 @@ class ExamineView(tk.Frame):
             self.button_measure.config(text='Measure movement')
             self.button_measure.config(bg=self.default_button_bg)
 
+            self.button_one_roi.config(state=tk.DISABLED)
+
         if self.analyser.is_rois_selected():
             self.analyser.loadROIs()
 
         # Loading cached analyses and setting the recordings listbox
+
         if self.analyser.is_measured():
             self.analyser.load_analysed_movements()
-            recordings = self.analyser.list_imagefolders()
-        else:
-            recordings = ['not analysed']
-        self.recording_box.set_selections(recordings)
+            self.recording_box.enable()
+            
         
         self.menu.update_states(self.analyser)
 
@@ -309,42 +352,54 @@ class ExamineView(tk.Frame):
         '''
         When a selection happens in the recordings listbox.
         '''
+        self.selected_recording = selected_recording
         self.plotter.set_recording(selected_recording)
+        
+        i_plot = -1
+        
 
-        fig, ax = self.canvases[0].get_figax()
-        ax.clear()
-        self.plotter.xy(ax) 
-
-
+        # Add imaging parameters
+        i_plot += 1
+        fig, ax = self.canvases[i_plot].get_figax()
+        #ax.clear()
+        self.plotter.ROI(ax)
+       
         # Manipulating figure size? Put it to fill the window
         #fig.set_size_inches(1, 1, forward=True)
         #self.canvases[0].update_size()
 
-
-        fig, ax = self.canvases[1].get_figax()
+        i_plot += 1
+        fig, ax = self.canvases[i_plot].get_figax()
         ax.clear()
         self.plotter.magnitude(ax)
         
+          
+        i_plot += 1
+        fig, ax = self.canvases[i_plot].get_figax()
+        ax.clear()
+        self.plotter.xy(ax) 
+
+        
         for canvas in self.canvases:
             canvas.update()
-        
-        
-        # Add imaging parameters
-        fig, ax = self.canvases[2].get_figax()
-        #ax.clear()
-        self.plotter.ROI(ax)
+ 
 
 class RecordingPlotter:
 
     def __init__(self):
         self.colorbar = None
+        self.roi_rectangles = []
 
     def set_analyser(self, analyser):
         self.analyser = analyser
-    
+
     def set_recording(self, selected_recording):
         self.selected_recording = selected_recording
-        self.movement_data = self.analyser.get_movements_from_folder(selected_recording)
+        if self.analyser.is_measured():
+            self.movement_data = self.analyser.get_movements_from_folder(selected_recording)
+        else:
+            self.movement_data = {}
+
 
     def magnitude(self, ax):
         for eye, movements in self.movement_data.items():
@@ -365,19 +420,20 @@ class RecordingPlotter:
                
                 for i_point in range(1, N):
                     ax.plot([x[i_point-1], x[i_point]], [y[i_point-1], y[i_point]], color=cmap((i_point-1)/(N-1)))
-        # Colormap    
-        if not self.colorbar: 
-            time = [i for i in range(N)]
-            sm = matplotlib.cm.ScalarMappable(cmap=cmap)
-            sm.set_array(time)
+        # Colormap
+        if self.movement_data:
+            if not self.colorbar: 
+                time = [i for i in range(N)]
+                sm = matplotlib.cm.ScalarMappable(cmap=cmap)
+                sm.set_array(time)
 
 
-            fig = ax.get_figure()
-            self.colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
-            self.colorbar.set_label('Frame')
-        else:
-            self.colorbar.set_clim(0, N-1)
-        
+                fig = ax.get_figure()
+                self.colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
+                self.colorbar.set_label('Frame')
+            else:
+                self.colorbar.set_clim(0, N-1)
+            
         ax.set_xlabel('Displacement in X (pixels)')
         ax.set_ylabel('Displacement in Y (pixels)')
         ax.spines['right'].set_visible(False)
@@ -404,12 +460,27 @@ class RecordingPlotter:
             self.range_slider = matplotlib.widgets.Slider(self.slider_ax, 'Range %' , 0, 100, valinit=90, valstep=1)
             self.range_slider.on_changed(self.update_ROI_plot)
         
+        # Draw ROI rectangles
+        for old_roi in self.roi_rectangles:
+            old_roi.remove()
+        self.roi_rectangles = []
+
+        for roi in self.analyser.get_rois(self.selected_recording):
+            patch = matplotlib.patches.Rectangle((roi[0], roi[1]), roi[2], roi[3],
+                    fill=False, edgecolor='White')
+            self.roi_rectangles.append(patch)
+            
         self.update_ROI_plot(self.range_slider.val)
+
+        for roi in self.roi_rectangles:
+            ax.add_patch(roi)
+
 
 
     def update_ROI_plot(self, slider_value):
-        
-        
+        '''
+        This gets called when the brightness cap slider is moved.
+        '''
         clipped = np.clip(self.image, 0, np.percentile(self.image, slider_value))
         clipped /= np.max(clipped)
 
@@ -425,9 +496,6 @@ class RecordingPlotter:
         except AttributeError:
             self.roi_text = self.roi_ax.text(0,1, text, ha='left', va='top', fontsize='small', 
                     transform=self.roi_ax.transAxes)
-
-
-
 
 def main():
     

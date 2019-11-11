@@ -246,7 +246,7 @@ class ExamineView(tk.Frame):
         
         # Ask confirmation if ROIs already selected
         if self.analyser.is_measured():
-            sure = messagebox.askokcancel('Reselect ROIs', 'Are you sure you want to reselect ROIs?')
+            sure = messagebox.askokcancel('Remeasure movements', 'Are you sure you want to remeasure?')
             if not sure:
                 return None
         

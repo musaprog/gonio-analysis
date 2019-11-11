@@ -1,6 +1,10 @@
 '''
 Extension of find antenna levels to create a reference fly.
+
+This script has to be (ideally) run only once on DrosoALR flies, creating
+an antenna lvl reference fly that can be used for other flies as well.
 '''
+
 import os
 
 import numpy as np
@@ -36,7 +40,7 @@ class ReferenceCreator:
     
     def __init__(self, name):
         self.name = name
-        self.savedir = os.path.join(PROCESSING_TEMPDIR_BIGFILES, name)
+        self.savedir = 'alr_data'
         os.makedirs(self.savedir, exist_ok=True)
 
     def _loadData(self):
@@ -138,7 +142,7 @@ class ReferenceCreator:
 
 def main():
     
-    creator = ReferenceCreator('test')
+    creator = ReferenceCreator('Drosophila')
     creator.createReferenceFly()
 
 if __name__ == "__main__":

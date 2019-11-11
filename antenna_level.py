@@ -15,10 +15,10 @@ import matplotlib.pyplot as plt
 from directories import ANALYSES_SAVEDIR
 from droso import DrosoSelect
 from drosox import XLoader
-from drosom import MLoader
+from drosom.loading import load_data
 from imageshower import ImageShower
 from binary_search import binarySearchMiddle
-from pupil_imsoft.anglepairs import strToDegrees
+from pupil_imsoft.anglepairs import toDegrees
 from drosoalr import loadReferenceFly
 
 from imalyser.matching import MatchFinder
@@ -31,9 +31,10 @@ class AntennaLevelFinder:
     '''
     
     
-    def analyseFly(self, folder):
+    def find_level(self, folder):
         '''
         Call this to make user to select antenna levels.
+        folder      Full path to the folder
         '''
         
         fly = os.path.split(folder)[1]
@@ -65,10 +66,8 @@ class AntennaLevelFinder:
             result = str(pitches[center])
 
 
-        elif 'DrosoM' in fly:
+        else:
         
-            mode = ['manual', 'auto'][1]
-
             # DrosoM is harder, there's images every 10 degrees in pitch.
             # Solution: Find closest matches using analysed DrosoX data
             
@@ -77,7 +76,7 @@ class AntennaLevelFinder:
             
             
             # Load reference fly data
-            reference_pitches = {fn: pitch for pitch, fn in loadReferenceFly('/work1/pupil/tmp/test').items()}
+            reference_pitches = {fn: pitch for pitch, fn in loadReferenceFly('alr_data.json').items()}
             print(reference_pitches)
             reference_images = list(reference_pitches.keys())
             reference_images.sort()
@@ -180,14 +179,21 @@ class AntennaLevelFinder:
         Loads pitches and images.
         '''
 
-        mloader = MLoader()
-        data = mloader.getData(folder)
+        data = load_data(folder)
 
         pitches =[]
         images = []
 
         for str_angle_pair in data.keys():
-            angle_pair = strToDegrees(str_angle_pair)
+            #angle_pair = strToDegrees(str_angle_pair)
+            i_start = str_angle_pair.index('(')
+            i_end = str_angle_pair.index(')')
+
+            print(str_angle_pair[i_start:i_end])
+            angle_pair = [ast.literal_eval(str_angle_pair[i_start:i_end])]
+            toDegrees(angle_pair)
+            angle_pair = angle_pair[0]
+
             if -3 < angle_pair[0] < 3:
                 pitches.append(angle_pair[1])
                 images.append(data[str_angle_pair][0][0])
@@ -196,7 +202,8 @@ class AntennaLevelFinder:
 
         return pitches, images
 
-    
+
+
 def main():
     finder = AntennaLevelFinder()
     
@@ -204,7 +211,7 @@ def main():
     folders = selector.askUser()
        
     for folder in folders:
-        finder.analyseFly(folder)
+        finder.find_level(folder)
 
 if __name__ == "__main__":
     # FIXME TODO

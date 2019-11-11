@@ -1,7 +1,7 @@
 '''
 
 TODO
-+++ reselect single roi
++++ antenna_level finder
 - show statistics
 - intensity series plotting
 - reading imaging parameters for each imagefolder from the descriptions file
@@ -30,6 +30,7 @@ from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect
 from tk_steroids.matplotlib import CanvasPlotter
 
 from pupil.directories import PROCESSING_TEMPDIR_BIGFILES
+from pupil.antenna_level import AntennaLevelFinder
 from pupil.drosom.analysing import MAnalyser
 from pupil.drosom.plotting import MPlotter
 from pupil.drosom.gui.run_measurement import MeasurementWindow
@@ -160,8 +161,8 @@ class ExamineView(tk.Frame):
        
         # The 2nd buttons frame, ROIs and movements
         self.buttons_frame_2 = ButtonsFrame(self.specimen_control_frame,
-                ['Select ROIs', 'Measure movement'],
-                [self.select_rois, self.measure_movement])
+                ['Select ROIs', 'Measure movement', 'Zero correct'],
+                [self.select_rois, self.measure_movement, self.antenna_level])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_rois, self.button_measure = self.buttons_frame_2.get_buttons()
         
@@ -214,6 +215,7 @@ class ExamineView(tk.Frame):
         #self.tabs.grid_columnconfigure(0, weight=1)
 
         
+        self.data_directory = None
         self.current_specimen = None
         self.selected_recording = None
 
@@ -235,6 +237,7 @@ class ExamineView(tk.Frame):
         directory = filedialog.askdirectory(initialdir='/home/joni/smallbrains-nas1/array1')
         
         if directory:
+            self.data_directory = data_directory
             self.core.set_data_directory(directory)
             
             specimens = self.core.list_specimens()
@@ -277,10 +280,20 @@ class ExamineView(tk.Frame):
                 return None
         
         MeasurementWindow(self.analyser)
+
+    def antenna_level(self):
+        '''
+        Start antenna level search for the current specimen 
+        '''
         
+        fullpath = os.path.join(self.data_directory, self.current_specimen)
+        target = AntennaLevelFinder().find_level
+        p = multiprocessing.Process(target=target, args=(fullpath,))
+        p.start()
 
     def update_specimen(self):
         self.on_specimen_selection(self.current_specimen)
+
 
     def on_specimen_selection(self, specimen):
         '''

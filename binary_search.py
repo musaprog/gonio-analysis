@@ -24,7 +24,6 @@ from directories import ANALYSES_SAVEDIR
 from droso import DrosoSelect
 from drosox import XLoader
 from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
-from pupil_detection.detect import openAndPreprocess
 from imageshower import ImageShower
 
 

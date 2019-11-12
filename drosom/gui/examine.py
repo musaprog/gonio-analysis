@@ -237,7 +237,7 @@ class ExamineView(tk.Frame):
         directory = filedialog.askdirectory(initialdir='/home/joni/smallbrains-nas1/array1')
         
         if directory:
-            self.data_directory = data_directory
+            self.data_directory = directory
             self.core.set_data_directory(directory)
             
             specimens = self.core.list_specimens()

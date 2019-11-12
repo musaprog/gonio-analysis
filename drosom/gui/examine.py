@@ -31,11 +31,13 @@ from tk_steroids.matplotlib import CanvasPlotter
 
 from pupil.directories import PROCESSING_TEMPDIR_BIGFILES
 from pupil.antenna_level import AntennaLevelFinder
+from pupil.drosom.loading import angles_from_fn
 from pupil.drosom.analysing import MAnalyser
 from pupil.drosom.plotting import MPlotter
 from pupil.drosom.gui.run_measurement import MeasurementWindow
 from pupil.drosom.gui.core import Core
 
+from pupil_imsoft.anglepairs import toDegrees
 
 
 
@@ -173,6 +175,9 @@ class ExamineView(tk.Frame):
         self.status_rois = tk.Label(self.specimen_control_frame, text='ROIs selected 0/0', font=('system', 8))
         self.status_rois.grid(row=2, column=0, sticky='W')
         
+        self.status_antenna_level = tk.Label(self.specimen_control_frame, text='Zero correcter N/A', font=('system', 8))
+        self.status_antenna_level.grid(row=3, column=0, sticky='W')
+        
         
         
         # Image folder manipulations
@@ -186,6 +191,12 @@ class ExamineView(tk.Frame):
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         
 
+        self.status_horizontal = tk.Label(self.folder_control_frame, text='Horizontal angle N/A', font=('system', 8))
+        self.status_horizontal.grid(row=2, column=0, sticky='W')
+        
+        self.status_vertical = tk.Label(self.folder_control_frame, text='Vertical angle N/A', font=('system', 8))
+        self.status_vertical.grid(row=3, column=0, sticky='W')
+        
 
 
         # Selecting the specimen 
@@ -233,7 +244,6 @@ class ExamineView(tk.Frame):
         '''
         When the button set data diorectory is pressed.
         '''
-        print(dir(filedialog.askdirectory))
         directory = filedialog.askdirectory(initialdir='/home/joni/smallbrains-nas1/array1')
         
         if directory:
@@ -281,6 +291,7 @@ class ExamineView(tk.Frame):
         
         MeasurementWindow(self.analyser)
 
+
     def antenna_level(self):
         '''
         Start antenna level search for the current specimen 
@@ -290,6 +301,7 @@ class ExamineView(tk.Frame):
         target = AntennaLevelFinder().find_level
         p = multiprocessing.Process(target=target, args=(fullpath,))
         p.start()
+
 
     def update_specimen(self):
         self.on_specimen_selection(self.current_specimen)
@@ -358,7 +370,12 @@ class ExamineView(tk.Frame):
         N_rois = self.analyser.count_roi_selected_folders()
         N_image_folders = len(self.analyser.list_imagefolders())
         self.status_rois.config(text='ROIs selected {}/{}'.format(N_rois, N_image_folders))
-
+        
+        self.correction = self.analyser.get_antenna_level_correction()
+        if self.correction:
+            self.status_antenna_level.config(text='Zero corrected, {:.2f} degrees'.format(self.correction))
+        else:
+            self.status_antenna_level.config(text='Zero corrected FALSE')
 
 
     def on_recording_selection(self, selected_recording):
@@ -366,8 +383,21 @@ class ExamineView(tk.Frame):
         When a selection happens in the recordings listbox.
         '''
         self.selected_recording = selected_recording
-        self.plotter.set_recording(selected_recording)
+
         
+        angles = [list(angles_from_fn(selected_recording))]
+        toDegrees(angles)
+        horizontal, vertical = angles[0]
+        self.status_horizontal.config(text='Horizontal angle {:.2f} degrees'.format(horizontal))
+        self.status_vertical.config(text='Vertical angle {:.2f} degrees'.format(vertical))
+        
+
+
+        # Plotting related
+
+        self.plotter.set_recording(selected_recording)
+
+
         i_plot = -1
         
 
@@ -397,14 +427,17 @@ class ExamineView(tk.Frame):
             canvas.update()
  
 
+
 class RecordingPlotter:
 
     def __init__(self):
         self.colorbar = None
         self.roi_rectangles = []
 
+
     def set_analyser(self, analyser):
         self.analyser = analyser
+
 
     def set_recording(self, selected_recording):
         self.selected_recording = selected_recording

@@ -419,7 +419,13 @@ class RecordingPlotter:
             for repetition in range(len(movements)):
                 mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
                 ax.plot(mag)
+            
+        ax.set_xlabel('Frame')
+        ax.set_ylabel('Magnitude sqrt(x^2+y^2) (pixels)')
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
 
+ 
     def xy(self, ax):
         for eye, movements in self.movement_data.items():
             for repetition in range(len(movements)):
@@ -433,6 +439,12 @@ class RecordingPlotter:
                
                 for i_point in range(1, N):
                     ax.plot([x[i_point-1], x[i_point]], [y[i_point-1], y[i_point]], color=cmap((i_point-1)/(N-1)))
+            
+                ax.scatter(x[0], y[0], color='black')
+                ax.scatter(x[-1], y[-1], color='gray')
+
+
+
         # Colormap
         if self.movement_data:
             if not self.colorbar: 

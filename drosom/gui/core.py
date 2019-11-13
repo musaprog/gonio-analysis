@@ -2,6 +2,7 @@
 import os
 import subprocess
 import sys
+import platform
 
 from pupil.drosom.analysing import MAnalyser
 
@@ -36,7 +37,7 @@ class Core:
         return analyser
 
 
-    def adm_subprocess(self, specimens, terminal_args):
+    def adm_subprocess(self, specimens, terminal_args, open_terminal=False):
         '''
         Starts a analyse drosom (adm) subprocess / drosom/terminal.py
         
@@ -61,6 +62,13 @@ class Core:
         python = sys.executable
 
         command = '{} {} {} &'.format(python, pyfile, arguments)
+        
+        if open_terminal:
+            if platform.system() == 'Linux':
+                command = 'lxterm -e ' + command
+            if platform.system() == 'Windows':
+                command = 'start /wait ' + command
+
         print(command)
         
         subprocess.run(command, shell=True)

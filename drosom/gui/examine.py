@@ -281,8 +281,6 @@ class ExamineView(tk.Frame):
         for i_frame in range(len(self.plotter.magnitudes[0])):
             formatted += '\t'.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'
         
-        print(formatted)
-
         self.root.clipboard_append(formatted)
 
 

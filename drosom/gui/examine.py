@@ -306,19 +306,16 @@ class ExamineView(tk.Frame):
                 return None
         
         MeasurementWindow(self.analyser)
-
+    
 
     def antenna_level(self):
         '''
         Start antenna level search for the current specimen 
         '''
         
-        fullpath = os.path.join(self.data_directory, self.current_specimen)
-        target = AntennaLevelFinder().find_level
-        p = multiprocessing.Process(target=target, args=(fullpath,))
-        p.start()
-
-
+        #fullpath = os.path.join(self.data_directory, self.current_specimen)
+        self.core.adm_subprocess('current', 'antenna_level')
+    
     def update_specimen(self):
         self.on_specimen_selection(self.current_specimen)
 
@@ -346,6 +343,7 @@ class ExamineView(tk.Frame):
   
             self.button_rois.config(text='Reselect ROIs')
             self.button_rois.config(bg=self.default_button_bg)
+            
             self.button_measure.config(state=tk.NORMAL)
             
             self.button_one_roi.config(state=tk.NORMAL)
@@ -387,12 +385,16 @@ class ExamineView(tk.Frame):
         N_image_folders = len(self.analyser.list_imagefolders())
         self.status_rois.config(text='ROIs selected {}/{}'.format(N_rois, N_image_folders))
         
-        self.correction = self.analyser.get_antenna_level_correction()
+        try:
+            self.correction = self.analyser.get_antenna_level_correction()
+        except:
+            self.correction = False
         if self.correction:
             self.status_antenna_level.config(text='Zero corrected, {:.2f} degrees'.format(self.correction))
         else:
             self.status_antenna_level.config(text='Zero corrected FALSE')
 
+        self.button_rois.config(state=tk.NORMAL)
 
     def on_recording_selection(self, selected_recording):
         '''

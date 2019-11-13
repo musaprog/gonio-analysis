@@ -8,6 +8,7 @@ an antenna lvl reference fly that can be used for other flies as well.
 import os
 
 import numpy as np
+import tifffile
 
 from antenna_level import AntennaLevelFinder
 from directories import DROSO_DATADIR, PROCESSING_TEMPDIR_BIGFILES
@@ -122,17 +123,18 @@ class ReferenceCreator:
             #imwrite(fn, template)
 
             angles_order.append(angle)
-        
+
         print('Aligning all template images...')
         offsets = aligner.calcOffsets(templates)
         templates = aligner.getAligned(templates, offsets)
         
         for i, template in enumerate(templates):
+            
 
             fn = os.path.join(self.savedir, 'im{:0>5}.tif'.format(i))
             print('Saving {}'.format(fn))
-            imwrite(fn, template)
-        
+            tifffile.imwrite(fn, template)
+
         with open(os.path.join(self.savedir, 'pitch_angles.txt'), 'w') as fp:
             for pitch in angles_order:
                 fp.write(pitch+'\n')

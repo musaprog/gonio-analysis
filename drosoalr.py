@@ -3,7 +3,7 @@ For antenna level search of DrosoM
 '''
 
 import os
-
+from pupil.directories import CODE_ROOTDIR
 
 def loadReferenceFly(folder):
     '''
@@ -11,11 +11,12 @@ def loadReferenceFly(folder):
     image filenames as items.
     '''
     pitches = []
-    with open(os.path.join(folder, 'pitch_angles.txt'), 'r') as fp:
+    root_dir = os.path.dirname
+    with open(os.path.join(CODE_ROOTDIR, folder, 'pitch_angles.txt'), 'r') as fp:
         for line in fp:
             pitches.append(line)
 
-    images = [os.path.join(folder, fn) for fn in os.listdir(folder) if fn.endswith('.tif') or fn.endswith('.tiff')]
+    images = [os.path.join(CODE_ROOTDIR, folder, fn) for fn in os.listdir(os.path.join(CODE_ROOTDIR, folder)) if fn.endswith('.tif') or fn.endswith('.tiff')]
     images.sort() 
     return {pitch: fn for pitch,fn in zip(pitches, images)}
 

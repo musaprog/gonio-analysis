@@ -20,6 +20,7 @@ from movie import Encoder
 from image_adjusting import ROIAdjuster
 from directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 
+from pupil.antenna_level import AntennaLevelFinder
 from .new_analysing import optic_flow_error
 
 
@@ -69,6 +70,11 @@ class TerminalDrosoM:
             
         # Set up analysers at the selected DrosoM folders
         for directory in directories: 
+            
+            if 'antenna_level' in self.argv:
+                AntennaLevelFinder().find_level(directory)
+             
+            
             path, folder_name = os.path.split(directory)
             analyser = MAnalyser(path, folder_name) 
             analysers.append(analyser)
@@ -88,6 +94,8 @@ class TerminalDrosoM:
             analyser.loadAnalysedMovements()
         
         
+        
+            
         plotter = MPlotter()
 
         # Plot results if asked so
@@ -217,6 +225,7 @@ class TerminalDrosoM:
             avg_analyser = MAverager(analysers)
             avg_analyser.setInterpolationSteps(10,10)
             plotter.plotMagnitude2D(avg_analyser)
+
 
         plotter.setLimits('common')
 

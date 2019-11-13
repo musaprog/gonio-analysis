@@ -43,6 +43,7 @@ class Core:
         
         specimens           'current' for current selection or list of specimen names (strings)
         terminal_args        Agruments passed to the plotter
+        open_terminal       If true open in a cmd window (on Windows) or lxterm (on Linux)
         '''
         
         # Find the full path to the adm Python file in the pupil root
@@ -68,6 +69,8 @@ class Core:
                 command = 'lxterm -e ' + command
             if platform.system() == 'Windows':
                 command = 'start /wait ' + command
+            else:
+                raise OSError('Operating system not supported by pupil?')
 
         print(command)
         

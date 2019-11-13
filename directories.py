@@ -6,6 +6,8 @@ Note that not all modules may honour these settings.
 import os
 import platform
 
+CODE_ROOTDIR = os.path.dirname(os.path.realpath(__file__))
+
 if platform.system() == 'Linux':
     # Where for example
     home = os.getenv("HOME")
@@ -22,7 +24,7 @@ if platform.system() == 'Linux':
     #DROSO_DATADIR = '/win2/imaging_data'
 
 elif platform.system() == 'Windows':
-    root_dir = os.path.dirname(os.path.realpath(__file__))
+    root_dir = CODE_ROOTDIR
     DROSO_DATADIR = os.path.join(root_dir, '../DATA')
     ANALYSES_SAVEDIR = os.path.join(root_dir, '../RESULTS')
     PROCESSING_TEMPDIR = os.path.join(ANALYSES_SAVEDIR, 'tmp')

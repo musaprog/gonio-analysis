@@ -65,7 +65,10 @@ def binarySearchMiddle(N_images, shower, reverse=False):
     R = right_end
     L = 0
     
-    print('Find midpoint. "1" to go left or "2" to go right')
+    #print('Find midpoint. "1" to go left or "2" to go right')
+    print('Binary search')
+    print('  Type in 1 or 2 to rotate\n  -1 to return to the beginning\n  0 to instaselect')
+    
     shower.setTitle('Midpoint')
 
     while L<R:

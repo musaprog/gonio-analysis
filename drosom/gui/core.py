@@ -15,12 +15,21 @@ class Core:
     def __init__(self):
         pass
 
+
     def set_data_directory(self, data_directory):
+        '''
+        Update Core's knowledge about the currently selected data_directory.
+        '''
         self.data_directory = data_directory
-    
+
+
     def set_current_specimen(self, specimen_name):
+        '''
+        Update Core's knowledge about the currently selected specimen.
+        '''
         self.current_specimen = specimen_name
-    
+
+
     def list_specimens(self):
         '''
         List specimens in the data directory. May contain bad folders also (no check for contents)
@@ -46,22 +55,31 @@ class Core:
         open_terminal       If true open in a cmd window (on Windows) or lxterm (on Linux)
         '''
         
-        # Find the full path to the adm Python file in the pupil root
+        # 1) Find python executable and wrap the filename by quation marks if spaces present
+        python = sys.executable
+        if ' ' in python:
+            python = '"' + python + '"'
+
+       
+        # 2) Find the full path to the adm Python file in the pupil root
         root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
         pyfile = os.path.join(root, 'adm')
         
+        # Check for spaces in the filename. If there are spaces in the filename,
+        # we have to encapsulate the filename by quation marks
+        if ' ' in pyfile:
+            pyfile = '"' + pyfile + '"'
 
-        # Get the specimen directoires (full paths separated by space)
+        # 3) Get the specimen directoires (full paths separated by space)
         if specimens == 'current':
             manalysers = [self.get_manalyser(self.current_specimen)]
         else:
             manalysers = [self.get_manalyser(name) for name in specimens]
-        specimen_directories = ' '.join([manalyser.get_specimen_directory() for manalyser in manalysers])
+        specimen_directories = ' '.join(['"'+manalyser.get_specimen_directory()+'"' for manalyser in manalysers])
         
+
         arguments = '{} {}'.format(specimen_directories, terminal_args)
         
-        python = sys.executable
-
         command = '{} {} {} &'.format(python, pyfile, arguments)
         
         if open_terminal:

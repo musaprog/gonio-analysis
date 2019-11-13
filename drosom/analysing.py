@@ -81,8 +81,8 @@ class MAnalyser(VectorGettable):
         self.data_path = data_path
         self.folder = folder
         
-        self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, "MAnalyser/ROIs/dynamic_{}_crops.json".format(folder))
-        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, "MAnalyser/movements/dynamic_{}_{}_movements.json".format(folder, '{}'))
+        self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser', 'ROIs', 'dynamic_{}_crops.json'.format(folder))
+        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser', 'movements', 'dynamic_{}_{}_movements.json'.format(folder, '{}'))
         
         # Ensure the directories where the crops and movements are saved exist
         os.makedirs(os.path.dirname(self.CROPS_SAVEFN), exist_ok=True)
@@ -333,6 +333,7 @@ class MAnalyser(VectorGettable):
                     
         self.N_folders_having_rois = len(marker_markings)
 
+
     def selectROIs(self, **kwargs):
         '''
         Selecting the ROIs from the loaded images.
@@ -347,8 +348,10 @@ class MAnalyser(VectorGettable):
         marker = Marker(fig, ax, to_cropping, self.CROPS_SAVEFN, **kwargs)
         marker.run()
 
+
     def select_ROIs(self):
         return self.selectROIs()
+
 
     def isROIsSelected(self):
         '''
@@ -356,9 +359,11 @@ class MAnalyser(VectorGettable):
         '''
         return os.path.exists(self.CROPS_SAVEFN)
     
+
     def is_rois_selected(self):
         return self.isROIsSelected()
-        
+    
+
     def count_roi_selected_folders(self):
         '''
         Returns the number of imagefolders that have ROIs selected
@@ -367,6 +372,7 @@ class MAnalyser(VectorGettable):
             return self.N_folders_having_rois
         else:
             return 0
+
 
     def get_rois(self, image_folder):
         rois = []
@@ -378,14 +384,18 @@ class MAnalyser(VectorGettable):
                 continue
         return rois
 
+
     def isMovementsAnalysed(self):
         '''
         Returns (True, True) if analyseMovement results can be found for the fly and bot eyes.
         '''
+        print(self.MOVEMENTS_SAVEFN)
         return (os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right')))
+
 
     def is_measured(self):
         return all(self.isMovementsAnalysed())
+
 
     def loadAnalysedMovements(self):
         self.movements = {}
@@ -397,6 +407,7 @@ class MAnalyser(VectorGettable):
 
     def load_analysed_movements(self):
         return self.loadAnalysedMovements()
+
 
     def analyseMovement(self, eye):
         '''
@@ -473,9 +484,11 @@ class MAnalyser(VectorGettable):
         #    plt.plot(data['x'])
         #    plt.plot(data['y'])
         #    plt.show()
-    
+
+
     def measure_movement(self, *args, **kwargs):
         return self.analyseMovement(*args, **kwargs)
+
 
     def timePlot(self):
         '''
@@ -556,6 +569,7 @@ class MAnalyser(VectorGettable):
             ROIs.extend(ROI)
         return images, ROIs
 
+
     def get_movements_from_folder(self, image_folder):
         '''
         
@@ -568,6 +582,7 @@ class MAnalyser(VectorGettable):
                 pass
         
         return data
+
 
     def get_raw_xy_traces(self, eye):
         '''
@@ -618,7 +633,8 @@ class MAnalyser(VectorGettable):
         Y = [x[0]['y'][-1]-x[0]['y'][0] for x in values]
 
         return angles, X, Y
-    
+
+
     def getMagnitudeTraces(self, eye):
         '''
         Return a dictionary of movement magnitudes over time.
@@ -704,6 +720,8 @@ class MAnalyser(VectorGettable):
         '''
         self.stop_now = True
 
+
+
 class MAverager(VectorGettable):
     '''
     Combining and averaging results from many MAnalyser objects.
@@ -718,6 +736,7 @@ class MAverager(VectorGettable):
 
     def getFolderName(self):
         return 'averaged_'+'_'.join([manalyser.getFolderName() for manalyser in self.manalysers])
+
 
     def setInterpolationSteps(self, horizontal_step, vertical_step):
         '''

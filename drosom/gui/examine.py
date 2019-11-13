@@ -201,8 +201,8 @@ class ExamineView(tk.Frame):
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
        
         self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
-                ['Reselect ROI'],
-                [self.select_roi])
+                ['Reselect ROI', 'Magnitude to clipboard'],
+                [self.select_roi, self.copy_to_clipboard])
         self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         
@@ -252,8 +252,7 @@ class ExamineView(tk.Frame):
         self.default_button_bg = self.button_rois.cget('bg')
 
         self.plotter = RecordingPlotter()
-        
-        
+                
 
 
     def set_data_directory(self):
@@ -270,6 +269,22 @@ class ExamineView(tk.Frame):
 
             self.specimen_box.set_selections(specimens)
     
+    def copy_to_clipboard(self):
+        self.root.clipboard_clear()
+        
+        formatted = ''
+        
+
+        #for points in self.plotter.magnitudes:
+        #    formatted += '\t'.join([str(x) for x in points.tolist()]) + '\n'
+        
+        for i_frame in range(len(self.plotter.magnitudes[0])):
+            formatted += '\t'.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'
+        
+        print(formatted)
+
+        self.root.clipboard_append(formatted)
+
 
     def select_roi(self):
         '''
@@ -277,7 +292,6 @@ class ExamineView(tk.Frame):
         '''
         self.analyser.selectROIs(callback_on_exit=self.update_specimen,
                 reselect_fns=[self.selected_recording], old_markings=True)
-
 
 
     def select_rois(self):
@@ -314,8 +328,9 @@ class ExamineView(tk.Frame):
         '''
         
         #fullpath = os.path.join(self.data_directory, self.current_specimen)
-        self.core.adm_subprocess('current', 'antenna_level')
-    
+        self.core.adm_subprocess('current', 'antenna_level', open_terminal=True)
+
+
     def update_specimen(self):
         self.on_specimen_selection(self.current_specimen)
 
@@ -396,6 +411,7 @@ class ExamineView(tk.Frame):
 
         self.button_rois.config(state=tk.NORMAL)
 
+
     def on_recording_selection(self, selected_recording):
         '''
         When a selection happens in the recordings listbox.
@@ -466,11 +482,16 @@ class RecordingPlotter:
 
 
     def magnitude(self, ax):
+
+        self.magnitudes = []
+        
         for eye, movements in self.movement_data.items():
             for repetition in range(len(movements)):
                 mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
                 ax.plot(mag)
-            
+                
+                self.magnitudes.append(mag)
+
         ax.set_xlabel('Frame')
         ax.set_ylabel('Magnitude sqrt(x^2+y^2) (pixels)')
         ax.spines['right'].set_visible(False)

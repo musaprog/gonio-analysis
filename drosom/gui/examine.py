@@ -71,9 +71,19 @@ class ExamineMenubar(tk.Frame):
         plot_menu = tk.Menu(self.menubar, tearoff=0)
         plot_menu.add_command(label='Vectormap', command=lambda: self.core.adm_subprocess('current', 'vectormap'))
         plot_menu.add_command(label='Vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'vectormap animation')) 
-        plot_menu.add_command(label='Averaged vectormap...', command=self.averaged_vectormap)
-        self.menubar.add_cascade(label='Plot', menu=plot_menu)
+        plot_menu.add_separator()
+        plot_menu.add_command(label='Displacement over time', command=lambda: self.core.adm_subprocess('current', 'magtrace'))
+        self.menubar.add_cascade(label='Specimen', menu=plot_menu)
         self.plot_menu = plot_menu        
+        
+        # Data plotting
+        many_menu = tk.Menu(self.menubar, tearoff=0)
+        many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged')))
+        # Requiers adding get_magnitude_traces to MAverager
+        #many_menu.add_command(label='Displacement over time', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged magtrace')))
+        self.menubar.add_cascade(label='Many specimens', menu=many_menu)
+        self.many_menu = many_menu        
+
 
         self.winfo_toplevel().config(menu=self.menubar)
 
@@ -86,12 +96,18 @@ class ExamineMenubar(tk.Frame):
         pass
 
 
-    def averaged_vectormap(self):
+    def select_specimens(self, command):
+        '''
+        Opens specimen selection window and after ok runs command using
+        selected specimens list as the only input argument.
+        '''
         top = tk.Toplevel()
         top.title('Select specimens')
         
         specimens = self.core.list_specimens() 
-        selector = TickSelect(top, specimens, lambda specimens: self.core.adm_subprocess(specimens, 'averaged'))
+        selector = TickSelect(top, specimens, command)
+
+        #        lambda specimens: self.core.adm_subprocess(specimens, 'averaged'))
         selector.grid()
         
         tk.Button(selector, text='Close', command=top.destroy).grid(row=1, column=1)

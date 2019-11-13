@@ -91,54 +91,61 @@ class TerminalDrosoM:
         plotter = MPlotter()
 
         # Plot results if asked so
-        for analyser in analysers:
-            if 'timeplot' in self.argv:
-                analyser.timePlot()
-            if 'magtrace' in self.argv:
-                plotter.plotTimeCourses(analyser)
-            if '2d_vectormap' in self.argv:
-                plotter.plotDirection2D(analyser)
-            
-            if 'trajectories' in self.argv:
-                plotter.plot_2d_trajectories(analyser)
-            
-            if 'vectormap' in self.argv:
-                plotter.plot_3d_vectormap(analyser)
-
-            if 'magnitude' in self.argv:
-                plotter.plotMagnitude2D(analyser)
-
-            if 'movie' in self.argv:
-                print(analyser.getFolderName())
-                images, ROIs = analyser.getTimeOrdered()
+        if not 'averaged' in self.argv:
+            for analyser in analysers:
+                if 'timeplot' in self.argv:
+                    analyser.timePlot()
+                if 'magtrace' in self.argv:
+                    plotter.plotTimeCourses(analyser)
                 
-                workdir = os.path.join(PROCESSING_TEMPDIR_BIGFILES, 'movie_{}'.format(str(datetime.datetime.now())))
-                os.makedirs(workdir, exist_ok=True)
-
-                newnames = [os.path.join(workdir, '{:>0}.jpg'.format(i)) for i in range(len(images))]
+                if '2d_vectormap' in self.argv:
+                    plotter.plotDirection2D(analyser)
+                
                 
 
-                adj = ROIAdjuster()
-                newnames = adj.writeAdjusted(images, ROIs, newnames, extend_factor=3, binning=1)
-
-                enc = Encoder()
-                fps = 25
-                enc.encode(newnames, os.path.join(ANALYSES_SAVEDIR, 'movies','{}_{}fps.mp4'.format(analyser.getFolderName(), fps)), fps)
+                if 'trajectories' in self.argv:
+                    plotter.plot_2d_trajectories(analyser)
                 
+                if 'vectormap' in self.argv:
+                    plotter.plot_3d_vectormap(analyser)
+
+                if 'magnitude' in self.argv:
+                    plotter.plotMagnitude2D(analyser)
+
+                if 'movie' in self.argv:
+                    print(analyser.getFolderName())
+                    images, ROIs = analyser.getTimeOrdered()
+                    
+                    workdir = os.path.join(PROCESSING_TEMPDIR_BIGFILES, 'movie_{}'.format(str(datetime.datetime.now())))
+                    os.makedirs(workdir, exist_ok=True)
+
+                    newnames = [os.path.join(workdir, '{:>0}.jpg'.format(i)) for i in range(len(images))]
+                    
+
+                    adj = ROIAdjuster()
+                    newnames = adj.writeAdjusted(images, ROIs, newnames, extend_factor=3, binning=1)
+
+                    enc = Encoder()
+                    fps = 25
+                    enc.encode(newnames, os.path.join(ANALYSES_SAVEDIR, 'movies','{}_{}fps.mp4'.format(analyser.getFolderName(), fps)), fps)
+                    
 
 
-                for image in newnames:
-                    os.remove(image)
-                try:
-                    os.rmdir(workdir)
-                except OSError:
-                    print("Temporal directory {} left behind because it's not empty".format(workdir))
+                    for image in newnames:
+                        os.remove(image)
+                    try:
+                        os.rmdir(workdir)
+                    except OSError:
+                        print("Temporal directory {} left behind because it's not empty".format(workdir))
 
         if 'averaged' in self.argv:
             avg_analyser = MAverager(analysers)
             avg_analyser.setInterpolationSteps(5,5)
             #plotter.plotDirection2D(avg_analyser)
-           
+            
+            if 'magtrace' in self.argv:
+                plotter.plotTimeCourses(avg_analyser)
+            
             if 'animation' in self.argv:
                 animation = []
                 step = 0.5

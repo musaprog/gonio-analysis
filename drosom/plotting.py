@@ -71,7 +71,20 @@ class MPlotter:
             ax.set_xlim(limits[0]-10, limits[1]+10)
             ax.set_ylim(limits[2]-10, limits[3]+10)
     
-    
+    def displacement_over_time(self, manalyser):
+        
+        displacement_traces = []
+
+        for eye in ['let', 'right']:
+            traces = manalyser.get_magnitude_traces(eye)
+            
+            for item in traces.items():
+                displacement_traces.append(item)
+
+        
+        plt.plot(np.mean(displacement_traces), axis=0)
+        plt.show()
+
     def plot_2d_trajectories(self, manalyser):
         '''
         Plot 2D movement trajectories of the pseudopupils, separetly for each imaged position.
@@ -258,7 +271,8 @@ class MPlotter:
         
         for trace in avg:
             time = np.linspace(0, exposure*len(trace)*1000, len(trace))
-            plt.plot(time, trace)
+            #plt.plot(time, trace)
+            break
             #plt.show(block=False)
             #plt.pause(0.1)
             #plt.cla()
@@ -266,8 +280,10 @@ class MPlotter:
 
         avg = np.mean(np.asarray(avg), axis=0)
         print(avg)
-        plt.plot(time, avg, color='black')
-
+        plt.plot(time, avg)
+        plt.xlabel('Time (ms)')
+        plt.ylabel('Displacement (pixels)')
+        plt.suptitle('Displacement over time\n{}'.format(manalyser.get_specimen_name()))
         plt.show()
 
 

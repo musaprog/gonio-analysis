@@ -176,7 +176,6 @@ class MAnalyser(VectorGettable):
             antenna_level_offset = False
         
         return antenna_level_offset
-
     
     def _correctAntennaLevel(self, angles):
         '''
@@ -190,6 +189,12 @@ class MAnalyser(VectorGettable):
 
         return angles
     
+    def get_antenna_level_correction(self):
+        '''
+        Return the antenna level correction or if no correction exists, False.
+        '''
+        return self._getAntennaLevelCorrection(self.folder)
+
 
     def _load_descriptions_file(self):
         '''

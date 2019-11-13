@@ -8,6 +8,7 @@ TODO  - architectual choice: merge drosox and drosom or separate
 '''
 
 import os
+import ast
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -39,10 +40,10 @@ class AntennaLevelFinder:
         
         fly = os.path.split(folder)[1]
         
-        if os.path.exists(os.path.join(ANALYSES_SAVEDIR, 'antenna_levels', fly+'.txt')):
-            print('Fly {} is already analysed. Redo (y/n)?'.format(fly))
-            if not input('>> ').lower() in ['yes', 'y']:
-                return False
+        #if os.path.exists(os.path.join(ANALYSES_SAVEDIR, 'antenna_levels', fly+'.txt')):
+        #    print('Fly {} is already analysed. Redo (y/n)?'.format(fly))
+        #    if not input('>> ').lower() in ['yes', 'y']:
+        #        return False
 
         if 'DrosoX' in fly or 'DrosoALR' in fly:
             # If DrosoX, use drosox loader and find antenna levels by user
@@ -76,16 +77,18 @@ class AntennaLevelFinder:
             
             
             # Load reference fly data
-            reference_pitches = {fn: pitch for pitch, fn in loadReferenceFly('alr_data.json').items()}
-            print(reference_pitches)
+            reference_pitches = {fn: pitch for pitch, fn in loadReferenceFly('alr_data').items()}
+            #print(reference_pitches)
             reference_images = list(reference_pitches.keys())
             reference_images.sort()
 
             fig1, ax1 = plt.subplots()
+            fig1.canvas.set_window_title('Reference Drosophila')
             ref_shower = ImageShower(fig1, ax1)
             ref_shower.setImages(reference_images)
             
             fig2, ax2 = plt.subplots()
+            fig2.canvas.set_window_title('{}'.format(fly))
             m_shower = ImageShower(fig2, ax2)
             
             #matcher = MatchFinder()
@@ -187,10 +190,10 @@ class AntennaLevelFinder:
         for str_angle_pair in data.keys():
             #angle_pair = strToDegrees(str_angle_pair)
             i_start = str_angle_pair.index('(')
-            i_end = str_angle_pair.index(')')
+            i_end = str_angle_pair.index(')')+1
 
-            print(str_angle_pair[i_start:i_end])
-            angle_pair = [ast.literal_eval(str_angle_pair[i_start:i_end])]
+            #print(str_angle_pair[i_start:i_end])
+            angle_pair = [list(ast.literal_eval(str_angle_pair[i_start:i_end]))]
             toDegrees(angle_pair)
             angle_pair = angle_pair[0]
 

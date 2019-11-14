@@ -69,12 +69,12 @@ class MAnalyser(VectorGettable):
     the analysed data out.
     '''
 
-    def __init__(self, data_path, folder, clean_tmp=False):
+    def __init__(self, data_path, folder, clean_tmp=False, no_data_load=False):
         '''
         INPUT ARGUMENTS     DESCRIPTION 
         data_path           directory where DrosoM folder lies
         folder              Name of the DrosoM folder, for example "DrosoM1"
-        
+        no_data_load        Skip loading data in the constructor
         '''
         super().__init__()
         
@@ -88,7 +88,10 @@ class MAnalyser(VectorGettable):
         os.makedirs(os.path.dirname(self.CROPS_SAVEFN), exist_ok=True)
         os.makedirs(os.path.dirname(self.MOVEMENTS_SAVEFN), exist_ok=True)
         
-        self.stacks = load_data(os.path.join(self.data_path, self.folder))
+        if no_data_load:
+            pass
+        else:
+            self.stacks = load_data(os.path.join(self.data_path, self.folder))
 
         
         self.antenna_level_correction = self._getAntennaLevelCorrection(folder)
@@ -307,7 +310,14 @@ class MAnalyser(VectorGettable):
             marker_markings = json.load(fp)
 
         for image_fn, ROIs in marker_markings.items():
-            
+                        
+            # ROIs smaller than 7 pixels a side are not loaded
+            good_rois = []
+            for i_roi in range(len(ROIs)):
+                if not (ROIs[i_roi][2] < 7 and ROIs[i_roi][3] < 7):
+                    good_rois.append(ROIs[i_roi])
+            ROIs = good_rois
+
             pos = self.getPosFolder(image_fn)
             horizontal, pitch = angles_from_fn(pos)
             pos = pos[3:]
@@ -322,7 +332,7 @@ class MAnalyser(VectorGettable):
                     self.ROIs['right'][pos] = ROIs[0]
 
             # If there's two ROIs
-            if len(ROIs) == 2:
+            elif len(ROIs) == 2:
                 
                 if ROIs[0][0] > ROIs[1][0]:
                     self.ROIs['left'][pos] = ROIs[0]
@@ -330,7 +340,10 @@ class MAnalyser(VectorGettable):
                 else:
                     self.ROIs['left'][pos]= ROIs[1]
                     self.ROIs['right'][pos] = ROIs[0]
-                    
+            
+            else:
+                print('Warning. len(ROIs) == {} for {}'.format(len(ROIs), image_fn))
+
         self.N_folders_having_rois = len(marker_markings)
 
 
@@ -408,9 +421,11 @@ class MAnalyser(VectorGettable):
     def load_analysed_movements(self):
         return self.loadAnalysedMovements()
 
+
     def measure_both_eyes(self):
         for eye in ['left', 'right']:
             self.analyseMovement(eye)
+
 
     def analyseMovement(self, eye):
         '''

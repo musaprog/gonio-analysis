@@ -91,8 +91,11 @@ def load_data(drosom_folder):
 
         # Subdivide into repetitions
         for tiff in tiff_files:
-            i_repetition = int(tiff[tiff.index(repetition_indicator)+len(repetition_indicator):].split('_')[0])
-            
+            try:
+                i_repetition = int(tiff[tiff.index(repetition_indicator)+len(repetition_indicator):].split('_')[0])
+            except ValueError:
+                print('Warning: Cannot determine i_repetition for {}'.format(tiff))
+
             while i_repetition >= len(stacks_dictionary[str_angles]):
                 stacks_dictionary[str_angles].append([])
             

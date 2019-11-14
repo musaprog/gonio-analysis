@@ -61,10 +61,10 @@ class ExamineMenubar(tk.Frame):
         self.menubar.add_cascade(label='File', menu=file_menu)
 
         # Batch run
-        batch_menu = tk.Menu(self.menubar, tearoff=0)
-        batch_menu.add_command(label='Select ALL ROIs', command=self.batch_ROIs)
-        batch_menu.add_command(label='Measure ALL movements', command=self.batch_measurement)
-        self.menubar.add_cascade(label='Batch', menu=batch_menu)
+        #batch_menu = tk.Menu(self.menubar, tearoff=0)
+        #batch_menu.add_command(label='Select ALL ROIs', command=self.batch_ROIs)
+        #batch_menu.add_command(label='Measure ALL movements', command=self.batch_measurement)
+        #self.menubar.add_cascade(label='Batch', menu=batch_menu)
         
         
         # Data plotting
@@ -78,7 +78,10 @@ class ExamineMenubar(tk.Frame):
         
         # Data plotting
         many_menu = tk.Menu(self.menubar, tearoff=0)
-        many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged')))
+        many_menu.add_command(label='Measure movements...', 
+                command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, '')))
+        
+        
         # Requiers adding get_magnitude_traces to MAverager
         
         #many_menu.add_command(label='Displacement over time', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged magtrace')))
@@ -86,19 +89,14 @@ class ExamineMenubar(tk.Frame):
         #many_menu.add_command(label='Select  movements...', command=lambda: )
         #
         
+        many_menu.add_separator()
+        many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged')))
+        
         self.menubar.add_cascade(label='Many specimens', menu=many_menu)
         self.many_menu = many_menu        
 
 
         self.winfo_toplevel().config(menu=self.menubar)
-
-
-    def batch_ROIs(self):
-        pass
-
-
-    def batch_measurement(self):
-        pass
 
 
     def select_specimens(self, command):

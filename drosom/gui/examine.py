@@ -345,13 +345,13 @@ class ExamineView(tk.Frame):
         
         # Recordings box
         recordings = self.analyser.list_imagefolders()
+        self.recording_box.enable()
         self.recording_box.set_selections(recordings)
         
         
         # Logick to set buttons inactive/active and their texts
         if self.analyser.is_rois_selected():
             
-            self.recording_box.enable()
 
   
             self.button_rois.config(text='Reselect ROIs')

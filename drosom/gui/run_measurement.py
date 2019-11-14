@@ -15,17 +15,21 @@ class MeasurementWindow:
     to run this in a subprocess.
     '''
 
-    def __init__(self, tk_root, manalysers):
+    def __init__(self, tk_root, thread_targets, title=''):
         '''
         tk_root         Tkinter root object, needed for scheduling events with after-method
-        manalysers      List of manalysers
+        thread_targets  Callables
         '''
         self.root = tk_root
+        self.title = title
 
-        self.i_manalyser = -1
-        self.manalysers = manalysers
-        self.manalyser = manalysers[0]
+        #self.i_manalyser = -1
+        #self.manalysers = manalysers
+        #self.manalyser = manalysers[0]
         
+        self.i_target = -1
+        self.thread_targets = thread_targets
+
         p = threading.Thread(target=self.run)
         p.start()
         
@@ -34,7 +38,7 @@ class MeasurementWindow:
 
     def run(self):
         self.top = tk.Toplevel()
-        self.top.title('Measuring movement...')
+        self.top.title(self.title)
 
         self.oldout = sys.stdout
         sys.stdout = io.StringIO()
@@ -45,19 +49,17 @@ class MeasurementWindow:
         
         self.check_finished()
 
-    def _run_next_manalyser(self):
+    def _run_next_target(self):
         '''
         Set next manalyser to work or return False if none left.
         '''
-        self.i_manalyser += 1
+        self.i_target += 1
         
-        if self.i_manalyser == len(self.manalysers):
+        if self.i_target == len(self.thread_targets):
             return False
 
-        self.manalyser = self.manalysers[self.i_manalyser]
-        
 
-        p = threading.Thread(target=self.manalyser.measure_both_eyes) 
+        p = threading.Thread(target=self.thread_targets[self.i_target]) 
         p.start()
         self.processes.append(p)
     
@@ -77,21 +79,22 @@ class MeasurementWindow:
 
     def check_finished(self):
         '''
-
+        Check if all the threads are finished and if there are more targets to run.
+        Reschedule every 1000 ms.
         '''
         if self.is_finished():
-            manalysers_left = self._run_next_manalyser()
+            targets_left = self._run_next_target()
         else:
-            manalysers_left = True
+            targets_left = True
 
-        if manalysers_left:
+        if targets_left:
             self.root.after(1000, self.check_finished)
         else:
             self.cancel_button.config(text='Ok')
 
 
     def on_cancel(self):
-        self.manalyser.stop()
+        self.thread_targets[self.i_target].stop()
 
         # Destroy the window if everything analysed
         if not all([stopped.is_alive() for stopped in self.processes]):

@@ -30,19 +30,26 @@ class Core:
         self.current_specimen = specimen_name
 
 
-    def list_specimens(self):
+    def list_specimens(self, with_rois=False, with_movements=False):
         '''
         List specimens in the data directory. May contain bad folders also (no check for contents)
         '''
         specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
+        
+        if with_rois:
+            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_rois_selected()]
+        
+        if with_movements:
+            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_measured()]
+        
         return sorted(specimens)
 
 
-    def get_manalyser(self, specimen_name):
+    def get_manalyser(self, specimen_name, **kwargs):
         '''
         Gets manalyser for the specimen specified by the given name.
         '''
-        analyser = MAnalyser(self.data_directory, specimen_name)
+        analyser = MAnalyser(self.data_directory, specimen_name, **kwargs)
         return analyser
 
 
@@ -85,7 +92,7 @@ class Core:
         if open_terminal:
             if platform.system() == 'Linux':
                 command = 'lxterm -e ' + command
-            if platform.system() == 'Windows':
+            elif platform.system() == 'Windows':
                 command = 'start /wait ' + command
             else:
                 raise OSError('Operating system not supported by pupil?')

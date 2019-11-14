@@ -51,6 +51,7 @@ class ExamineMenubar(tk.Frame):
         tk.Frame.__init__(self, parent)
 
         self.parent = parent
+        self.root = parent.root
         self.core = parent.core
         self.menubar = tk.Menu(self)
         
@@ -79,9 +80,9 @@ class ExamineMenubar(tk.Frame):
         # Data plotting
         many_menu = tk.Menu(self.menubar, tearoff=0)
         many_menu.add_command(label='Measure movements...', 
-                command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, '')))
+                command=lambda: self.select_specimens(self.batch_measure, with_rois=True))
         
-        
+         
         # Requiers adding get_magnitude_traces to MAverager
         
         #many_menu.add_command(label='Displacement over time', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged magtrace')))
@@ -98,16 +99,24 @@ class ExamineMenubar(tk.Frame):
 
         self.winfo_toplevel().config(menu=self.menubar)
 
-
-    def select_specimens(self, command):
+    
+    def batch_measure(self, specimens):
+        targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
+        MeasurementWindow(self.root, targets, title='Measure movement')
+    
+    def select_specimens(self, command, with_rois=False, with_movements=False):
         '''
         Opens specimen selection window and after ok runs command using
         selected specimens list as the only input argument.
+
+        command         Command to close after fly selection
+        with_rois       List specimens with ROIs selected if True
+        with_movements  List specimens with movements measured if True
         '''
         top = tk.Toplevel()
         top.title('Select specimens')
         
-        specimens = self.core.list_specimens() 
+        specimens = self.core.list_specimens(with_rois=with_rois, with_movements=with_movements) 
         selector = TickSelect(top, specimens, command)
 
         #        lambda specimens: self.core.adm_subprocess(specimens, 'averaged'))
@@ -320,7 +329,7 @@ class ExamineView(tk.Frame):
             if not sure:
                 return None
         
-        MeasurementWindow(self.root, [self.analyser])
+        MeasurementWindow(self.root, [self.analyser.measure_both_eyes], title='Measure movement')
     
 
     def antenna_level(self):

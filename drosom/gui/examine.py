@@ -80,7 +80,12 @@ class ExamineMenubar(tk.Frame):
         many_menu = tk.Menu(self.menubar, tearoff=0)
         many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged')))
         # Requiers adding get_magnitude_traces to MAverager
+        
         #many_menu.add_command(label='Displacement over time', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged magtrace')))
+        
+        #many_menu.add_command(label='Select  movements...', command=lambda: )
+        #
+        
         self.menubar.add_cascade(label='Many specimens', menu=many_menu)
         self.many_menu = many_menu        
 
@@ -317,7 +322,7 @@ class ExamineView(tk.Frame):
             if not sure:
                 return None
         
-        MeasurementWindow(self.analyser)
+        MeasurementWindow(self.root, [self.analyser])
     
 
     def antenna_level(self):
@@ -489,7 +494,7 @@ class RecordingPlotter:
                 ax.plot(mag)
                 
                 self.magnitudes.append(mag)
-
+        
         ax.set_xlabel('Frame')
         ax.set_ylabel('Magnitude sqrt(x^2+y^2) (pixels)')
         ax.spines['right'].set_visible(False)

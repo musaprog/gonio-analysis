@@ -408,6 +408,9 @@ class MAnalyser(VectorGettable):
     def load_analysed_movements(self):
         return self.loadAnalysedMovements()
 
+    def measure_both_eyes(self):
+        for eye in ['left', 'right']:
+            self.analyseMovement(eye)
 
     def analyseMovement(self, eye):
         '''
@@ -433,48 +436,64 @@ class MAnalyser(VectorGettable):
         angles = []
         stacks = []
         ROIs = []
-        
-        for angle in self.stacks:
-            if angle in str(self.ROIs[eye].keys()):
-                for i_repetition in range(len(self.stacks[angle])):
-                    angles.append(angle)
-                    stacks.append( self.stacks[angle][i_repetition] )
-                    ROIs.append( [self.ROIs[eye][angle]] )
-        
-        print('angles len {}'.format(len(angles)))
 
-        meter = Movemeter(upscale=4)
-        meter.setData(stacks, ROIs)
-       
+        if not self.ROIs[eye] == {}:
 
-        for stack_i, angle in enumerate(angles):
-            
-            if self.stop_now:
-                self.stop_now = False
-                self.movements = {}
-                print('{} EYE CANCELLED'.format(eye.upper()))
-                return None
+            print(self.ROIs)
+            for angle in self.stacks:
+                if angle in str(self.ROIs[eye].keys()):
+                    
+                    # Fuse if only one frame per repetition
+                    if len(self.stacks[angle][0]) == 1:
+                        fuse = True
+                    else:
+                        fuse = False
+                    if fuse:
+                        fused = []
+                        for i_repetition in range(len(self.stacks[angle])):
+                            fused += self.stacks[angle][i_repetition]
+                    
+                        self.stacks[angle] = [fused]
 
+                    for i_repetition in range(len(self.stacks[angle])):
+                        angles.append(angle)
+                        stacks.append( self.stacks[angle][i_repetition] )
+                        ROIs.append( [self.ROIs[eye][angle]] )
             
-            print('Analysing {} eye pseudopupil motion from position {}, done {}/{} for this eye'.format(eye.upper(), angle, stack_i+1, len(ROIs)))
+            print('angles len {}'.format(len(angles)))
 
-            print("Calculating ROI's movement...")
-            x, y = meter.measureMovement(stack_i, max_movement=15)[0]
+            meter = Movemeter(upscale=4)
+            meter.setData(stacks, ROIs)
             
-            print('Done.')
-            
-            # Failsafe for crazy values
-            if not max(np.max(np.abs(x)), np.max(np.abs(y))) > 100:
-                try:
-                    self.movements[angle]
-                except KeyError:
-                    self.movements[angle] = []
+            for stack_i, angle in enumerate(angles):
                 
-                tags = meter.getMetadata(stack_i)['Image ImageDescription'].values.split('"')
-                time = tags[tags.index('start_time') + 2]
-                self.movements[angle].append({'x': x, 'y':y, 'time': time})
- 
-        
+                if self.stop_now:
+                    self.stop_now = False
+                    self.movements = {}
+                    print('{} EYE CANCELLED'.format(eye.upper()))
+                    return None
+
+                
+                print('Analysing {} eye pseudopupil motion from position {}, done {}/{} for this eye'.format(eye.upper(), angle, stack_i+1, len(ROIs)))
+
+                print("Calculating ROI's movement...")
+                x, y = meter.measureMovement(stack_i, max_movement=15)[0]
+                
+                print('Done.')
+                
+                # Failsafe for crazy values
+                if not max(np.max(np.abs(x)), np.max(np.abs(y))) > 100:
+                    try:
+                        self.movements[angle]
+                    except KeyError:
+                        self.movements[angle] = []
+                    
+                    tags = meter.getMetadata(stack_i)['Image ImageDescription'].values.split('"')
+                    time = tags[tags.index('start_time') + 2]
+                    self.movements[angle].append({'x': x, 'y':y, 'time': time})
+        else:
+            self.movements = {}
+            
         # Save momevemtns
         with open(self.MOVEMENTS_SAVEFN.format(eye), 'w') as fp:
             json.dump(self.movements, fp)

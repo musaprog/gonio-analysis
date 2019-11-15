@@ -456,25 +456,30 @@ class MAnalyser(VectorGettable):
 
             print(self.ROIs)
             for angle in self.stacks:
-                if angle in str(self.ROIs[eye].keys()):
-                    
-                    # Fuse if only one frame per repetition
-                    if len(self.stacks[angle][0]) == 1:
-                        fuse = True
-                    else:
-                        fuse = False
-                    if fuse:
-                        fused = []
-                        for i_repetition in range(len(self.stacks[angle])):
-                            fused += self.stacks[angle][i_repetition]
-                    
-                        self.stacks[angle] = [fused]
+                #if angle in str(self.ROIs[eye].keys()):
+                
+                try :
+                    self.ROIs[eye][angle]
+                except KeyError:
+                    continue
 
+                # Fuse if only one frame per repetition
+                if len(self.stacks[angle][0]) == 1:
+                    fuse = True
+                else:
+                    fuse = False
+                if fuse:
+                    fused = []
                     for i_repetition in range(len(self.stacks[angle])):
-                        angles.append(angle)
-                        stacks.append( self.stacks[angle][i_repetition] )
-                        ROIs.append( [self.ROIs[eye][angle]] )
-            
+                        fused += self.stacks[angle][i_repetition]
+                
+                    self.stacks[angle] = [fused]
+
+                for i_repetition in range(len(self.stacks[angle])):
+                    angles.append(angle)
+                    stacks.append( self.stacks[angle][i_repetition] )
+                    ROIs.append( [self.ROIs[eye][angle]] )
+        
             print('angles len {}'.format(len(angles)))
 
             meter = Movemeter(upscale=4)

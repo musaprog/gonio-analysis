@@ -22,7 +22,7 @@ import cv2
 
 from pupil.directories import ANALYSES_SAVEDIR
 from pupil.droso import DrosoSelect
-from pupil.drosox import XLoader
+#from pupil.drosox import XLoader
 from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
 from pupil.imageshower import ImageShower
 

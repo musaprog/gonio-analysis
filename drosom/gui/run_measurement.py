@@ -15,13 +15,14 @@ class MeasurementWindow:
     to run this in a subprocess.
     '''
 
-    def __init__(self, tk_root, thread_targets, title=''):
+    def __init__(self, tk_root, thread_targets, title='', callback_on_exit=None):
         '''
         tk_root         Tkinter root object, needed for scheduling events with after-method
         thread_targets  Callables
         '''
         self.root = tk_root
         self.title = title
+        self.callback_on_exit = callback_on_exit
 
         #self.i_manalyser = -1
         #self.manalysers = manalysers
@@ -30,11 +31,12 @@ class MeasurementWindow:
         self.i_target = -1
         self.thread_targets = thread_targets
 
-        p = threading.Thread(target=self.run)
-        p.start()
+        #p = threading.Thread(target=self.run)
+        #p.start()
         
         self.processes = []
 
+        self.run()
 
     def run(self):
         self.top = tk.Toplevel()

@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 from pupil.directories import ANALYSES_SAVEDIR
 from pupil.droso import DrosoSelect
-from pupil.drosox import XLoader
+#from pupil.drosox import XLoader
 from pupil.drosom.loading import load_data
 from pupil.imageshower import ImageShower
 from pupil.binary_search import binarySearchMiddle

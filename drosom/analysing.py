@@ -345,8 +345,10 @@ class MAnalyser(VectorGettable):
                 print('Warning. len(ROIs) == {} for {}'.format(len(ROIs), image_fn))
 
         self.N_folders_having_rois = len(marker_markings)
-
-
+        
+        print('ROIs left: {}'.format(len(self.ROIs['left'])))
+        print('ROIs right: {}'.format(len(self.ROIs['right'])))
+        
     def selectROIs(self, **kwargs):
         '''
         Selecting the ROIs from the loaded images.

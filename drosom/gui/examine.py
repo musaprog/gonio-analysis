@@ -1,11 +1,14 @@
 '''
 
 TODO
-+++ antenna_level finder
++++ export all traces to clipboard
+++ antenna_level finder
++ after movement measure, update MAnalyser
++ no need for manual add to PythonPath on Windows
 - show statistics
 - intensity series plotting
 - reading imaging parameters for each imagefolder from the descriptions file
-+ multiselect ROIs (if many separate recordings at the same site)
+- multiselect ROIs (if many separate recordings at the same site)
 
 
 '''
@@ -29,7 +32,7 @@ import tifffile
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect
 from tk_steroids.matplotlib import CanvasPlotter
 
-from pupil.directories import PROCESSING_TEMPDIR_BIGFILES
+from pupil.directories import PROCESSING_TEMPDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupil.antenna_level import AntennaLevelFinder
 from pupil.drosom.loading import angles_from_fn
 from pupil.drosom.analysing import MAnalyser
@@ -281,6 +284,18 @@ class ExamineView(tk.Frame):
 
             self.specimen_box.set_selections(specimens)
     
+    def copy_to_csv(self):
+        
+        os.makedirs(os.path.join(PROCESSING_TEMPDIR, self.current_specimen), exist_ok=True)
+        
+        with open(os.path.join(PROCESSING_TEMPDIR, self.current_specimen, self.selected_recording), 'w') as fp:
+            
+            for i_frame in range(len(self.plotter.magnitudes[0])):
+                formatted = ','.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'
+                fp.write(formatted)
+
+
+
     def copy_to_clipboard(self):
         self.root.clipboard_clear()
         
@@ -294,7 +309,8 @@ class ExamineView(tk.Frame):
             formatted += '\t'.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'
         
         self.root.clipboard_append(formatted)
-
+        
+        self.copy_to_csv()
 
     def select_roi(self):
         '''

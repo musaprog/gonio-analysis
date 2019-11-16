@@ -456,6 +456,7 @@ class MAnalyser(VectorGettable):
 
             print(self.ROIs)
             for angle in self.stacks:
+                
                 #if angle in str(self.ROIs[eye].keys()):
                 
                 try :

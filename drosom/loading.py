@@ -95,12 +95,15 @@ def load_data(drosom_folder):
                 i_repetition = int(tiff[tiff.index(repetition_indicator)+len(repetition_indicator):].split('_')[0])
             except ValueError:
                 print('Warning: Cannot determine i_repetition for {}'.format(tiff))
-
             while i_repetition >= len(stacks_dictionary[str_angles]):
                 stacks_dictionary[str_angles].append([])
             
-            
+
+                        
             stacks_dictionary[str_angles][i_repetition].append(os.path.join(drosom_folder, folder, tiff))
-    
+        
+        # Remove empty lists, if one repetition index or more is missing from the data
+        stacks_dictionary[str_angles] = [alist for alist in stacks_dictionary[str_angles] if not alist == []]
+
     return stacks_dictionary
 

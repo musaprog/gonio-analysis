@@ -194,11 +194,11 @@ class ExamineView(tk.Frame):
        
         # The 2nd buttons frame, ROIs and movements
         self.buttons_frame_2 = ButtonsFrame(self.specimen_control_frame,
-                ['Select ROIs', 'Measure movement', 'Zero correct'],
-                [self.select_rois, self.measure_movement, self.antenna_level])
+                ['Select ROIs', 'Measure movement', 'Zero correct', 'Copy to clipboard'],
+                [self.select_rois, self.measure_movement, self.antenna_level, self.copy_mean])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
-        self.button_rois, self.button_measure, self.button_zero = self.buttons_frame_2.get_buttons()
-        
+        self.button_rois, self.button_measure, self.button_zero, self.copy_mean = self.buttons_frame_2.get_buttons()
+        self.copy_mean.grid(row=1, column=0, columnspan=3, sticky='W')
         # Subframe for 2nd buttons frame
         #self.status_frame = tk.Frame(self.leftside_frame)
         #self.status_frame.grid(row=2)
@@ -216,7 +216,7 @@ class ExamineView(tk.Frame):
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
        
         self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
-                ['Reselect ROI', 'Magnitude to clipboard'],
+                ['Reselect ROI', 'Copy to clipboard'],
                 [self.select_roi, self.copy_to_clipboard])
         self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
@@ -248,7 +248,7 @@ class ExamineView(tk.Frame):
         
         
         canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
-        tab_names = ['ROI', 'Magnitude', 'XY']
+        tab_names = ['ROI', 'Displacement', 'XY']
         self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))])
         self.tabs.grid(row=0, column=1, sticky='NWES')
 
@@ -294,7 +294,30 @@ class ExamineView(tk.Frame):
                 formatted = ','.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'
                 fp.write(formatted)
 
+    
+    def copy_mean(self):
+        '''
+        
+        '''
+        formatted = '' 
+        data = []
 
+        self.root.clipboard_append(formatted)
+        
+        for pos_folder in self.analyser.list_imagefolders():
+            all_movements = self.analyser.get_movements_from_folder(pos_folder)
+            
+            #movements = movements['left'] + movements['right']
+            
+            for eye, movements in all_movements.items():
+                for repetition in range(len(movements)):
+                    mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
+                    data.append(mag)
+        
+        for i_frame in range(len(data[0])):
+            formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
+        self.root.clipboard_append(formatted)
+        
 
     def copy_to_clipboard(self):
         self.root.clipboard_clear()
@@ -506,6 +529,7 @@ class RecordingPlotter:
         else:
             self.movement_data = {}
 
+    
 
     def magnitude(self, ax):
 

@@ -1,7 +1,7 @@
 '''
 
 TODO
-+++ export all traces to clipboard
++++ single measure movement
 ++ antenna_level finder
 + after movement measure, update MAnalyser
 + no need for manual add to PythonPath on Windows
@@ -216,8 +216,8 @@ class ExamineView(tk.Frame):
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
        
         self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
-                ['Reselect ROI', 'Copy to clipboard'],
-                [self.select_roi, self.copy_to_clipboard])
+                ['Reselect ROI', 'Remeasure', 'Copy to clipboard'],
+                [self.select_roi, lambda: self.measure_movement(current_only=True), self.copy_to_clipboard])
         self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         
@@ -284,6 +284,7 @@ class ExamineView(tk.Frame):
 
             self.specimen_box.set_selections(specimens)
     
+
     def copy_to_csv(self):
         
         os.makedirs(os.path.join(PROCESSING_TEMPDIR, self.current_specimen), exist_ok=True)
@@ -357,7 +358,7 @@ class ExamineView(tk.Frame):
         self.analyser.selectROIs(callback_on_exit=self.update_specimen)
 
 
-    def measure_movement(self):
+    def measure_movement(self, current_only=False):
         '''
         When the measure movement button is pressed.
         '''
@@ -368,7 +369,12 @@ class ExamineView(tk.Frame):
             if not sure:
                 return None
         
-        MeasurementWindow(self.root, [self.analyser.measure_both_eyes], title='Measure movement')
+        if current_only:
+            func = lambda: self.analyser.measure_both_eyes(only_folders=str(self.selected_recording))
+        else:
+            func = self.analyser.measure_both_eyes
+        
+        MeasurementWindow(self.root, [func], title='Measure movement')
     
 
     def antenna_level(self):

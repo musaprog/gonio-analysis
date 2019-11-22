@@ -424,12 +424,12 @@ class MAnalyser(VectorGettable):
         return self.loadAnalysedMovements()
 
 
-    def measure_both_eyes(self):
+    def measure_both_eyes(self, **kwargs):
         for eye in ['left', 'right']:
-            self.analyseMovement(eye)
+            self.analyseMovement(eye, **kwargs)
 
 
-    def analyseMovement(self, eye):
+    def analyseMovement(self, eye, only_folders=None):
         '''
         Performs cross-correlation analysis for the selected pseudopupils (ROIs, regions of interest)
         using Movemeter package.
@@ -439,6 +439,7 @@ class MAnalyser(VectorGettable):
 
         INPUT ARGUMENTS         DESCRIPTION
         eye                     'left' or 'right'
+        only_folders            Analyse only image folders in this list.
 
         Cross-correlation analysis is the slowest part of the DrosoM pipeline.
         '''
@@ -458,12 +459,17 @@ class MAnalyser(VectorGettable):
 
             print(self.ROIs)
             for angle in self.stacks:
-                
                 #if angle in str(self.ROIs[eye].keys()):
                 
+                # Continue if no ROI for this eye exists
                 try :
                     self.ROIs[eye][angle]
                 except KeyError:
+                    continue
+
+                # Continue if only_folders set and the angle is not in
+                # the only folders
+                if only_folders and not 'pos'+angle in only_folders:
                     continue
 
                 # Fuse if only one frame per repetition
@@ -482,8 +488,10 @@ class MAnalyser(VectorGettable):
                     angles.append(angle)
                     stacks.append( self.stacks[angle][i_repetition] )
                     ROIs.append( [self.ROIs[eye][angle]] )
-        
-            print('angles len {}'.format(len(angles)))
+
+            
+            if ROIs == []:
+                return None
 
             meter = Movemeter(upscale=4)
             meter.setData(stacks, ROIs)
@@ -517,7 +525,19 @@ class MAnalyser(VectorGettable):
         else:
             self.movements = {}
             
-        # Save momevemtns
+        # If only_folders set ie. only some angles were (re)measured,
+        # load previous movements also for saving
+        if only_folders:
+            with open(self.MOVEMENTS_SAVEFN.format(eye), 'r') as fp:
+                 previous_movements = json.load(fp)
+            
+            # Update previous movements with the new movements and set
+            # the updated previous movements to be the current movements
+            previous_movements.update(self.movements)
+            self.movements = previous_movements
+
+
+        # Save movements
         with open(self.MOVEMENTS_SAVEFN.format(eye), 'w') as fp:
             json.dump(self.movements, fp)
         

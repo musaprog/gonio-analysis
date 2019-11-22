@@ -1,16 +1,11 @@
 '''
 
 TODO
-+++ single measure movement
 ++ antenna_level finder
 + after movement measure, update MAnalyser
 + no need for manual add to PythonPath on Windows
-- show statistics
-- intensity series plotting
-- reading imaging parameters for each imagefolder from the descriptions file
+- window to strecth to full screen
 - multiselect ROIs (if many separate recordings at the same site)
-
-
 '''
 import os
 import multiprocessing

@@ -1,11 +1,25 @@
 '''
 
 TODO
+
+Features
 ++ antenna_level finder
-+ after movement measure, update MAnalyser
++ video of the moving ROIs
 + no need for manual add to PythonPath on Windows
 - window to strecth to full screen
 - multiselect ROIs (if many separate recordings at the same site)
+
+Polishing
+- specimens control title, retain name specimen
+- image folders control title as specimens
+- after movement measure, update MAnalyser
+- displacement plot Y axis label
+- highlight specimens/image_folders:
+    red: no rois / movements
+    yellow: rois but no movements
+- x-axis from frames to time?
+
+
 '''
 import os
 import multiprocessing
@@ -24,7 +38,7 @@ import matplotlib.cm
 import matplotlib.widgets
 import tifffile
 
-from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect
+from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect, ColorExplanation
 from tk_steroids.matplotlib import CanvasPlotter
 
 from pupil.directories import PROCESSING_TEMPDIR, PROCESSING_TEMPDIR_BIGFILES
@@ -164,7 +178,9 @@ class ExamineView(tk.Frame):
 
         # Make canvas plotter to stretch
         self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=3)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(0, minsize=400)
 
 
         #tk.Button(self, text='Set data directory...', command=self.set_data_directory).grid(row=0, column=0)
@@ -174,8 +190,12 @@ class ExamineView(tk.Frame):
 
         # LEFTSIDE frame
         self.leftside_frame = tk.Frame(self)
-        self.leftside_frame.grid(row=0, column=0, sticky='NS') 
+        self.leftside_frame.grid(row=0, column=0, sticky='NSWE') 
         self.leftside_frame.grid_rowconfigure(4, weight=1) 
+        self.leftside_frame.grid_columnconfigure(0, weight=1)
+        self.leftside_frame.grid_columnconfigure(1, weight=1)
+
+
 
         # The 1st buttons frame, selecting root data directory
         self.buttons_frame_1 = ButtonsFrame(self.leftside_frame, ['Set data directory'],
@@ -228,28 +248,33 @@ class ExamineView(tk.Frame):
         # Selecting the specimen 
         tk.Label(self.leftside_frame, text='Specimens').grid(row=3, column=0)
         self.specimen_box = Listbox(self.leftside_frame, ['(select directory)'], self.on_specimen_selection)
-        self.specimen_box.grid(row=4, column=0, sticky='NS')
+        self.specimen_box.grid(row=4, column=0, sticky='NSEW')
 
        
         # Selecting the recording
         tk.Label(self.leftside_frame, text='Image folders').grid(row=3, column=1)
         self.recording_box = Listbox(self.leftside_frame, [''], self.on_recording_selection)
-        self.recording_box.grid(row=4, column=1, sticky='NS')
+        self.recording_box.grid(row=4, column=1, sticky='NSEW')
 
+        
+        # Add color explanation frame in the bottom
+        ColorExplanation(self.leftside_frame, ['white', 'green', 'yellow'],
+                ['Movements measured', 'ROIs selected', 'No ROIs']).grid(row=5, column=0, sticky='NW')
 
         # RIGHTSIDE frame        
         self.rightside_frame = tk.Frame(self)
-        self.rightside_frame.grid(row=0, column=1, sticky='NS')
+        self.rightside_frame.grid(row=0, column=1, sticky='NWES')
         
         
         canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
         tab_names = ['ROI', 'Displacement', 'XY']
         self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))])
-        self.tabs.grid(row=0, column=1, sticky='NWES')
+        self.tabs.grid(row=0, column=0, sticky='NWES')
 
         # Make canvas plotter to stretch
-        #self.tabs.grid_rowconfigure(1, weight=1)
-        #self.tabs.grid_columnconfigure(0, weight=1)
+        self.rightside_frame.grid_rowconfigure(0, weight=1)
+        self.rightside_frame.grid_columnconfigure(0, weight=1)
+
 
         
         self.data_directory = None
@@ -265,20 +290,43 @@ class ExamineView(tk.Frame):
                 
 
 
-    def set_data_directory(self):
+
+    def _color_specimens(self, specimens):
+        '''
+        See _color_recording for reference.
+        '''
+        colors = []
+        for specimen in specimens:
+            analyser = self.core.get_manalyser(specimen, no_data_load=True)
+            color = 'yellow'
+            if analyser.is_rois_selected():
+                color = 'green'
+                if analyser.is_measured():
+                    color = 'white'
+            
+            colors.append(color)
+        return colors
+
+
+
+    def set_data_directory(self, ask=True):
         '''
         When the button set data diorectory is pressed.
         '''
-        directory = filedialog.askdirectory(initialdir='/home/joni/smallbrains-nas1/array1')
-        
-        if directory:
-            self.data_directory = directory
-            self.core.set_data_directory(directory)
-            
-            specimens = self.core.list_specimens()
 
-            self.specimen_box.set_selections(specimens)
-    
+        if ask:
+            self.directory = filedialog.askdirectory(initialdir='/home/joni/smallbrains-nas1/array1')
+            if not self.directory:
+                return None
+
+        
+        self.data_directory = self.directory
+        self.core.set_data_directory(self.directory)
+        
+        specimens = self.core.list_specimens()
+
+        self.specimen_box.set_selections(specimens, self._color_specimens(specimens))
+
 
     def copy_to_csv(self):
         
@@ -382,7 +430,36 @@ class ExamineView(tk.Frame):
 
 
     def update_specimen(self):
+        '''
+        Updates GUI colors, button states etc. to right values.
+        
+        Call this if there has been changes to specimens/image_folders by an
+        external process or similar.
+        '''
         self.on_specimen_selection(self.current_specimen)
+        
+        
+
+    def _color_recordings(self, recordings):
+        '''
+        Returns a list of colours, each corresponding to a recording
+        in recordings, based on wheter the ROIs have been selected or
+        movements measured for the recording.
+
+        yellow      No ROIs, no movements
+        green       ROIs, no movements
+        white       ROIs and movements
+        '''
+        colors = []
+        for recording in recordings:
+            color = 'yellow'
+            if self.analyser.folder_has_rois(recording):
+                color = 'green'
+                if self.analyser.folder_has_movements(recording):
+                    color = 'white'
+            
+            colors.append(color)
+        return colors
 
 
     def on_specimen_selection(self, specimen):
@@ -398,8 +475,8 @@ class ExamineView(tk.Frame):
         # Recordings box
         recordings = self.analyser.list_imagefolders()
         self.recording_box.enable()
-        self.recording_box.set_selections(recordings)
-        
+        self.recording_box.set_selections(recordings, colors=self._color_recordings(recordings))
+         
         
         # Logick to set buttons inactive/active and their texts
         if self.analyser.is_rois_selected():
@@ -412,7 +489,10 @@ class ExamineView(tk.Frame):
             self.button_measure.config(state=tk.NORMAL)
             
             self.button_one_roi.config(state=tk.NORMAL)
-           
+            
+            # Enable image_folder buttons
+            for button in self.buttons_frame_3.get_buttons():
+                button.config(state=tk.NORMAL)
 
             if self.analyser.is_measured():
                 self.button_measure.config(text='Remeasure movement')
@@ -421,16 +501,22 @@ class ExamineView(tk.Frame):
                 self.button_measure.config(text='Measure movement')
                 self.button_measure.config(bg='green')
         else:
-            self.recording_box.disable()
+            #self.recording_box.disable()
 
             self.button_rois.config(text='Select ROIs')
-            self.button_rois.config(bg='green')
+            self.button_rois.config(bg='yellow')
 
             self.button_measure.config(state=tk.DISABLED)
             self.button_measure.config(text='Measure movement')
             self.button_measure.config(bg=self.default_button_bg)
 
             self.button_one_roi.config(state=tk.DISABLED)
+            
+            # Disable image_folder buttons
+            for button in self.buttons_frame_3.get_buttons():
+                button.config(state=tk.DISABLED)
+
+
 
         if self.analyser.is_rois_selected():
             self.analyser.loadROIs()
@@ -439,7 +525,7 @@ class ExamineView(tk.Frame):
 
         if self.analyser.is_measured():
             self.analyser.load_analysed_movements()
-            self.recording_box.enable()
+            #self.recording_box.enable()
             
         
         self.menu.update_states(self.analyser)
@@ -492,7 +578,7 @@ class ExamineView(tk.Frame):
         self.plotter.ROI(ax)
        
         # Manipulating figure size? Put it to fill the window
-        #fig.set_size_inches(1, 1, forward=True)
+        #fig.set_size_inches(10, 10, forward=True)
         #self.canvases[0].update_size()
 
         i_plot += 1
@@ -518,7 +604,10 @@ def main():
 
     root = tk.Tk()
     root.title('Pupil analysis - Tkinter GUI')
-    ExamineView(root).grid()
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
+    root.minsize(800,600)
+    ExamineView(root).grid(sticky='NSWE')
     root.mainloop()
 
 

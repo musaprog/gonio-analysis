@@ -59,7 +59,7 @@ class RecordingPlotter:
                 self.magnitudes.append(mag)
         
         ax.set_xlabel('Frame')
-        ax.set_ylabel('Magnitude sqrt(x^2+y^2) (pixels)')
+        ax.set_ylabel('Displacement sqrt(x^2+y^2) (pixels)')
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
 
@@ -134,12 +134,13 @@ class RecordingPlotter:
         for old_roi in self.roi_rectangles:
             old_roi.remove()
         self.roi_rectangles = []
+        
 
         for roi in self.analyser.get_rois(self.selected_recording):
             patch = matplotlib.patches.Rectangle((roi[0], roi[1]), roi[2], roi[3],
                     fill=False, edgecolor='White')
             self.roi_rectangles.append(patch)
-            
+        
         self.update_ROI_plot(self.range_slider.val)
 
         for roi in self.roi_rectangles:

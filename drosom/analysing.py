@@ -89,19 +89,28 @@ class MAnalyser(VectorGettable):
         os.makedirs(os.path.dirname(self.MOVEMENTS_SAVEFN), exist_ok=True)
         
         if no_data_load:
+            # no_data_load was speciefied, skip all data loading
             pass
         else:
             self.stacks = load_data(os.path.join(self.data_path, self.folder))
+            
+            # Load movements and ROIs if they exists
+            if self.is_rois_selected():
+                self.loadROIs()
+            
+            if self.is_measured():
+                self.loadAnalysedMovements()
 
-        
-        self.antenna_level_correction = self._getAntennaLevelCorrection(folder)
-        if self.antenna_level_correction == False:
-            print('No antenna level correction value for fly {}'.format(folder))
+            self.antenna_level_correction = self._getAntennaLevelCorrection(folder)
+            if self.antenna_level_correction == False:
+                print('No antenna level correction value for fly {}'.format(folder))
         
         # For cahcing frequently used data
         self.cahced = {'3d_vectors': None}
     
         self.stop_now = False
+        
+        
 
 
     def __fileOpen(self, fn):
@@ -388,6 +397,21 @@ class MAnalyser(VectorGettable):
         else:
             return 0
 
+    def folder_has_rois(self, image_folder):
+        '''
+        Returns True if for specified image_folder at least one
+        ROI exsits. Otherwise False.
+        ''' 
+        try:
+            self.ROIs
+        except AttributeError:
+            return False
+
+        if self.get_rois(image_folder) != []:
+            return True
+
+        return False
+
 
     def get_rois(self, image_folder):
         rois = []
@@ -410,6 +434,21 @@ class MAnalyser(VectorGettable):
 
     def is_measured(self):
         return all(self.isMovementsAnalysed())
+
+
+    def folder_has_movements(self, image_folder):
+        '''
+        Returns True if for specified image_folder has movements
+        measured. Otherwise False.
+        '''
+        try:
+            self.movements
+        except AttributeError:
+            return False
+
+        if any([image_folder[3:] in self.movements[eye].keys()] for eye in ['left', 'right']):
+            return True
+        return False
 
 
     def loadAnalysedMovements(self):

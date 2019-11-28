@@ -197,7 +197,7 @@ class AntennaLevelFinder:
             toDegrees(angle_pair)
             angle_pair = angle_pair[0]
 
-            if -3 < angle_pair[0] < 3:
+            if -10 < angle_pair[0] < 10:
                 pitches.append(angle_pair[1])
                 images.append(data[str_angle_pair][0][0])
         

@@ -128,12 +128,21 @@ class ExamineMenubar(tk.Frame):
         '''
         top = tk.Toplevel()
         top.title('Select specimens')
-        
+        top.grid_columnconfigure(0, weight=1)
+        top.grid_rowconfigure(1, weight=1)
+
+
+        if with_rois or with_movements or with_correction:
+            notify_string = 'Listing specimens with '
+            notify_string += ' and '.join([string for onoff, string in zip([with_rois, with_movements, with_correction],
+                ['ROIs', 'movements', 'correction']) if onoff ])
+            tk.Label(top, text=notify_string).grid()
+
         specimens = self.core.list_specimens(with_rois=with_rois, with_movements=with_movements, with_correction=with_correction) 
         selector = TickSelect(top, specimens, command)
 
         #        lambda specimens: self.core.adm_subprocess(specimens, 'averaged'))
-        selector.grid()
+        selector.grid(sticky='NSEW')
         
         tk.Button(selector, text='Close', command=top.destroy).grid(row=1, column=1)
 

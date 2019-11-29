@@ -835,7 +835,7 @@ class MAverager(VectorGettable):
         self.manalysers = manalysers
 
 
-    def getFolderName(self):
+    def get_specimen_name(self):
         return 'averaged_'+'_'.join([manalyser.getFolderName() for manalyser in self.manalysers])
 
 

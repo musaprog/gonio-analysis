@@ -24,7 +24,44 @@ from pupil.drosoalr import loadReferenceFly
 
 from imalyser.matching import MatchFinder
 
+#OLD def _drosom_load(self, folder):
+def load_drosom(folder):
+    '''
+    Loads frontal images of the specified drosom
+    
+    folder          Path to drosom folder
+    '''
 
+    data = load_data(folder)
+
+    pitches =[]
+    images = []
+
+    for str_angle_pair in data.keys():
+        #angle_pair = strToDegrees(str_angle_pair)
+        i_start = str_angle_pair.index('(')
+        i_end = str_angle_pair.index(')')+1
+
+        #print(str_angle_pair[i_start:i_end])
+        angle_pair = [list(ast.literal_eval(str_angle_pair[i_start:i_end]))]
+        toDegrees(angle_pair)
+        angle_pair = angle_pair[0]
+
+        if -10 < angle_pair[0] < 10:
+            pitches.append(angle_pair[1])
+            images.append(data[str_angle_pair][0][0])
+    
+    pitches, images = zip(*sorted(zip(pitches, images)))
+
+    return pitches, images
+
+def save_antenna_level_correction(fly_name, result):
+    '''
+    Saves the antenna level correction that should be a float
+    '''
+    with open(os.path.join(ANALYSES_SAVEDIR, 'antenna_levels', fly_name+'.txt'), 'w') as fp:
+        fp.write(str(float(result)))
+ 
 
 class AntennaLevelFinder:
     '''
@@ -175,35 +212,6 @@ class AntennaLevelFinder:
             
         return pitches, images
 
-
-    def _drosom_load(self, folder):
-        '''
-        Private method, not intented to be called from outside.
-        Loads pitches and images.
-        '''
-
-        data = load_data(folder)
-
-        pitches =[]
-        images = []
-
-        for str_angle_pair in data.keys():
-            #angle_pair = strToDegrees(str_angle_pair)
-            i_start = str_angle_pair.index('(')
-            i_end = str_angle_pair.index(')')+1
-
-            #print(str_angle_pair[i_start:i_end])
-            angle_pair = [list(ast.literal_eval(str_angle_pair[i_start:i_end]))]
-            toDegrees(angle_pair)
-            angle_pair = angle_pair[0]
-
-            if -10 < angle_pair[0] < 10:
-                pitches.append(angle_pair[1])
-                images.append(data[str_angle_pair][0][0])
-        
-        pitches, images = zip(*sorted(zip(pitches, images)))
-
-        return pitches, images
 
 
 

@@ -49,6 +49,7 @@ from pupil.drosom.plotting import MPlotter
 from pupil.drosom.gui.run_measurement import MeasurementWindow
 from pupil.drosom.gui.core import Core
 from pupil.drosom.gui.plotting import RecordingPlotter
+from pupil.drosom.gui.zero_correct import ZeroCorrect
 from pupil_imsoft.anglepairs import toDegrees
 
 
@@ -425,10 +426,31 @@ class ExamineView(tk.Frame):
         Start antenna level search for the current specimen 
         '''
         
+        # Try to close and destroy if any other antenna_level
+        # windows are open (by accident)
+        try:
+            self.correct_window.destroy()
+        except:
+            # Nothing to destroy
+            pass
+
         #fullpath = os.path.join(self.data_directory, self.current_specimen)
-        self.core.adm_subprocess('current', 'antenna_level', open_terminal=True)
+        #self.core.adm_subprocess('current', 'antenna_level', open_terminal=True)
+        self.correct_window = tk.Toplevel()
+        self.correct_window.title('Zero correction -  {}'.format(self.current_specimen))
+        self.correct_window.grid_columnconfigure(0, weight=1)
+        self.correct_window.grid_rowconfigure(0, weight=1)
 
+        def callback():
+            self.correct_window.destroy()
+            self.update_specimen()
 
+        self.correct_frame = ZeroCorrect(self.correct_window,
+                os.path.join(self.directory, self.current_specimen), 
+                '/home/joni/code/pupil/alr_data',
+                callback=callback)
+        self.correct_frame.grid(sticky='NSEW')
+        
     def update_specimen(self):
         '''
         Updates GUI colors, button states etc. to right values.

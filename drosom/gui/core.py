@@ -30,7 +30,7 @@ class Core:
         self.current_specimen = specimen_name
 
 
-    def list_specimens(self, with_rois=False, with_movements=False):
+    def list_specimens(self, with_rois=False, with_movements=False, with_correction=False):
         '''
         List specimens in the data directory. May contain bad folders also (no check for contents)
         '''
@@ -41,6 +41,9 @@ class Core:
         
         if with_movements:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_measured()]
+        
+        if with_correction:
+            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction()]
         
         return sorted(specimens)
 

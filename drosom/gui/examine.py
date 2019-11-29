@@ -104,7 +104,7 @@ class ExamineMenubar(tk.Frame):
         #
         
         many_menu.add_separator()
-        many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged')))
+        many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged'), with_movements=True, with_correction=True))
         
         self.menubar.add_cascade(label='Many specimens', menu=many_menu)
         self.many_menu = many_menu        
@@ -117,7 +117,7 @@ class ExamineMenubar(tk.Frame):
         targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
         MeasurementWindow(self.root, targets, title='Measure movement')
     
-    def select_specimens(self, command, with_rois=False, with_movements=False):
+    def select_specimens(self, command, with_rois=False, with_movements=False, with_correction=False):
         '''
         Opens specimen selection window and after ok runs command using
         selected specimens list as the only input argument.
@@ -129,7 +129,7 @@ class ExamineMenubar(tk.Frame):
         top = tk.Toplevel()
         top.title('Select specimens')
         
-        specimens = self.core.list_specimens(with_rois=with_rois, with_movements=with_movements) 
+        specimens = self.core.list_specimens(with_rois=with_rois, with_movements=with_movements, with_correction=with_correction) 
         selector = TickSelect(top, specimens, command)
 
         #        lambda specimens: self.core.adm_subprocess(specimens, 'averaged'))

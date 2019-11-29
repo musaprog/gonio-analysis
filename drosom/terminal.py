@@ -207,7 +207,7 @@ class TerminalDrosoM:
                 #plotter.plot_3d_vectormap(avg_analyser,
                 #        with_optic_flow=rotations[np.argmin(errors)], animation=animation)
                 pass
-            if 'complete_flow_analysis':
+            if 'complete_flow_analysis' in self.argv:
                 
                 rotations = np.linspace(-180,180, 360)
 

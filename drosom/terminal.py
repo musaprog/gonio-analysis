@@ -23,6 +23,9 @@ from directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupil.antenna_level import AntennaLevelFinder
 from .new_analysing import optic_flow_error
 
+if 'tk_waiting_window' in sys.argv:
+    from pupil.drosom.gui.waiting_window import WaitingWindow
+
 
 class TerminalDrosoM:
     '''
@@ -53,7 +56,9 @@ class TerminalDrosoM:
     
     def main(self, data_folder=None):
         
-         
+        if 'tk_waiting_window' in self.argv:
+            self.waiting_window = WaitingWindow('terminal.py', 'When ready, this window closes.')
+
         if len(self.argv)>1 and os.path.isdir(self.argv[1]):
             # If data_folder given as the firsts argvs
             directories = [arg for arg in self.argv[1:] if os.path.isdir(arg)]
@@ -232,7 +237,13 @@ class TerminalDrosoM:
         if 'save' in self.argv:
             plotter.save()
         
-        if 'show' in self.argv:
+         
+        if 'tk_waiting_window' in self.argv:
+            self.waiting_window.close()
+        
+        if 'animation' in self.self.argv:
+            pass
+        else:
             plt.show()
 
         

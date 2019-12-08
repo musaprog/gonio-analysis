@@ -104,7 +104,7 @@ class ExamineMenubar(tk.Frame):
         
         many_menu.add_separator()
         many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged'), with_movements=True, with_correction=True)) 
-        many_menu.add_command(label='Averaged vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'tk_waiting_window averaged vectormap animation')) 
+        many_menu.add_command(label='Averaged vectormap - rotating video', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation'), with_movements=True, with_correction=True)) 
         self.menubar.add_cascade(label='Many specimens', menu=many_menu)
         self.many_menu = many_menu        
 

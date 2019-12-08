@@ -248,7 +248,7 @@ class TerminalDrosoM:
         if 'tk_waiting_window' in self.argv:
             self.waiting_window.close()
         
-        if 'animation' in self.self.argv:
+        if 'animation' in self.argv:
             pass
         else:
             plt.show()

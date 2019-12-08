@@ -396,10 +396,10 @@ class MPlotter:
             self.fig = fig
 
         if animation:
-            savedir = os.path.join(self.savedir, 'vectormap_3d_anim')
+            savedir = os.path.join(self.savedir, 'vectormap_3d_anim_{}'.format(manalyser.get_specimen_name()))
             os.makedirs(savedir, exist_ok=True)
 
-            plt.show(block=False)
+            #plt.show(block=False)
 
             for i, (elevation, azimuth) in enumerate(animation):
                 print('{} {}'.format(elevation, azimuth)) 
@@ -410,7 +410,13 @@ class MPlotter:
                 fn = 'image_{:0>8}.png'.format(i)
                 fig.savefig(os.path.join(savedir, fn))
                 #plt.pause(0.1)
+            
 
+
+
+        else:
+            #plt.show()
+            pass
         # make the panes transparent
         #ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         #ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -422,7 +428,6 @@ class MPlotter:
         #plt.savefig('vectormap.svg', transparent=True)
         
         
-        plt.show()
 
 
 class Arrow3D(FancyArrowPatch):

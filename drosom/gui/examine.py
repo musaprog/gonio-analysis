@@ -3,7 +3,6 @@
 TODO
 
 Features
-++ antenna_level finder
 + video of the moving ROIs
 + no need for manual add to PythonPath on Windows
 - window to strecth to full screen
@@ -84,7 +83,7 @@ class ExamineMenubar(tk.Frame):
         # Data plotting
         plot_menu = tk.Menu(self.menubar, tearoff=0)
         plot_menu.add_command(label='Vectormap', command=lambda: self.core.adm_subprocess('current', 'vectormap'))
-        plot_menu.add_command(label='Vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'vectormap animation')) 
+        plot_menu.add_command(label='Vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'tk_waiting_window vectormap animation')) 
         plot_menu.add_separator()
         plot_menu.add_command(label='Displacement over time', command=lambda: self.core.adm_subprocess('current', 'magtrace'))
         self.menubar.add_cascade(label='Specimen', menu=plot_menu)
@@ -104,8 +103,8 @@ class ExamineMenubar(tk.Frame):
         #
         
         many_menu.add_separator()
-        many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged'), with_movements=True, with_correction=True))
-        
+        many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged'), with_movements=True, with_correction=True)) 
+        many_menu.add_command(label='Averaged vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'tk_waiting_window averaged vectormap animation')) 
         self.menubar.add_cascade(label='Many specimens', menu=many_menu)
         self.many_menu = many_menu        
 

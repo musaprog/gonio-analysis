@@ -128,7 +128,7 @@ class TerminalDrosoM:
         
         
         
-        animation = make_animation_angles():
+        animation = make_animation_angles()
             
         plotter = MPlotter()
 

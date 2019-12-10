@@ -8,6 +8,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches
+import matplotlib.animation
 #from mayavi import mlab
 
 # Plotting 3D in matplotlib
@@ -400,6 +401,9 @@ class MPlotter:
             os.makedirs(savedir, exist_ok=True)
 
             #plt.show(block=False)
+            
+            video_writer = matplotlib.animation.writers['ffmpeg'](fps=20, metadata={'title':manalyser.get_specimen_name()})
+            video_writer.setup(fig, os.path.join(savedir,'{}.mp4'.format(manalyser.get_specimen_name())))
 
             for i, (elevation, azimuth) in enumerate(animation):
                 print('{} {}'.format(elevation, azimuth)) 
@@ -409,8 +413,10 @@ class MPlotter:
 
                 fn = 'image_{:0>8}.png'.format(i)
                 fig.savefig(os.path.join(savedir, fn))
+                video_writer.grab_frame()
                 #plt.pause(0.1)
-            
+                
+            video_writer.finish()
 
 
 

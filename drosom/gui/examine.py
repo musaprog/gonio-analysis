@@ -462,7 +462,7 @@ class ExamineView(tk.Frame):
 
         self.correct_frame = ZeroCorrect(self.correct_window,
                 os.path.join(self.directory, self.current_specimen), 
-                '/home/joni/code/pupil/alr_data',
+                'alr_data',
                 callback=callback)
         self.correct_frame.grid(sticky='NSEW')
         

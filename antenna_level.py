@@ -59,7 +59,9 @@ def save_antenna_level_correction(fly_name, result):
     '''
     Saves the antenna level correction that should be a float
     '''
-    with open(os.path.join(ANALYSES_SAVEDIR, 'antenna_levels', fly_name+'.txt'), 'w') as fp:
+    directory = os.path.join(ANALYSES_SAVEDIR, 'antenna_levels') 
+    os.makedirs(directory, exist_ok=True)
+    with open(os.path.join(directory, fly_name+'.txt'), 'w') as fp:
         fp.write(str(float(result)))
  
 

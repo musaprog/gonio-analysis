@@ -85,7 +85,8 @@ class ExamineMenubar(tk.Frame):
         plot_menu.add_command(label='Vectormap', command=lambda: self.core.adm_subprocess('current', 'vectormap'))
         plot_menu.add_command(label='Vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'tk_waiting_window vectormap animation')) 
         plot_menu.add_separator()
-        plot_menu.add_command(label='Displacement over time', command=lambda: self.core.adm_subprocess('current', 'magtrace'))
+        plot_menu.add_command(label='Mean displacement over time - plot', command=lambda: self.core.adm_subprocess('current', 'magtrace'))
+        plot_menu.add_command(label='Mean displacement over time - to clipboard', command=lambda: self.parent.specimen_traces_to_clipboard(mean=True))
         self.menubar.add_cascade(label='Specimen', menu=plot_menu)
         self.plot_menu = plot_menu        
         
@@ -219,7 +220,7 @@ class ExamineView(tk.Frame):
         # The 2nd buttons frame, ROIs and movements
         self.buttons_frame_2 = ButtonsFrame(self.specimen_control_frame,
                 ['Select ROIs', 'Measure movement', 'Zero correct', 'Copy to clipboard'],
-                [self.select_rois, self.measure_movement, self.antenna_level, self.copy_mean])
+                [self.select_rois, self.measure_movement, self.antenna_level, self.specimen_traces_to_clipboard])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_rois, self.button_measure, self.button_zero, self.copy_mean = self.buttons_frame_2.get_buttons()
         self.copy_mean.grid(row=1, column=0, columnspan=3, sticky='W')
@@ -348,13 +349,16 @@ class ExamineView(tk.Frame):
                 fp.write(formatted)
 
     
-    def copy_mean(self):
+    def specimen_traces_to_clipboard(self, mean=False):
         '''
-        
+        If mean==True, copy only the average trace.
+        Otherwise, copy all the traces of the fly.
         '''
         formatted = '' 
         data = []
 
+        self.root.clipboard_clear()
+        
         self.root.clipboard_append(formatted)
         
         for pos_folder in self.analyser.list_imagefolders():
@@ -366,6 +370,9 @@ class ExamineView(tk.Frame):
                 for repetition in range(len(movements)):
                     mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
                     data.append(mag)
+
+        if mean:
+            data = [np.mean(data, axis=0)]
         
         for i_frame in range(len(data[0])):
             formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'

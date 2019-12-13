@@ -706,10 +706,13 @@ class MAnalyser(VectorGettable):
         mirror_pitch    Should make so that the negative values are towards dorsal and positive towards frontal
                             (this is how things on DrosoX were)
         '''
-       
-        angles = [list(ast.literal_eval(angle)) for angle in self.movements[eye]]
-        values = [self.movements[eye][angle] for angle in self.movements[eye]]
-        
+
+        # Make the order of angles deterministic
+        sorted_angle_keys = sorted(self.movements[eye])
+
+        angles = [list(ast.literal_eval(angle)) for angle in sorted_angle_keys]
+        values = [self.movements[eye][angle] for angle in sorted_angle_keys]
+
      
         toDegrees(angles)
         

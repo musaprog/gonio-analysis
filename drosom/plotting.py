@@ -5,6 +5,7 @@ Plotting analysed DrosoM data.
 import os
 import math
 
+import scipy.stats
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches
@@ -21,6 +22,7 @@ import mpl_toolkits.axes_grid1
 from pupil.directories import ANALYSES_SAVEDIR
 from .optic_flow import flow_direction
 
+from pupil.coordinates import force_to_tplane
 
 
 class MPlotter:
@@ -534,7 +536,36 @@ def surface_plot(ax, points, values, cb=False):
     #plt.show()
 
 
-def complete_flow_analysis(manalyser, rotations):
+def histogram_heatmap(all_errors, nbins=20, horizontal=True, drange=None):
+    '''
+
+    all_errors      [errors_rot1, errors_rot1, ....] where
+                    errors_rot_i = [error1, error2, ...], error_i is float
+    '''
+    N_bins = 20
+    #N_bins = 3
+    if drange == 'auto':
+        data_range = (np.min(all_errors), np.max(all_errors))
+        print('histogram_heatmap data_range {}'.format(data_range))
+    elif drange != 'auto':
+        data_range = drange
+    else:
+        data_range = (0, 1)
+
+    image = []
+
+    for rotation_errors in all_errors:
+        hist, bin_edges = np.histogram(rotation_errors, bins=N_bins, range=data_range)
+        image.append(hist)
+
+    image = np.array(image)
+
+    if horizontal:
+        image = image.T
+
+    return image
+
+def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False, fitting_analysis=False):
     '''
     Creates combined plot to 
     
@@ -544,13 +575,17 @@ def complete_flow_analysis(manalyser, rotations):
     2       simulated optic flow
     3       error heatplot
 
+    INPUT ARGUMENTS
+    text                wheter to render text
+
     '''
-    
+    #text=False 
     from scipy.ndimage import rotate
     import matplotlib.image as mpli
 
     from .new_analysing import optic_flow_error
     from .optic_flow import flow_direction, flow_vectors, field_error
+    from .fitting import get_reference_vector
 
     # Flow field errors for each rotation
     points, all_errors = optic_flow_error(manalyser, rotations)
@@ -558,14 +593,123 @@ def complete_flow_analysis(manalyser, rotations):
     # Flow field vectors for each rotation
     all_flow_vectors = [flow_vectors(points, xrot=rot) for rot in rotations]
     
-    fly_image = 'side_aligning_pupil_antenna_whiteBG.jpg'
+    #fly_image = 'side_aligning_pupil_antenna_whiteBG.jpg'
+    fly_image = 'mikkos_alternative_fly.png'
 
     savedir = 'optic_flow_error'
     
     
     # 1D errorplot for the mean error over rotations
     average_errors_1D = np.mean(all_errors, axis=1)
+    average_errors_1D_stds = np.std(all_errors, axis=1)
+    
+    errors_circmeans = scipy.stats.circmean(all_errors, high=2,axis=1)
+    errors_circstds = scipy.stats.circstd(all_errors, high=2, axis=1)
 
+
+
+    #errors_low_percentile = np.percentile(all_errors, 25, axis=1)
+    #errors_high_percentile = np.percentile(all_errors, 75, axis=1)
+
+    #sems = scipy.stats.sem(all_errors, axis=1)
+
+    #median_errors_1D = np.median(all_errors, axis=1)
+    #median_errors_1D_mads = scipy.stats.median_absolute_deviation(all_errors, axis=1)
+   
+    # all errors = the residuals
+    squared_errors = np.array(all_errors)**2
+    mse = np.mean(squared_errors, axis=1)
+
+    if True:
+        movement_vectors = []
+        movement_points = []
+        for eye in ['left', 'right']:
+            ignore, vectors = manalyser.get_3d_vectors(eye)
+            movement_vectors.extend(np.array(vectors))
+            movement_points.extend(np.array(ignore))
+        
+        
+        reference_vectors = [get_reference_vector(P0) for P0 in movement_points]
+        optic_flow_vectors = [[flow_direction(P0, xrot=rot) for P0 in movement_points] for rot in rotations]
+        
+        F = np.array( [field_error(flow, reference_vectors) for flow in optic_flow_vectors] )
+        Y = np.array( field_error(movement_vectors, reference_vectors) )
+
+        residuals = (Y[np.newaxis,:].repeat(len(rotations), axis=0) - F)
+        
+        errors_circmeans = scipy.stats.circmean(residuals, low=-1, high=1,axis=1)
+        errors_circstds = scipy.stats.circstd(residuals, low=-1, high=1, axis=1)
+
+       
+
+    #ignore, vector_orientations = optic_flow_error(manalyser, rotations, self_error=True)
+    #vector_orientations = np.array(vector_orientations[0]+vector_orientations[1])
+    
+    #plt.hist(vector_orientations)
+    #plt.show()
+ 
+    #plt.imshow(histogram_heatmap(vector_orientations, nbins=50, horizontal=True), aspect='auto')
+    #plt.show()
+
+    #print('Vector orientations max {}, min {}'.format(np.max(vector_orientations), np.min(vector_orientations)))
+
+    #SStot = np.sum((vector_orientations - vector_orientations_mean[:, np.newaxis])**2, axis=1)
+    
+    if fitting_analysis:
+        N_vectors = len(points)
+
+        
+        movement_vectors = []
+        movement_points = []
+        for eye in ['left', 'right']:
+            ignore, vectors = manalyser.get_3d_vectors(eye)
+            movement_vectors.extend(np.array(vectors))
+            movement_points.extend(np.array(ignore))
+        
+        
+        #reference_vectors = [force_to_tplane(point, np.array(point) + np.array([1,0,0]))-np.array(point) for point in movement_points]
+        #reference_vectors = [np.array([1,0,0]) for point in movement_points]
+        reference_vectors = [get_reference_vector(P0) for P0 in movement_points]
+        optic_flow_vectors = [[flow_direction(P0, xrot=rot) for P0 in movement_points] for rot in rotations]
+        
+        if False:
+            fig = plt.figure()
+            ax = fig.add_subplot(1,2,1, projection='3d')
+            vector_plot(ax, movement_points, reference_vectors, color='gray')
+            vector_plot(ax, movement_points, optic_flow_vectors[0], color='darkviolet')
+            
+            ax2 = fig.add_subplot(1,2,2, projection='3d')
+            vector_plot(ax2, movement_points, reference_vectors, color='gray')
+            vector_plot(ax2, movement_points, movement_vectors, color='blue')
+            
+            plt.show()
+
+        F = np.array( [field_error(flow, reference_vectors) for flow in optic_flow_vectors] )
+        Y = np.array( field_error(movement_vectors, reference_vectors) )
+     
+        
+        #residuals = (Y[np.newaxis,:].repeat(len(rotations), axis=0) - F)
+        #plt.imshow(histogram_heatmap(residuals, nbins=50, drange='auto'), aspect='auto', extent=(-180,180,-1,1), origin='lower')
+        #plt.show()
+
+        #SStot = np.sum( (Y - np.mean(Y))**2 )
+
+        #SSres = np.sum( (Y[np.newaxis,:].repeat(len(rotations), axis=0) - F)**2 , axis=1)
+
+        #R_squared = 1 - (SSres / SStot)
+        
+        R_squared = []
+        for i_rot in range(len(rotations)):
+            rr = scipy.stats.linregress(Y, F[i_rot])
+            rr = rr[2]
+            R_squared.append(rr)
+
+        plt.plot(R_squared)
+        plt.show()
+
+
+    if error_heatmap:
+        errors_image = histogram_heatmap(squared_errors)
 
     
     fim = mpli.imread(fly_image)
@@ -573,7 +717,8 @@ def complete_flow_analysis(manalyser, rotations):
     
 
     N_steady_frames = 20*3
-    optimal_rot = 35
+    #optimal_rot = 35
+    optimal_rot= 50
     steadied = False
 
     i_image = -1  # Saved image number
@@ -590,6 +735,11 @@ def complete_flow_analysis(manalyser, rotations):
         if rot > optimal_rot and not steadied:
             i_rot -= 1
             i_steady += 1
+        
+        if not text:
+            if rot < optimal_rot:
+                continue
+
 
         # Data collection part
 
@@ -605,8 +755,13 @@ def complete_flow_analysis(manalyser, rotations):
         # Plotting part
 
         elevations = [50, 0, -50]
+        
+        if text:
+            dpi = 150
+        else:
+            dpi = 600
 
-        fig = plt.figure(figsize=(11.69,8.27), dpi=150)
+        fig = plt.figure(figsize=(11.69,8.27), dpi=dpi)
     
         lp, lvecs = manalyser.get_3d_vectors('left')
         rp, rvecs = manalyser.get_3d_vectors('right')
@@ -632,7 +787,8 @@ def complete_flow_analysis(manalyser, rotations):
             
             ax.dist = 6
             
-            ax.text2D(-0.15, 0.5, elevation_texts[i], transform=ax.transAxes, va='center')
+            if text:
+                ax.text2D(-0.15, 0.5, elevation_texts[i], transform=ax.transAxes, va='center')
 
         
 
@@ -659,7 +815,8 @@ def complete_flow_analysis(manalyser, rotations):
         j=0
         for ikk, ax in enumerate(axes):
             if ikk in [0,3,6,9]:
-                ax.text2D(0.5, 1.05, column_texts[j], transform=ax.transAxes, ha='center', va='top')
+                if text:
+                    ax.text2D(0.5, 1.05, column_texts[j], transform=ax.transAxes, ha='center', va='top')
                 j +=1
 
         # Plot image of the fly
@@ -671,13 +828,15 @@ def complete_flow_analysis(manalyser, rotations):
             #ax.set_facecolor('yellow') 
             rect = matplotlib.patches.Rectangle((0,0), 1, 1, transform=ax.transAxes, fill=False,
                     color='yellow', linewidth=8)
-            ax.add_patch(rect)
-            ax.text(0.5, 1.1, 'OPTIMAL MATCH', ha='center', va='top', transform=ax.transAxes)
+            if text:
+                ax.add_patch(rect)
+                ax.text(0.5, 1.1, 'OPTIMAL RANGE', ha='center', va='top', transform=ax.transAxes)
 
         # Add arrows
-        arrows = [np.array((1.05,ik))*im_scaler for ik in np.arange(0.1,0.91,0.1)]
-        for x, y in arrows:
-            plt.arrow(x, y, -0.1*im_scaler, 0, width=0.01*im_scaler, color='darkviolet')
+        if text:
+            arrows = [np.array((1.05,ik))*im_scaler for ik in np.arange(0.1,0.91,0.1)]
+            for x, y in arrows:
+                plt.arrow(x, y, -0.1*im_scaler, 0, width=0.01*im_scaler, color='darkviolet')
 
 
 
@@ -685,26 +844,119 @@ def complete_flow_analysis(manalyser, rotations):
 
         # Text
         ax = fig.add_subplot(3, 4, 8)
-        
         cbox = ax.get_position()
+        print(cbox)
         cbox.x1 -= abs((cbox.x1 - cbox.x0))/1.1
         cbox.y0 -= 0.18*abs(cbox.y1-cbox.y0)
         cax = fig.add_axes(cbox)
         plt.colorbar(m, cax)
-        cax.text(1.2, 1, 'Matching', va='top')
-        cax.text(1.2, 0.5, 'Perpendicular', va='center')
-        cax.text(1.2, 0, 'Opposing', va='bottom')
+        if text:
+            cax.text(0.025, 0.95, 'Matching', va='top', transform=ax.transAxes)
+            cax.text(0.025, 0.5, 'Perpendicular', va='center', transform=ax.transAxes)
+            cax.text(0.025, 0.05, 'Opposing', va='bottom', transform=ax.transAxes)
 
-        ax = fig.add_subplot(3, 4, 12)
-        #ax.plot(rotations, average_errors_1D)
-        #ax.scatter(rot, np.mean(flow_errors))
-        #ax.set_frame_on(False)
 
-        ax.text(0, 0.5, 'Head tilt {} degrees'.format(int(rot)), transform=ax.transAxes)
+        # Axis for the error
+        ax = fig.add_subplot(3, 4, 12)        
+        ax_pos = ax.get_position()
+        ax_pos = [ax_pos.x0+0.035, ax_pos.y0-0.08, ax_pos.width+0.022, ax_pos.height+0.05]
+        ax.remove()
+        ax = fig.add_axes(ax_pos)
+
+
+        if text:
+            ax.text(1, 1, 'Head tilt\n{} degrees'.format(int(rot)), transform=ax.transAxes, va='bottom', ha='right')
+        
+        
+        
+        
+
+        if error_heatmap:
+            errors_imshow = ax.imshow((errors_image), aspect='auto', extent=(-180, 180, 0, 1), origin='lower')
+            cax2 = fig.add_axes([ax_pos[0]+ax_pos[2], ax_pos[1], cbox.width, ax_pos[3]])
+            plt.colorbar(errors_imshow, cax2)
+        
+        #cax3 = fig.add_axes([ax_pos[0]-cbox.width, ax_pos[1], cbox.width, ax_pos[3]])
+        #plt.colorbar(m, cax3)
+
+
        
+        
+        
+        #ax.plot(rotations, average_errors_1D + sems, color='green')
+        #ax.plot(rotations, average_errors_1D - sems, color='green')
+        
+        #ax.plot(rotations, errors_high_percentile, color='green')
+        #ax.plot(rotations, errors_low_percentile, color='green')
+ 
+
+        #ax.plot(rotations, median_errors_1D, color='white')
+
+        if fitting_analysis:
+            ax.plot(rotations, mse, color='red')
+            ax.plot(rotations, R_squared, color='green')
+        
+        
+            ax.set_ylabel('MSE')
+        else:
+            #ax.plot(rotations, average_errors_1D, color='black')
+            #ax.plot(rotations, average_errors_1D + average_errors_1D_stds, color='gray')
+            #ax.plot(rotations, average_errors_1D - average_errors_1D_stds, color='gray')
+            
+            ax.plot(rotations, errors_circmeans, color='black')
+            ax.plot(rotations, errors_circmeans + errors_circstds, color='gray')
+            ax.plot(rotations, errors_circmeans - errors_circstds, color='gray')
+            
+            ax.scatter(rotations[i_rot], average_errors_1D[i_rot], color='black')
+            
+            # Make optimal band
+            error_argmin = np.argmin(average_errors_1D)
+            left_side = rotations[error_argmin] - optimal_rot - 10
+            right_side = rotations[error_argmin] + (rotations[error_argmin]- left_side)
+            p = matplotlib.patches.Rectangle((left_side, 0), right_side-left_side, 1, alpha=0.5, color='yellow')
+            ax.add_patch(p)
+
+            ax.set_ylabel('Mean error')
+        #ax.scatter(squared_errors, ma)
+
        
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        
+        if error_heatmap:
+            ax.scatter(rotations[i_rot], average_errors_1D[i_rot], color='white')
+        
+        #ax.spines['bottom'].set_visible(False)
+        
+
+        
+        #ax.set_xlabel('Head tilt $^\circ$')
+        ax.set_xlim(-180, 180)
+        
+        #ax.set_ylim(0, 1)
+        
+        
+        if text:
+            ax.set_yticks([0.2, 0.4, 0.6, 0.8])
+            #if error_heatmap:
+            #    ax.set_ylim(0, 1)
+            #    ax.set_yticks([0, 0.2, 0.5, 0.8, 1])
+            #    ax.set_yticklabels(['Matching', '0.2', '0.5', '0.8', 'Opposing'])
+            # 
+            ax.set_xticks([-100, 0, 100])
+            ax.set_xticklabels(['-100$^\circ$', '0$^\circ$','100$^\circ$'])
+        else:
+            ax.set_xticks([-100, 0, 100])
+            ax.set_xticklabels([])
+            ax.set_yticks([0.2, 0.4, 0.6, 0.8])
+            ax.set_yticklabels([])
+        
+        
+        #ax.set_ylim(np.min(mean_squared_errors), np.max(mean_squared_errors))
+        
+        # Hide axis from all the figures that are 3D plots or plots of images
         axes = fig.get_axes()
-        for ax in axes:
+        for ax in axes[0:12]:
             ax.set_axis_off()
 
        

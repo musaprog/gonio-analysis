@@ -44,11 +44,13 @@ def flow_vectors(points, xrot=0):
 
 
 
-def field_error(vectors_A, vectors_B):
+def field_error(vectors_A, vectors_B, direction=False):
     '''
 
     vectors_X   list of vector
     vector      (x,y,z)
+
+    direction   Try to get the direction also (neg/pos)
     '''
     
     if len(vectors_A) != len(vectors_B):
@@ -61,17 +63,23 @@ def field_error(vectors_A, vectors_B):
     errors = np.empty(N_vectors)
 
     for i, (vecA, vecB) in enumerate(zip(vectors_A, vectors_B)):
-        max_outcome = max(np.inner(vecA, vecA), np.inner(vecB, vecB))
+    
+        angle = np.arccos(np.inner(vecA, vecB)/(np.linalg.norm(vecA) * np.linalg.norm(vecB)))
+        error = angle / np.pi
+        if not 0<=error<=1:
+            # Error is nan if either of the vectors is zero because this leads to division
+            # by zero because np.linalg.norm(vec0) = 0
+            # -> set error to 1 if vecA != vecB or 0 otherwise
+            if np.array_equal(vecA, vecB):
+                error = 0
+            else:
+                error = 1
         
-        if max_outcome == 0:
-            errors[i] = 0
-            continue
+        if direction and vecB[2] > vecA[2]:
+            error = -error
 
-
-        error = 1 - (np.inner(vecA, vecB) / max_outcome)
-        error /= 2
         errors[i] = error
-
+    #print('max error {} and min {}'.format(np.max(errors), np.min(errors)))
     return errors
 
 

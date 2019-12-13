@@ -58,22 +58,7 @@ def mean_vector(point, vectors):
     '''
     Average vectors and return a vector at point point.
 
-    DIDNT WORK BECAUSE VECTORS NOT ON THE SAME POINT and WE
-    WANT THE VECTOR TO BE TANGENTIAL TO THE SPEHRE
     '''
-
-    #real_vectors = [x[1] for x in vectors]
-    #real_vectors = vectors[1]
-    #for point, vec in vectors:
-    #    #angle, x, y, z = vector
-    #    
-    #    #X = x[1] - x[0]
-    #    #Y = y[1] - y[0]
-    #    #Z = z[1] - z[0]
-    #    #real_vectors.append(np.array([X,Y,Z]))
-    # 
-    #    #real_vectors.append(vec)
-
 
     av = np.mean(vectors, axis=0)
     if np.linalg.norm(av) != 0:
@@ -125,6 +110,8 @@ def force_to_tplane(P0, P1, radius=1):
 
     Returns P2, point on the tangent plane and the line connecting
     the sphere centre point to the P1.
+
+    Notice DOES NOT RETURN VEC BUT P2 (vec=P2-P0)
     '''
     
 
@@ -133,6 +120,7 @@ def force_to_tplane(P0, P1, radius=1):
     return P1 * a
 
 
+#def projection_to_tplane(P)
 
 
 def camera2Fly(horizontal, vertical, radius=1):

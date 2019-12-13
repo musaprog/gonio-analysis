@@ -404,8 +404,12 @@ class MPlotter:
 
             #plt.show(block=False)
             
-            video_writer = matplotlib.animation.writers['ffmpeg'](fps=20, metadata={'title':manalyser.get_specimen_name()})
-            video_writer.setup(fig, os.path.join(savedir,'{}.mp4'.format(manalyser.get_specimen_name())))
+            try:
+                video_writer = matplotlib.animation.writers['ffmpeg'](fps=20, metadata={'title':manalyser.get_specimen_name()})
+                video_writer.setup(fig, os.path.join(savedir,'{}.mp4'.format(manalyser.get_specimen_name())))
+            except RuntimeError:
+                print('Install ffmpeg by "pip install ffmpeg" to get the video')
+                video_writer = False
 
             for i, (elevation, azimuth) in enumerate(animation):
                 print('{} {}'.format(elevation, azimuth)) 
@@ -415,10 +419,11 @@ class MPlotter:
 
                 fn = 'image_{:0>8}.png'.format(i)
                 fig.savefig(os.path.join(savedir, fn))
-                video_writer.grab_frame()
+                if video_writer:
+                     video_writer.grab_frame()
                 #plt.pause(0.1)
-                
-            video_writer.finish()
+            if video_writer:
+                video_writer.finish()
 
 
 

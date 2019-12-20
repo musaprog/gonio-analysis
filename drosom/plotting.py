@@ -371,7 +371,7 @@ class MPlotter:
         for color, eye in zip(['red', 'blue'], ['left', 'right']):
             
             vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True)
-            vector_plot(axes[0], *vectors_3d, color='blue', mutation_scale=15)
+            vector_plot(axes[0], *vectors_3d, color=color, mutation_scale=15)
 
             if with_optic_flow:
                 flow_vectors = [flow_direction(P0, xrot=with_optic_flow) for P0 in vectors_3d[0]]

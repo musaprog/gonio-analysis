@@ -5,7 +5,7 @@ import sys
 import platform
 
 from pupil.drosom.analysing import MAnalyser
-
+from pupil.directories import ANALYSES_SAVEDIR
 
 class Core:
     '''
@@ -30,21 +30,38 @@ class Core:
         self.current_specimen = specimen_name
 
 
-    def list_specimens(self, with_rois=False, with_movements=False, with_correction=False):
+    def list_specimens(self, with_rois=None, with_movements=None, with_correction=None):
         '''
         List specimens in the data directory. May contain bad folders also (no check for contents)
+
+        With the following keyword arguments one select only the specimens fulfilling the conditions
+        by setting the keyword argument either to True (has to fulfill condition), False (negative)
+        or to None (the condition is not considered)
+
+            with_rois           Specimens with ROIs selected
+            with_movements      Specimens with movements measured
+            with_correction     Specimens with antenna_level (zero level) correction
+        
+        For example, if you want the specimens with movements but without antenna_level corrections
+        and you won't care about ROIs, set
+            with_rois=None, with_movements=True, with_correction=False
+
         '''
         specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
         
-        if with_rois:
-            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_rois_selected()]
+        if with_rois is not None:
+            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_rois_selected() == with_rois]
         
-        if with_movements:
-            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_measured()]
+        if with_movements is not None:
+            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_measured() == with_movements]
         
-        if with_correction:
-            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction()]
+        if with_correction is not None:
+            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction() == with_correction]
         
+        hidden = self.get_hidden()
+        
+        specimens = [specimen for specimen in specimens if not specimen in hidden.split(',')]
+
         return sorted(specimens)
 
 
@@ -104,3 +121,24 @@ class Core:
         
         subprocess.run(command, shell=True)
 
+    def set_hidden(self, hidestring):
+        '''
+        hidesting       "specimen1,specimen2,..."
+        '''
+        
+        hidelist = os.path.join(ANALYSES_SAVEDIR, 'hidelist.txt')
+        with open(hidelist, 'w') as fp:
+            fp.write(hidestring)
+
+
+    def get_hidden(self):
+        '''
+        Returns hidestring, see set_hidden for more.
+        '''
+        hidelist = os.path.join(ANALYSES_SAVEDIR, 'hidelist.txt')
+        try:
+            with open(hidelist, 'r') as fp:
+                line = fp.read()
+        except FileNotFoundError:
+            line = ''
+        return line

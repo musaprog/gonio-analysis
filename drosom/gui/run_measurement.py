@@ -98,6 +98,8 @@ class MeasurementWindow:
     def on_cancel(self):
         if not self.is_finished():
             self.thread_targets[self.i_target].stop()
+        else:
+            self.callback_on_exit()
 
         # Destroy the window if everything analysed
         if not all([stopped.is_alive() for stopped in self.processes]):

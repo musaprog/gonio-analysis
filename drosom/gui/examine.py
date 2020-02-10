@@ -424,7 +424,7 @@ class ExamineView(tk.Frame):
             if not sure:
                 return None
 
-        self.analyser.selectROIs(callback_on_exit=self.update_specimen)
+        self.analyser.selectROIs(callback_on_exit=self.update_all)
 
 
     def measure_movement(self, current_only=False):
@@ -443,7 +443,7 @@ class ExamineView(tk.Frame):
         else:
             func = self.analyser.measure_both_eyes
         
-        MeasurementWindow(self.root, [func], title='Measure movement')
+        MeasurementWindow(self.root, [func], title='Measure movement', callback_on_exit=self.update_all)
     
 
     def antenna_level(self):
@@ -483,7 +483,8 @@ class ExamineView(tk.Frame):
         Call this if there has been changes to specimens/image_folders by an
         external process or similar.
         '''
-        self.on_specimen_selection(self.current_specimen)
+        if self.current_specimen is not None:
+            self.on_specimen_selection(self.current_specimen)
         
         
 
@@ -643,6 +644,10 @@ class ExamineView(tk.Frame):
         for canvas in self.canvases:
             canvas.update()
  
+    def update_all(self):
+        self.set_data_directory(ask=False)
+        self.update_specimen()
+
 
 def main():
     

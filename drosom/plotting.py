@@ -5,7 +5,6 @@ Plotting analysed DrosoM data.
 import os
 import math
 
-import scipy.stats
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches
@@ -24,6 +23,7 @@ from .optic_flow import flow_direction
 
 from pupil.coordinates import force_to_tplane
 
+CURRENT_ARROW_LENGTH = 1
 
 class MPlotter:
 
@@ -340,7 +340,7 @@ class MPlotter:
         self.fig.canvas.draw_idle()
 
 
-    def plot_3d_vectormap(self, manalyser, with_optic_flow=False, animation=False):
+    def plot_3d_vectormap(self, manalyser, with_optic_flow=False, animation=False, arrow_animation=True):
         '''
         relp0   Relative zero point
 
@@ -412,16 +412,32 @@ class MPlotter:
                 video_writer = False
 
             for i, (elevation, azimuth) in enumerate(animation):
-                print('{} {}'.format(elevation, azimuth)) 
-                for ax in axes:
-                    ax.view_init(elev=elevation, azim=azimuth)
-                fig.canvas.draw_idle()
+                
+                try:
+                    
 
-                fn = 'image_{:0>8}.png'.format(i)
-                fig.savefig(os.path.join(savedir, fn))
-                if video_writer:
-                     video_writer.grab_frame()
-                #plt.pause(0.1)
+                    if arrow_animation:
+                        axes[0].clear()
+                        for color, eye in zip(['red', 'blue'], ['left', 'right']):
+                            vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True)
+                            vector_plot(axes[0], *vectors_3d, color=color, mutation_scale=15, animate=arrow_animation, guidance=True, camerapos=(elevation, azimuth))
+
+                        make_animation_timestep(step_size=0.02, low_val=0.33, high_val=1)
+                                    
+                    print('{} {}'.format(elevation, azimuth)) 
+                    for ax in axes:
+                        ax.view_init(elev=elevation, azim=azimuth)
+                    fig.canvas.draw_idle()
+                    # for debugging here plt.show()
+                    fn = 'image_{:0>8}.png'.format(i)
+                    fig.savefig(os.path.join(savedir, fn))
+                    if video_writer:
+                         video_writer.grab_frame()
+                    #plt.pause(0.1)
+
+                except Exception as e:
+                    print('Could not make a frame, error message on the next line')
+                    print(e)
             if video_writer:
                 video_writer.finish()
 
@@ -455,20 +471,153 @@ class Arrow3D(FancyArrowPatch):
         FancyArrowPatch.draw(self, renderer)
 
 
-def vector_plot(ax, points, vectors, color='black', mutation_scale=3):
+def make_animation_timestep(step_size=0.1, low_val=0.5, high_val=1.2):
+    '''
+    step_size between 0 and 1.
+    Once total displacement 1 has been reached go back to low_value
+    '''
+    # Update arrow length
+    global CURRENT_ARROW_LENGTH
+    CURRENT_ARROW_LENGTH += step_size
+    if CURRENT_ARROW_LENGTH > high_val:
+        CURRENT_ARROW_LENGTH = low_val
+        
+def is_behind_sphere(elev, azim, point):
+    '''
+    Calculates wheter a point seend by observer at (elev,azim) in spehrical
+    coordinates is behind a sphere (radius == point) or not.
+    
+    NOTICE: Elev from horizontal plane (a non-ISO convention) and azim as in ISO
+    '''
+    cx = np.sin(np.radians(90-elev)) * np.cos(np.radians(azim))
+    cy = np.sin(np.radians(90-elev)) * np.sin(np.radians(azim))
+    cz = np.cos(np.radians(90-elev))
+    
+    vec_cam = (cx,cy,cz)
+    vec_arr = point
+    angle = np.arccos(np.inner(vec_cam, vec_arr)/(np.linalg.norm(vec_cam)*np.linalg.norm(vec_arr)))
+    
+    if angle > np.pi/2:
+        return True
+    else:
+        return False
+
+
+
+
+def vector_plot(ax, points, vectors, color='black', mutation_scale=3,
+        animate=False, guidance=False, camerapos=None):
     '''
     Plot vectors on ax.
+
+    ax              Matplotlib ax (axes) instance
+    points          Starting points 
+    vectors
+    color           Color of the arrows
+    mutation_scale  Size of the arrow head basically
+    animate         Set the size of the arrows to the current size in the animation
+                    Call make_animation_timestep to go to the next step
+    guidance    Add help elements to point left,right,front,back etc. and hide axe
+    camerapos       (elev, axzim). Supply so vectors bending the visible himspehere can be hidden 
     '''
-    for point, vector in zip(points, vectors):
-        ar = Arrow3D(*point, *(point+vector), arrowstyle="-|>", lw=1,
-                mutation_scale=mutation_scale, color=color)
-        ax.add_artist(ar)
-    
+
+
     # With patches limits are not automatically adjusted
     ax.set_xlim(-1, 1)
     ax.set_ylim(-1,1)
     ax.set_zlim(-1, 1)
+     
+    if guidance:
+        ax.set_axis_off()
+        
+        r = 0.9
+        
+        guidances = {'Right': ((r,0,0), (0.2,0,0)),
+                'Left': ((-r,0,0),(-0.2,0,0)),
+                '  Ventral': ((0,0,-r),(0,0,-0.3)),
+                '  Dorsal': ((0,0,r),(0,0,0.3))}
+        #'Antenna': ((0,0.7,0),(0,0.4,0))}
+
+        
+        for name, (point, vector) in guidances.items():
+            point = np.array(point)
+            vector = np.array(vector)
+
+            if is_behind_sphere(*camerapos, point):
+                zorder = 1
+            else:
+                zorder = 8
+
+            ar = Arrow3D(*point, *(point+vector), mutation_scale=5, lw=0.2, color='black', zorder=zorder)
+            ax.add_artist(ar)
+            
+            if name in ('Left', 'Right'):
+                ha = 'center'
+            else:
+                ha = 'left'
+            ax.text(*(point+vector/1.05), name, color='black', fontsize='xx-large', va='bottom', ha=ha, linespacing=1.5, zorder=zorder+1)
+        
+        N = 75
+        phi, theta = np.meshgrid(np.linspace(0, 2*np.pi, N), np.linspace(0, np.pi, N))
+        X = r * np.sin(theta) * np.cos(phi)
+        Y = r * np.sin(theta) * np.sin(phi)
+        Z = r * np.cos(theta)
+        ax.plot_surface(X, Y, Z, color='lightgray')
+
+    if animate:
+        global CURRENT_ARROW_LENGTH
+        scaler = CURRENT_ARROW_LENGTH
+    else:
+        scaler = 1
+
+    for point, vector in zip(points, vectors):
+
+        if camerapos:
+            #elev, azim = camerapos
+            #cx = np.sin(np.radians(90-elev)) * np.cos(np.radians(azim))
+            #cy = np.sin(np.radians(90-elev)) * np.sin(np.radians(azim))
+            #cz = np.cos(np.radians(90-elev))
+            
+            #if elev < 0:
+            #    cz = -cz
+
+
+            #vec_cam = (cx,cy,cz)
+            vec_arr = point
+            #angle = np.arccos(np.inner(vec_cam, vec_arr)/(np.linalg.norm(vec_cam)*np.linalg.norm(vec_arr)))
     
+
+            if is_behind_sphere(*camerapos, vec_arr):
+                alpha = 0
+            else:
+                alpha = 1
+                zorder = 10
+
+        else:
+            alpha = 1
+            zorder = 10
+
+        
+
+        ar = Arrow3D(*point, *(point+scaler*vector), arrowstyle="-|>", lw=1,
+                mutation_scale=mutation_scale, color=color, alpha=alpha, zorder=10)
+        ax.add_artist(ar)
+    
+    #try:
+    #    ar = Arrow3D(*(0,0,0), *vec_cam, arrowstyle="-|>", lw=1,
+    #        mutation_scale=mutation_scale, color='green', zorder=11)
+    #    
+    #    ax.add_artist(ar)
+    #except:
+    #    pass
+    
+           
+    ax.set_xlim(-1.1, 1.1)
+    ax.set_ylim(-1.1,1.1)
+    ax.set_zlim(-1.1, 1.1)
+    
+
+   
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
@@ -496,7 +645,7 @@ def surface_plot(ax, points, values, cb=False):
     
 
     def color_function(theta, phi):
-
+        
         intp_dist = (2 * np.sin(np.radians(5)))
 
         x = np.sin(theta) * np.cos(phi)
@@ -506,6 +655,7 @@ def surface_plot(ax, points, values, cb=False):
         errs = np.empty_like(x)
 
         for i in range(x.size):
+            
             i_point = nearest_neighbour((x.flat[i], y.flat[i], z.flat[i]), points,
                     max_distance=intp_dist)
             
@@ -514,9 +664,10 @@ def surface_plot(ax, points, values, cb=False):
             else:
                 errs.flat[i] = values[i_point]
         return errs
-
+    
     colors = color_function(theta, phi)
     
+
     
     #fig = plt.figure(figsize=(15,6))
         
@@ -570,7 +721,7 @@ def histogram_heatmap(all_errors, nbins=20, horizontal=True, drange=None):
 
     return image
 
-def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False, fitting_analysis=False):
+def complete_flow_analysis(manalyser, rotations, text=True, lastfig=True, error_heatmap=False, fitting_analysis=False):
     '''
     Creates combined plot to 
     
@@ -587,6 +738,9 @@ def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False,
     #text=False 
     from scipy.ndimage import rotate
     import matplotlib.image as mpli
+    
+    
+    import scipy.stats
 
     from .new_analysing import optic_flow_error
     from .optic_flow import flow_direction, flow_vectors, field_error
@@ -603,6 +757,9 @@ def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False,
 
     savedir = 'optic_flow_error'
     
+    mutation_scale = 3
+    animate = True
+
     
     # 1D errorplot for the mean error over rotations
     average_errors_1D = np.mean(all_errors, axis=1)
@@ -625,7 +782,7 @@ def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False,
     squared_errors = np.array(all_errors)**2
     mse = np.mean(squared_errors, axis=1)
 
-    if True:
+    if fitting_analysis:
         movement_vectors = []
         movement_points = []
         for eye in ['left', 'right']:
@@ -785,8 +942,8 @@ def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False,
             ax = fig.add_subplot(3, 4, 4*i+1, projection='3d')
 
     
-            vector_plot(ax, lp, lvecs, color='red')
-            vector_plot(ax, rp, rvecs, color='blue')
+            vector_plot(ax, lp, lvecs, color='red', mutation_scale=mutation_scale, animate=animate)
+            vector_plot(ax, rp, rvecs, color='blue', mutation_scale=mutation_scale, animate=animate)
             
             ax.view_init(elev=elev, azim=90)
             
@@ -803,7 +960,7 @@ def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False,
 
         for i, elev in enumerate(elevations):
             ax = fig.add_subplot(3, 4, 4*i+2, projection='3d')
-            vector_plot(ax, points, flow_vectors, color='darkviolet')
+            vector_plot(ax, points, flow_vectors, color='darkviolet', mutation_scale=mutation_scale)
             ax.view_init(elev=elev, azim=90)
 
             ax.dist = 6
@@ -870,92 +1027,97 @@ def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False,
 
 
         if text:
-            ax.text(1, 1, 'Head tilt\n{} degrees'.format(int(rot)), transform=ax.transAxes, va='bottom', ha='right')
+            ax.text(0.6, 1, 'Head tilt\n{} degrees'.format(int(rot)), transform=ax.transAxes, va='bottom', ha='left')
         
         
         
-        
+        if lastfig:
+            
 
-        if error_heatmap:
-            errors_imshow = ax.imshow((errors_image), aspect='auto', extent=(-180, 180, 0, 1), origin='lower')
-            cax2 = fig.add_axes([ax_pos[0]+ax_pos[2], ax_pos[1], cbox.width, ax_pos[3]])
-            plt.colorbar(errors_imshow, cax2)
-        
-        #cax3 = fig.add_axes([ax_pos[0]-cbox.width, ax_pos[1], cbox.width, ax_pos[3]])
-        #plt.colorbar(m, cax3)
+            if error_heatmap:
+                errors_imshow = ax.imshow((errors_image), aspect='auto', extent=(-180, 180, 0, 1), origin='lower')
+                cax2 = fig.add_axes([ax_pos[0]+ax_pos[2], ax_pos[1], cbox.width, ax_pos[3]])
+                plt.colorbar(errors_imshow, cax2)
+            
+            #cax3 = fig.add_axes([ax_pos[0]-cbox.width, ax_pos[1], cbox.width, ax_pos[3]])
+            #plt.colorbar(m, cax3)
 
 
-       
-        
-        
-        #ax.plot(rotations, average_errors_1D + sems, color='green')
-        #ax.plot(rotations, average_errors_1D - sems, color='green')
-        
-        #ax.plot(rotations, errors_high_percentile, color='green')
-        #ax.plot(rotations, errors_low_percentile, color='green')
- 
+           
+            
+            
+            #ax.plot(rotations, average_errors_1D + sems, color='green')
+            #ax.plot(rotations, average_errors_1D - sems, color='green')
+            
+            #ax.plot(rotations, errors_high_percentile, color='green')
+            #ax.plot(rotations, errors_low_percentile, color='green')
+     
 
-        #ax.plot(rotations, median_errors_1D, color='white')
+            #ax.plot(rotations, median_errors_1D, color='white')
 
-        if fitting_analysis:
-            ax.plot(rotations, mse, color='red')
-            ax.plot(rotations, R_squared, color='green')
-        
-        
-            ax.set_ylabel('MSE')
+            if fitting_analysis:
+                ax.plot(rotations, mse, color='red')
+                ax.plot(rotations, R_squared, color='green')
+            
+            
+                ax.set_ylabel('MSE')
+            else:
+                
+                ax.plot(rotations, average_errors_1D, color='black')
+                #ax.plot(rotations, average_errors_1D + average_errors_1D_stds, color='gray')
+                #ax.plot(rotations, average_errors_1D - average_errors_1D_stds, color='gray')
+                
+                #ax.plot(rotations, errors_circmeans, color='black')
+                #ax.plot(rotations, errors_circmeans + errors_circstds, color='gray')
+                #ax.plot(rotations, errors_circmeans - errors_circstds, color='gray')
+                
+                ax.scatter(rotations[i_rot], average_errors_1D[i_rot], color='black')
+                
+                # Make optimal band
+                error_argmin = np.argmin(average_errors_1D)
+                left_side = rotations[error_argmin] - optimal_rot - 5
+                right_side = rotations[error_argmin] + (rotations[error_argmin]- left_side)
+                p = matplotlib.patches.Rectangle((left_side, 0), right_side-left_side, 1, alpha=0.5, color='yellow')
+                ax.add_patch(p)
+
+                ax.set_ylabel('Mean error')
+            #ax.scatter(squared_errors, ma)
+
+           
+            ax.spines['right'].set_visible(False)
+            ax.spines['top'].set_visible(False)
+            
+            if error_heatmap:
+                ax.scatter(rotations[i_rot], average_errors_1D[i_rot], color='white')
+            
+            #ax.spines['bottom'].set_visible(False)
+            
+
+            
+            #ax.set_xlabel('Head tilt $^\circ$')
+            ax.set_xlim(-180, 180)
+            
+            #ax.set_ylim(0, 1)
+            
+            
+            if text:
+                ax.set_yticks([0.2, 0.4, 0.6, 0.8])
+                #if error_heatmap:
+                #    ax.set_ylim(0, 1)
+                #    ax.set_yticks([0, 0.2, 0.5, 0.8, 1])
+                #    ax.set_yticklabels(['Matching', '0.2', '0.5', '0.8', 'Opposing'])
+                # 
+                ax.set_xticks([-100, 0, 100])
+                ax.set_xticklabels(['-100$^\circ$', '0$^\circ$','100$^\circ$'])
+            else:
+                ax.set_xticks([-100, 0, 100])
+                ax.set_xticklabels([])
+                ax.set_yticks([0.2, 0.4, 0.6, 0.8])
+                ax.set_yticklabels([])
         else:
-            #ax.plot(rotations, average_errors_1D, color='black')
-            #ax.plot(rotations, average_errors_1D + average_errors_1D_stds, color='gray')
-            #ax.plot(rotations, average_errors_1D - average_errors_1D_stds, color='gray')
-            
-            ax.plot(rotations, errors_circmeans, color='black')
-            ax.plot(rotations, errors_circmeans + errors_circstds, color='gray')
-            ax.plot(rotations, errors_circmeans - errors_circstds, color='gray')
-            
-            ax.scatter(rotations[i_rot], average_errors_1D[i_rot], color='black')
-            
-            # Make optimal band
-            error_argmin = np.argmin(average_errors_1D)
-            left_side = rotations[error_argmin] - optimal_rot - 10
-            right_side = rotations[error_argmin] + (rotations[error_argmin]- left_side)
-            p = matplotlib.patches.Rectangle((left_side, 0), right_side-left_side, 1, alpha=0.5, color='yellow')
-            ax.add_patch(p)
+            ax.set_axis_off()
 
-            ax.set_ylabel('Mean error')
-        #ax.scatter(squared_errors, ma)
 
-       
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        
-        if error_heatmap:
-            ax.scatter(rotations[i_rot], average_errors_1D[i_rot], color='white')
-        
-        #ax.spines['bottom'].set_visible(False)
-        
-
-        
-        #ax.set_xlabel('Head tilt $^\circ$')
-        ax.set_xlim(-180, 180)
-        
-        #ax.set_ylim(0, 1)
-        
-        
-        if text:
-            ax.set_yticks([0.2, 0.4, 0.6, 0.8])
-            #if error_heatmap:
-            #    ax.set_ylim(0, 1)
-            #    ax.set_yticks([0, 0.2, 0.5, 0.8, 1])
-            #    ax.set_yticklabels(['Matching', '0.2', '0.5', '0.8', 'Opposing'])
-            # 
-            ax.set_xticks([-100, 0, 100])
-            ax.set_xticklabels(['-100$^\circ$', '0$^\circ$','100$^\circ$'])
-        else:
-            ax.set_xticks([-100, 0, 100])
-            ax.set_xticklabels([])
-            ax.set_yticks([0.2, 0.4, 0.6, 0.8])
-            ax.set_yticklabels([])
-        
         
         #ax.set_ylim(np.min(mean_squared_errors), np.max(mean_squared_errors))
         
@@ -966,10 +1128,11 @@ def complete_flow_analysis(manalyser, rotations, text=True, error_heatmap=False,
 
        
             
-       
+
         plt.subplots_adjust(left=0.08, bottom=0, right=0.95, top=0.95, wspace=0.1, hspace=0.1)
         #plt.show()
         
+        make_animation_timestep(step_size=0.025, low_val=0.7)
 
         if savefn:
             fig.savefig(savefn)

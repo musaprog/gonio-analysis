@@ -268,7 +268,7 @@ class MAnalyser(VectorGettable):
         
 
         # If not found
-        if location == len(self.descriptions_file):
+        if location == len(self.descriptions_file)-1:
             return ''
         
         # If found, get the parameters

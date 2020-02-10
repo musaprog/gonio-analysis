@@ -72,20 +72,16 @@ class ExamineMenubar(tk.Frame):
         # File menu
         file_menu = tk.Menu(self.menubar, tearoff=0)
         file_menu.add_command(label='Set data directory', command=self.parent.set_data_directory)
+        file_menu.add_command(label='Set hidden specimens...', command=self.set_hidden)
         file_menu.add_command(label='Exit', command=self.on_exit)
         self.menubar.add_cascade(label='File', menu=file_menu)
 
-        # Batch run
-        #batch_menu = tk.Menu(self.menubar, tearoff=0)
-        #batch_menu.add_command(label='Select ALL ROIs', command=self.batch_ROIs)
-        #batch_menu.add_command(label='Measure ALL movements', command=self.batch_measurement)
-        #self.menubar.add_cascade(label='Batch', menu=batch_menu)
-        
         
         # Data plotting
         plot_menu = tk.Menu(self.menubar, tearoff=0)
         plot_menu.add_command(label='Vectormap', command=lambda: self.core.adm_subprocess('current', 'vectormap'))
-        plot_menu.add_command(label='Vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'tk_waiting_window vectormap animation')) 
+        plot_menu.add_command(label='Vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'tk_waiting_window vectormap animation'))  
+        plot_menu.add_command(label='Vectormap to txt file', command=self.save_3d_vectors)
         plot_menu.add_separator()
         plot_menu.add_command(label='Mean displacement over time - plot', command=lambda: self.core.adm_subprocess('current', 'magtrace'))
         plot_menu.add_command(label='Mean displacement over time - to clipboard', command=lambda: self.parent.specimen_traces_to_clipboard(mean=True))
@@ -94,8 +90,9 @@ class ExamineMenubar(tk.Frame):
         
         # Data plotting
         many_menu = tk.Menu(self.menubar, tearoff=0)
-        many_menu.add_command(label='Measure movements...', 
-                command=lambda: self.select_specimens(self.batch_measure, with_rois=True))
+        
+        many_menu.add_command(label='Measure movements (list all)', command=lambda: self.select_specimens(self.batch_measure, with_rois=True))
+        many_menu.add_command(label='Measure movements (list only unmeasured)...', command=lambda: self.select_specimens(self.batch_measure, with_rois=True, with_movements=False))
         
          
         # Requiers adding get_magnitude_traces to MAverager
@@ -113,13 +110,13 @@ class ExamineMenubar(tk.Frame):
 
 
         self.winfo_toplevel().config(menu=self.menubar)
-
     
+
     def batch_measure(self, specimens):
         targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
-        MeasurementWindow(self.root, targets, title='Measure movement')
+        MeasurementWindow(self.root, targets, title='Measure movement', callback_on_exit=self.parent.update_all)
     
-    def select_specimens(self, command, with_rois=False, with_movements=False, with_correction=False):
+    def select_specimens(self, command, with_rois=None, with_movements=None, with_correction=None):
         '''
         Opens specimen selection window and after ok runs command using
         selected specimens list as the only input argument.
@@ -148,6 +145,14 @@ class ExamineMenubar(tk.Frame):
         
         tk.Button(selector, text='Close', command=top.destroy).grid(row=1, column=1)
 
+    def save_3d_vectors(self):
+        analysername = self.parent.analyser.get_specimen_name()
+        fn = tk.filedialog.asksaveasfilename(initialfile=analysername, defaultextension='.npy')
+        if fn:
+            base = fn.rstrip('.npy')
+            for eye in ['left', 'right']:
+                d3_vectors = self.parent.analyser.get_3d_vectors(eye)
+                np.save(base+'_'+eye+'.npy', d3_vectors)
 
     def on_exit(self):
         self.winfo_toplevel().destroy()

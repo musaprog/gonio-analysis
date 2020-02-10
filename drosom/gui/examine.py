@@ -25,11 +25,13 @@ import multiprocessing
 import subprocess
 import sys
 import ctypes
+import json
 
 import numpy as np
 import tkinter as tk
 import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
+import tkinter.simpledialog as simpledialog
 
 # PLotting
 import matplotlib.pyplot as plt
@@ -150,6 +152,14 @@ class ExamineMenubar(tk.Frame):
     def on_exit(self):
         self.winfo_toplevel().destroy()
 
+    def set_hidden(self):
+        string = self.core.get_hidden()
+
+        newstring = simpledialog.askstring('Set hidden specimens', 'Hidestring (comma separated)',
+                initialvalue=string, parent=self)
+        print(newstring)
+        self.core.set_hidden(newstring)
+        self.parent.set_data_directory(ask=False)
 
     def update_states(self, manalyser):
         '''

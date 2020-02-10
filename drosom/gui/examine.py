@@ -52,7 +52,7 @@ from pupil.drosom.gui.core import Core
 from pupil.drosom.gui.plotting import RecordingPlotter
 from pupil.drosom.gui.zero_correct import ZeroCorrect
 from pupil_imsoft.anglepairs import toDegrees
-
+from pupil.drosom.gui.data_analysis import get_mean_displacement
 
 
 
@@ -387,8 +387,15 @@ class ExamineView(tk.Frame):
         for i_frame in range(len(data[0])):
             formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
         self.root.clipboard_append(formatted)
-        
+       
+    def copy_data_to_clipboard(self, data):
+        self.root.clipboard_clear()
 
+        for i_frame in range(len(data[0])):
+            formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
+        
+        self.root.clipboard_append(formatted)
+       
     def copy_to_clipboard(self):
         self.root.clipboard_clear()
         

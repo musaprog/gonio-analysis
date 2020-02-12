@@ -54,9 +54,12 @@ class RecordingPlotter:
         for eye, movements in self.movement_data.items():
             for repetition in range(len(movements)):
                 mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
-                ax.plot(mag)
+                ax.plot(mag, label=str(repetition))
                 
                 self.magnitudes.append(mag)
+        
+        
+        ax.legend(fontsize='xx-small', labelspacing=0.1, ncol=int(len(movements)/10)+1, loc='upper left')    
         
         ax.set_xlabel('Frame')
         ax.set_ylabel('Displacement sqrt(x^2+y^2) (pixels)')

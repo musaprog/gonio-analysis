@@ -53,7 +53,7 @@ from pupil.drosom.gui.plotting import RecordingPlotter
 from pupil.drosom.gui.zero_correct import ZeroCorrect
 from pupil_imsoft.anglepairs import toDegrees
 from pupil.drosom.gui.data_analysis import get_mean_displacement
-
+from pupil.drosom.gui.repetition_selection import RepetitionSelector
 
 
 class ExamineMenubar(tk.Frame):
@@ -313,6 +313,9 @@ class ExamineView(tk.Frame):
 
         self.plotter = RecordingPlotter()
                 
+        # Add buttons for selecting single repeats from a recording
+        RepetitionSelector(self.rightside_frame, self.plotter, update_command=lambda: self.on_recording_selection('current')).grid(row=1, column=0)
+
 
 
 
@@ -611,8 +614,13 @@ class ExamineView(tk.Frame):
     def on_recording_selection(self, selected_recording):
         '''
         When a selection happens in the recordings listbox.
+        
+        selected_recording      Name of the recording. If 'current', keeps the current
         '''
-        self.selected_recording = selected_recording
+        if selected_recording == 'current':
+            selected_recording = self.selected_recording
+        else:
+            self.selected_recording = selected_recording
 
         
         angles = [list(angles_from_fn(selected_recording))]

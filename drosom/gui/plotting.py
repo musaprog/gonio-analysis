@@ -17,12 +17,23 @@ class RecordingPlotter:
 
     Tkinter intependend in sense that CanvasPlotter can easily be reimplemented on
     any other GUI toolkit (it's just a fusion of tkinter Canvas and matplotlib figure).
+    
+    -----------
+    Attributes
+    -----------
+    i_repeat        If
     '''
 
     def __init__(self):
+        
+        self.analyser = None
+        self.selected_recording = None
+
         self.colorbar = None
         self.roi_rectangles = []
-
+        
+        self.N_repeats = 0
+        self.i_repeat = None
 
     def set_analyser(self, analyser):
         '''
@@ -37,12 +48,16 @@ class RecordingPlotter:
         Set the current selected_recording, ie. the name of the image folder (string).
         Returns None
         '''
+        if self.selected_recording != selected_recording:
+            self.i_repeat = None
+        
         self.selected_recording = selected_recording
         if self.analyser.is_measured():
             self.movement_data = self.analyser.get_movements_from_folder(selected_recording)
         else:
             self.movement_data = {}
-
+        
+        self.N_repeats = len(next(iter(self.movement_data.values())))
     
 
     def magnitude(self, ax):
@@ -53,6 +68,10 @@ class RecordingPlotter:
         
         for eye, movements in self.movement_data.items():
             for repetition in range(len(movements)):
+                
+                if (self.i_repeat is not None) and self.i_repeat != repetition:
+                    continue
+
                 mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
                 ax.plot(mag, label=str(repetition))
                 
@@ -74,6 +93,10 @@ class RecordingPlotter:
         for eye, movements in self.movement_data.items():
             for repetition in range(len(movements)):
                 
+                if (self.i_repeat is not None) and self.i_repeat != repetition:
+                    continue
+
+               
                 x = movements[repetition]['x']
                 y = movements[repetition]['y']
                  

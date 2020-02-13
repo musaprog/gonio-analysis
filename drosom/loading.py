@@ -79,6 +79,10 @@ def load_data(drosom_folder):
 
     # Import all tif images
     for folder in pos_folders:
+        
+        if not folder.startswith(position_indicator):
+            continue
+        
         str_angles = folder[len(position_indicator):]     # Should go from "pos(0, 0)" to "(0, 0)"
      
         files = os.listdir(os.path.join(drosom_folder, folder))

@@ -411,6 +411,10 @@ class MPlotter:
                 print('Install ffmpeg by "pip install ffmpeg" to get the video')
                 video_writer = False
 
+            doublegrab_next = False
+
+            plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+            
             for i, (elevation, azimuth) in enumerate(animation):
                 
                 try:
@@ -433,11 +437,15 @@ class MPlotter:
                     fig.savefig(os.path.join(savedir, fn))
                     if video_writer:
                          video_writer.grab_frame()
+                         if doublegrab_next:
+                            video_writer.grab_frame()
+                            doublegrab_next = False
                     #plt.pause(0.1)
 
                 except Exception as e:
                     print('Could not make a frame, error message on the next line')
                     print(e)
+                    doublegrab_next = True
             if video_writer:
                 video_writer.finish()
 

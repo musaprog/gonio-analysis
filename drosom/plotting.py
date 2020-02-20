@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches
 import matplotlib.animation
+from matplotlib.transforms import Bbox
 #from mayavi import mlab
 
 # Plotting 3D in matplotlib
@@ -24,6 +25,8 @@ from .optic_flow import flow_direction
 from pupil.coordinates import force_to_tplane
 
 CURRENT_ARROW_LENGTH = 1
+
+VECTORMAP_PULSATION_PARAMETERS = {'step_size': 0.02, 'low_val': 0.33, 'high_val': 1}
 
 class MPlotter:
 
@@ -418,23 +421,43 @@ class MPlotter:
             for i, (elevation, azimuth) in enumerate(animation):
                 
                 try:
-                    
+                
 
                     if arrow_animation:
                         axes[0].clear()
                         for color, eye in zip(['red', 'blue'], ['left', 'right']):
                             vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True)
-                            vector_plot(axes[0], *vectors_3d, color=color, mutation_scale=15, animate=arrow_animation, guidance=True, camerapos=(elevation, azimuth))
+                            vector_plot(axes[0], *vectors_3d, color=color, mutation_scale=15,
+                                    animate=arrow_animation, guidance=True, camerapos=(elevation, azimuth))
 
-                        make_animation_timestep(step_size=0.02, low_val=0.33, high_val=1)
+                        make_animation_timestep(**VECTROMAP_PULSATION_PARAMETERS)
+                    
+                        
+                    style = 'normal'
+                    title_string = manalyser.get_short_name()
+                    
+                    if ';' in title_string:
+                        title_string, style = title_string.split(';')
+
+                    if title_string is '':
+                        # Use full name if short name is not set
+                        title_string = manalyser.get_specimen_name()
+
+                    #axes[0].text2D(0.5, 0.85, title_string, transform=ax.transAxes,
+                    #        ha='center', va='center', fontsize=38, fontstyle=style)
+                    #axes[0].text2D(0.75, 0.225, "n={}".format(manalyser.get_N_specimens()),
+                    #        transform=ax.transAxes, ha='center', va='center', fontsize=30)
                                     
                     print('{} {}'.format(elevation, azimuth)) 
                     for ax in axes:
                         ax.view_init(elev=elevation, azim=azimuth)
+                    
+                    #ax.dist = 6
+                    
                     fig.canvas.draw_idle()
                     # for debugging here plt.show()
                     fn = 'image_{:0>8}.png'.format(i)
-                    fig.savefig(os.path.join(savedir, fn))
+                    #fig.savefig(os.path.join(savedir, fn), bbox_inches=Bbox.from_bounds(2.75,3,10,10))
                     if video_writer:
                          video_writer.grab_frame()
                          if doublegrab_next:
@@ -503,8 +526,9 @@ def is_behind_sphere(elev, azim, point):
     
     vec_cam = (cx,cy,cz)
     vec_arr = point
-    angle = np.arccos(np.inner(vec_cam, vec_arr)/(np.linalg.norm(vec_cam)*np.linalg.norm(vec_arr)))
     
+    angle = np.arccos(np.inner(vec_cam, vec_arr)/(np.linalg.norm(vec_cam)*np.linalg.norm(vec_arr)))
+
     if angle > np.pi/2:
         return True
     else:

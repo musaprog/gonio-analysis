@@ -853,6 +853,24 @@ class MAnalyser(VectorGettable):
             return points, vectors
 
 
+    def get_recording_time(self, recording_name, i_rep=0):
+        '''
+        Returns the timestamp of a recording.
+
+        angle       Recording name, such as
+        '''
+
+        angle = recording_name.lstrip('pos')
+
+        for eye in ['left', 'right']:
+            try:
+                return self.movements[eye][angle][i_rep]['time']
+            except KeyError:
+                pass
+
+        raise ValueError(('self.movements[left/right] has no (angle) key {}'
+                'List of available angles: {}').format(angle, list(self.movements['left'].keys())+list(self.movements['right'].keys())))
+
     def stop(self):
         '''
         Stop long running activities (now measurement).

@@ -529,7 +529,7 @@ class MAnalyser(VectorGettable):
 
         if not self.ROIs[eye] == {}:
 
-            print(self.ROIs)
+            #print(self.ROIs)
             for angle in self.stacks:
                 #if angle in str(self.ROIs[eye].keys()):
                 
@@ -745,7 +745,7 @@ class MAnalyser(VectorGettable):
         # Make the order of angles deterministic
         sorted_angle_keys = sorted(self.movements[eye])
 
-        angles = [list(ast.literal_eval(angle)) for angle in sorted_angle_keys]
+        angles = [list(ast.literal_eval(angle.split(')')[0]+')' )) for angle in sorted_angle_keys]
         values = [self.movements[eye][angle] for angle in sorted_angle_keys]
 
      

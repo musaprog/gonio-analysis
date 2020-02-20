@@ -12,13 +12,13 @@ import matplotlib.pyplot as plt
 # Plotting 3D in matplotlib
 from mpl_toolkits.mplot3d import Axes3D
 
-from .analysing import MAnalyser, MAverager
-from .plotting import MPlotter, complete_flow_analysis
-from .optic_flow import flow_direction, flow_vectors, field_error
-from droso import DrosoSelect
-from movie import Encoder
-from image_adjusting import ROIAdjuster
-from directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
+from pupil.drosom.analysing import MAnalyser, MAverager
+from pupil.drosom.plotting import MPlotter, complete_flow_analysis
+from pupil.drosom.optic_flow import flow_direction, flow_vectors, field_error
+from pupil.droso import DrosoSelect
+from videowrapper import Encoder
+from pupil.image_adjusting import ROIAdjuster
+from pupil.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 
 from pupil.antenna_level import AntennaLevelFinder
 from .new_analysing import optic_flow_error

@@ -5,7 +5,7 @@ Further analysis of the measured deep pseudopupil movement values.
 import numpy as np
 
 from .optic_flow import flow_direction, field_error
-from coordinates import nearest_neighbour, force_to_tplane
+from pupil.coordinates import nearest_neighbour, force_to_tplane
 
 
 

@@ -1,8 +1,23 @@
 '''
 Measuring deep pseudopupil movement values forom DrosoM data.
 
-This module has two classes, MMeasurer and MAverager.
+-------
+Classes
+-------
+  MAnalyser
+    Main programmatic interfacce to process and interact with imaging data
+    produced by pupil_imsoft        
+
+  MAverager         
+    Takes in many MAnalysers to generate a mean specimen.
+    Only implements some of MAnalyser methods 
+
+  VectorGettable
+    Internal, caches results for better performance
+
+
 '''
+
 import os
 import json
 import ast
@@ -67,6 +82,24 @@ class MAnalyser(VectorGettable):
     '''
     Cross-correlation analysis of DrosoM data, saving and loading, and getting
     the analysed data out.
+
+    ------------------
+    Input argument naming convetions
+    ------------------
+    - specimen_name
+    - recording_name
+
+    -----------
+    Attributes
+    -----------
+    - self.movements      self.movements[eye][angle][i_repeat][x/y/time]
+                    where eye = "left" or "right"
+                    angle = recording_name.lstrip('pos'), so for example angle="(0, 0)_uv"
+        
+
+    
+
+
     '''
 
     def __init__(self, data_path, folder, clean_tmp=False, no_data_load=False):
@@ -478,7 +511,7 @@ class MAnalyser(VectorGettable):
 
         INPUT ARGUMENTS         DESCRIPTION
         eye                     'left' or 'right'
-        only_folders            Analyse only image folders in this list.
+        only_folders            Analyse only image folders in the given list (that is only_folders).
 
         Cross-correlation analysis is the slowest part of the DrosoM pipeline.
         '''

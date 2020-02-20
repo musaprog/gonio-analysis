@@ -878,22 +878,52 @@ class MAnalyser(VectorGettable):
         self.stop_now = True
 
 
+class ShortNameable:
+    '''
+    Inheriting this class adds getting and setting
+    short_name attribute, and style for matplotlib text.
+    '''
 
-class MAverager(VectorGettable):
+    def get_short_name(self):
+        '''
+        Returns the short_name of object or an emptry string if the short_name
+        has not been set.
+        '''
+        try:
+            return self.short_name
+        except AttributeError:
+            return ''
+
+    def set_short_name(self, short_name):
+        self.short_name = short_name
+
+    
+    #def get_short_name_style(self):
+    #    try:
+    #        return self.short_name_style
+    #    except AttributeError:
+    #        return 'normal'
+
+    #def set_short_name_style(self, style):
+    #    self.short_name_style = syle
+
+
+class MAverager(VectorGettable, ShortNameable):
     '''
     Combining and averaging results from many MAnalyser objects.
     
     MAverager acts like MAnalyser object for getting data (like get2DVectors)
     but lacks the movement analysis (cross-correlation) related parts.
     '''
-    def __init__(self, manalysers):
+    def __init__(self, manalysers, short_name=''):
         
         self.manalysers = manalysers
 
+    def get_N_specimens(self):
+        return len(self.manalysers)
 
     def get_specimen_name(self):
         return 'averaged_'+'_'.join([manalyser.getFolderName() for manalyser in self.manalysers])
-
 
     def setInterpolationSteps(self, horizontal_step, vertical_step):
         '''

@@ -565,7 +565,9 @@ class MAnalyser(VectorGettable):
             if ROIs == []:
                 return None
 
-            meter = Movemeter(upscale=4)
+
+            # Old upscale was 4
+            meter = Movemeter(upscale=10)
             meter.setData(stacks, ROIs)
             
             for stack_i, angle in enumerate(angles):

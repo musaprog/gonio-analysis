@@ -105,12 +105,19 @@ class ExamineMenubar(tk.Frame):
         many_menu.add_separator()
         many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged'), with_movements=True, with_correction=True)) 
         many_menu.add_command(label='Averaged vectormap - rotating video', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation'), with_movements=True, with_correction=True)) 
+        many_menu.add_command(label='Averaged vectormap - rotating video - set title', command= lambda: self.ask_string('Set title', 'Give video title', lambda title: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation short_name={}'.format(title)), with_movements=True, with_correction=True))) 
+        
         self.menubar.add_cascade(label='Many specimens', menu=many_menu)
         self.many_menu = many_menu        
 
 
+
         self.winfo_toplevel().config(menu=self.menubar)
-    
+   
+    def ask_string(self, title, prompt, command_after):
+        string = simpledialog.askstring(title, prompt, parent=self.parent)
+        if string:
+            command_after(string)
 
     def batch_measure(self, specimens):
         targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
@@ -535,6 +542,7 @@ class ExamineView(tk.Frame):
         self.analyser = self.core.get_manalyser(specimen)
         self.core.set_current_specimen(specimen)
         
+
         # Recordings box
         recordings = self.analyser.list_imagefolders()
         self.recording_box.enable()

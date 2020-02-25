@@ -56,8 +56,9 @@ class Core:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_measured() == with_movements]
         
         if with_correction is not None:
-            specimens = [specimen for specimen in specimens if bool(self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction()) == with_correction]
+            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction() is not False]
         
+
         hidden = self.get_hidden()
         
         specimens = [specimen for specimen in specimens if not specimen in hidden.split(',')]

@@ -29,10 +29,12 @@ if 'tk_waiting_window' in sys.argv:
 def make_animation_angles():
     '''
     Returns the matplotlib angles to rotate a 3D plot
+    
+    This really shouldnt be here...
     '''
 
     animation = []
-    step = 0.5
+    step = 0.5 # old 0.5
     sidego = 30
     # go up, to dorsal
     for i in np.arange(-30,60,step):
@@ -129,6 +131,7 @@ class TerminalDrosoM:
             animation = make_animation_angles()
         else:
             animation = False
+        
 
         plotter = MPlotter()
 
@@ -185,6 +188,10 @@ class TerminalDrosoM:
             avg_analyser.setInterpolationSteps(5,5)
             #plotter.plotDirection2D(avg_analyser)
             
+            short_name = [arg.split('=')[1] for arg in self.argv if 'short_name=' in arg]
+            if short_name:
+                avg_analyser.set_short_name(short_name[0])
+
             if 'magtrace' in self.argv:
                 plotter.plotTimeCourses(avg_analyser)
             

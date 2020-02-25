@@ -611,7 +611,7 @@ class ExamineView(tk.Frame):
             self.correction = self.analyser.get_antenna_level_correction()
         except:
             self.correction = False
-        if self.correction:
+        if self.correction is not False:
             self.status_antenna_level.config(text='Zero corrected, {:.2f} degrees'.format(self.correction))
         else:
             self.status_antenna_level.config(text='Zero corrected FALSE')
@@ -630,6 +630,8 @@ class ExamineView(tk.Frame):
         else:
             self.selected_recording = selected_recording
 
+        
+        print(self.analyser.get_recording_time(selected_recording))
         
         angles = [list(angles_from_fn(selected_recording))]
         toDegrees(angles)

@@ -20,7 +20,7 @@ if platform.system() == 'Linux':
     PROCESSING_TEMPDIR_BIGFILES = home+'/pupil/tmp'
 
     # Where folders DrosoX_i, DrosoM_i are
-    DROSO_DATADIR = home+'/smallbrains-nas1/array1/pseudopupil_imaging'
+    DROSO_DATADIR = home+'/smallbrains-nas1/array1/pseudopupil_joni'
     #DROSO_DATADIR = '/win2/imaging_data'
     
 

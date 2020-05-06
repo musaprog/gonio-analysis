@@ -52,7 +52,6 @@ from pupil.drosom.gui.core import Core
 from pupil.drosom.gui.plotting import RecordingPlotter
 from pupil.drosom.gui.zero_correct import ZeroCorrect
 from pupil_imsoft.anglepairs import toDegrees
-from pupil.drosom.gui.data_analysis import get_mean_displacement
 from pupil.drosom.gui.repetition_selection import RepetitionSelector
 
 

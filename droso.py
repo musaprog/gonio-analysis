@@ -3,10 +3,48 @@ General methods common for both DrosoM and DrosoX.
 '''
 
 import os
+import json
 from os import listdir
 from os.path import isdir, join
 
-from pupil.directories import DROSO_DATADIR
+
+from pupil.directories import DROSO_DATADIR, CODE_ROOTDIR
+
+
+class SpecimenGroups:
+    '''
+    Managing specimens into groups. 
+    '''
+
+    def __init__(self):
+        self.groups = {}
+        
+        self.load_groups()
+
+    def load_groups(self):
+        try:
+            with open(os.path.join(CODE_ROOTDIR, 'specimen_groups.txt'), 'r') as fp:
+                self.groups = json.load(fp)
+        except FileNotFoundError:
+            print('No specimen groups')
+
+    def save_groups(self):
+        with open(os.path.join(CODE_ROOTDIR, 'specimen_groups.txt'), 'w') as fp:
+            json.dump(self.groups, fp)
+
+      
+    def new_group(self, group_name, *specimens):
+        self.groups[group_name] = [*specimens]
+    
+
+    def get_groups(self):
+        '''
+        Returns the groups dictionary
+        '''
+        return self.groups
+
+    def get_specimens(self, group_name):
+        return self.groups[group_name]
 
 class DrosoSelect:
     '''
@@ -22,8 +60,10 @@ class DrosoSelect:
         self.path = DROSO_DATADIR
         
         folders = [fn for fn in os.listdir(self.path) if isdir(join(self.path, fn))]
-        self.folders = [os.path.join(self.path, fn) for fn in folders if fn.startswith('Droso')]
-
+        self.folders = [os.path.join(self.path, fn) for fn in folders]
+ 
+        self.groups = SpecimenGroups()
+        
 
     def askUser(self, startswith='', endswith='', contains=''):
         '''
@@ -37,6 +77,7 @@ class DrosoSelect:
 
         RETURNS                 A list of directories (strings) that the user selected?
         '''
+        available_commands = ['new_group', 'list_groups', ]
 
         # Filtering of folders based on their name: startswith, endswith, and contains
         folders = [f for f in self.folders if
@@ -45,31 +86,61 @@ class DrosoSelect:
         print('\nSelect a Droso folder (give either number or drosoname, to select many comma split)')
         for i, folder in enumerate(folders):
             print("  {}) {}".format(i, folder))
+        
+        print('Type help for additional commands')
 
         while True:
             user_input = input('>> ')
-            try:
-                sel_indices = [int(i) for i in user_input.split(',')]
-                selections = [folders[i] for i in sel_indices]
-                break
-            except IndexError:
-                print('One of the given numbers goes over limits, try again.')
-            except ValueError:
-                
-                if user_input == 'best':
-                    user_input = 'DrosoM14,DrosoM16,DrosoM17,DrosoM18,DrosoM19,DrosoM20,DrosoM22,DrosoM23'
 
-                print('Not number values given, trying with base names')
-                
+            # 
+            splitted = user_input.split(' ')
+            if splitted[0] == 'help':
+                print('Following commands are avaible')
+                for cmd in available_commands:
+                    print('  '+cmd)
+            elif splitted[0] == 'new_group':
+                self.groups.new_group(*splitted[1:])
+            elif splitted[0] == 'list_groups':
+                print(self.groups.get_groups())
+            
+            elif user_input in self.groups.get_groups().keys():
+                user_input = ','.join(self.groups.get_specimens(user_input))
+
                 sel_keys = [os.path.basename(x) for x in user_input.split(',')]
                 selections = [folder for folder in self.folders if os.path.basename(folder) in sel_keys]
                 
                 if len(selections) == len(sel_keys):
-                    print('Worked.')
+                    print('Selecting by group.')
                     break
                 else:
-                    print('Did not work, try again.')
-   
+                    print('Group is invalid.')
+             
+
+            else:
+
+                try:
+                    sel_indices = [int(i) for i in user_input.split(',')]
+                    selections = [folders[i] for i in sel_indices]
+                    break
+                except IndexError:
+                    print('One of the given numbers goes over limits, try again.')
+                except ValueError:
+                    
+                    print('Not number values given, trying with base names')
+                    
+                    sel_keys = [os.path.basename(x) for x in user_input.split(',')]
+                    selections = [folder for folder in self.folders if os.path.basename(folder) in sel_keys]
+                    
+                    if len(selections) == len(sel_keys):
+                        print('Worked.')
+                        break
+                    else:
+                        print('Did not work, try again.')
+                 
         print('\nSelected {}\n'.format(selections))
         
+        self.groups.save_groups()
+    
         return selections
+
+

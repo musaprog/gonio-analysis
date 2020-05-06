@@ -2,7 +2,7 @@
 Working in 3D space
 '''
 import math
-from math import sin, cos, tan, radians, pi, acos, atan, sqrt, degrees
+from math import sin, cos, tan, radians, pi, acos, atan, sqrt, degrees, atan2
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -195,7 +195,7 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
     #rot = (1- cos(radians(horizontal))) * radians(vertical)
     
     #rot = -(radians(horizontal)/(np.pi/2)) * radians(vertical)
-    
+    '''  
     rot = camera_rotation(horizontal, vertical)
 
     cimx = imx * cos(rot) - imy * sin(rot)
@@ -211,32 +211,54 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
     x,y,z = camera2Fly(horizontal, vertical, radius=radius)
     
     #print('x={} y={} z={}'.format(x,y,z))
-
+    '''
     # Create unit vectors in camera coordinates
-    
+    '''
     if x == 0 and y > 0:
         b = pi/2
     elif x== 0 and y < 0:
         b = pi + pi/2
     else:
         b = atan(y/x) # angle in xy-plane, between radial line and x-axis
-    
+        #b = atan2(y,x)
+
     if x < 0:
        b += pi
     e = acos(z/sqrt(x**2+y**2+z**2))# anti-elevation
 
-    #if y < 0:
-    #    e += pi
+    if y < 0:
+        e += pi
 
     uimx = np.array([-sin(b) , cos(b), 0])
     #uimy = np.asarray([-cos(e) * sin(b) , - cos(e) * cos(b),  sin(e) ])
     # Fixed this on 6.9.2019
     uimy = np.array([-cos(b) * cos(e) , -sin(b) * cos(e),  sin(e) ])
+    '''
+
+    x,y,z = camera2Fly(horizontal, vertical, radius=radius)
+
+    uimx = np.array(camera2Fly(horizontal, vertical, radius=radius)) - np.array(camera2Fly(horizontal+1, vertical, radius=radius))
+    uimx = uimx / np.linalg.norm(uimx)
+
+    uimy = np.array([0, -sin(radians(vertical)), cos(radians(vertical))])
+
+    #print('vertical {}'.format(vertical))
+    print('imx is {}'.format(imx))
+    #fx, fy, fz = np.array([x,y,z]) + uimx*cimx + uimy*cimy
+    vector = uimx*imx + uimy*imy
+
+    if normalize:
+        length = np.linalg.norm(vector)
+        if length != 0:
+            
+            if type(normalize) == type(42) or type(normalize) == type(4.2):
+                length /= normalize
+        
+            vector = vector / length
 
 
-    fx, fy, fz = np.array([x,y,z]) + uimx*cimx + uimy*cimy
-
-
+    fx, fy, fz = np.array([x,y,z]) + vector 
+    '''
     if normalize:
         uim = uimx*cimx + uimy*cimy
         length = np.sqrt(uim[0]**2 + uim[1]**2 + uim[2]**2)
@@ -247,7 +269,7 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
                 length /= normalize
         
             fx, fy, fz = np.array([x,y,z]) + (uimx*cimx + uimy*cimy)/length
-
+    '''
 
     #print("Elevation {}".format(degrees(e)))
     #print('B {}'.format(b))

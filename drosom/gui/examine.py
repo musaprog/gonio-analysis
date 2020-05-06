@@ -107,7 +107,13 @@ class ExamineMenubar(tk.Frame):
         many_menu.add_command(label='Averaged vectormap - rotating video', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation'), with_movements=True, with_correction=True)) 
         many_menu.add_command(label='Averaged vectormap - rotating video - set title', command= lambda: self.ask_string('Set title', 'Give video title', lambda title: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation short_name={}'.format(title)), with_movements=True, with_correction=True))) 
         
+        
+        many_menu.add_separator()
+        
+        many_menu.add_command(label='Comparision to optic flow - video...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged complete_flow_analysis'), with_movements=True, with_correction=True)) 
         self.menubar.add_cascade(label='Many specimens', menu=many_menu)
+        
+        
         self.many_menu = many_menu        
 
 

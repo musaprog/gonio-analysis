@@ -20,6 +20,8 @@ def optic_flow_error(manalyser, rotations, self_error=False):
         left and right points           (hor,ver) points for left and right eyes,
                                         where the errors where calculated
         all_errors                      List of errors for each fly rotation
+
+    FIXME What is self_error?
     '''
 
     all_errors = []

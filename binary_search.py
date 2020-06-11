@@ -47,7 +47,7 @@ def calcM(L, R):
     return int(floor(abs(L+R)/2))
 
 
-def binarySearchMiddle(N_images, shower, reverse=False):
+def binary_search_middle(N_images, shower, reverse=False):
     '''
     Search for the border where pseudopupils are visible simultaneously.
     Midpoint search.
@@ -98,7 +98,7 @@ def binarySearchMiddle(N_images, shower, reverse=False):
     return int((R+L)/2)
 
 
-def binarySearchLeft(N_images, shower, midpoint, reverse=False):
+def binary_search_left(N_images, shower, midpoint, reverse=False):
     '''
     Search for the border where pseudopupils are visible simultaneously.
     Left side search.
@@ -140,7 +140,7 @@ def binarySearchLeft(N_images, shower, midpoint, reverse=False):
     return int((R+L)/2)
 
 
-def binarySearchRight(N_images, shower, midpoint, reverse=False):
+def binary_search_right(N_images, shower, midpoint, reverse=False):
     '''
     Search for the border where pseudopupils are visible simultaneously.
     Right side search.

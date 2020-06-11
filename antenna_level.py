@@ -18,7 +18,7 @@ from pupil.droso import DrosoSelect
 #from pupil.drosox import XLoader
 from pupil.drosom.loading import load_data
 from pupil.imageshower import ImageShower
-from pupil.binary_search import binarySearchMiddle
+from pupil.binary_search import binary_search_middle
 from pupil_imsoft.anglepairs import toDegrees
 from pupil.drosoalr import loadReferenceFly
 
@@ -99,7 +99,7 @@ class AntennaLevelFinder:
             pitches, images = self._drosox_load(folder, arl)
             
             shower.setImages(images)
-            center = binarySearchMiddle(len(images), shower)
+            center = binary_search_middle(len(images), shower)
             
             shower.close()
             
@@ -140,7 +140,7 @@ class AntennaLevelFinder:
                 m_shower.setImage(0)
 
                 #best_drosox_image = matcher.findBest(image, drosox_images)
-                best_drosoref_image = reference_images[ binarySearchMiddle(len(reference_images), ref_shower) ]
+                best_drosoref_image = reference_images[ binary_search_middle(len(reference_images), ref_shower) ]
                  
                 reference_pitch = float(reference_pitches[best_drosoref_image])
                 

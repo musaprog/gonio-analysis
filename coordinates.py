@@ -348,6 +348,128 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
 #    return points[argmax_i]
 #
 
+
+def get_rotation_matrix(axis, rot):
+    '''
+    Returns an elementar rotation matrix.
+
+    axis        'x', 'y', or 'z'
+    rot         rotation in radians
+    '''
+    # Calculate sin and cos terms beforehand
+    c = cos(rot)
+    s = sin(rot)
+
+    if axis == 'x':
+        return np.array([[1,0,0], [0,c,-s], [0,s,c]])
+    elif axis == 'y':
+        return np.array([[c,0,s], [0,1,0], [-s,0,c]]) 
+    elif axis == 'z':
+        return np.array([[c,-s,0], [s,c,0], [0,0,1]])
+    else:
+        raise ValueError('Axis has to be x, y, or z, not {}'.format(axis))
+
+
+def rotate_along_arbitrary(P1, points, rot):
+    '''
+    Rotate along arbitrary axis.
+
+    P0 is at origin.
+
+    Implemented from here:
+    http://paulbourke.net/geometry/rotate/
+    '''
+
+    a,b,c = P1 / np.linalg.norm(P1)
+    d = math.sqrt(b**2 + c**2)
+    
+    if d == 0:
+        Rx = np.eye(3)
+        Rxr = np.eye(3)
+    else:
+        Rx = np.array([[1,0,0],[0,c/d, -b/d],[0,b/d, c/d]])
+        Rxr = np.array([[1,0,0],[0,c/d, b/d],[0,-b/d, c/d]])
+
+    Ry = np.array([[d,0,-a],[0,1,0], [a,0,d]])
+    Ryr = np.array([[d,0,a],[0,1,0], [-a,0,d]])
+
+    Rz = get_rotation_matrix('z', rot)
+
+    return (Rxr @ Ryr @ Rz @ Ry @ Rx @ points.T).T
+
+
+def rotate_vectors(points, vectors, yaw, pitch, roll):
+    '''
+    In the beginning,  it is assumed that
+        yaw     rotation along Z
+        pitch   rotation along X
+        roll    rotation along Y
+
+    ie that the fly head is at zero rotation, antenna roots pointing towards
+    positive y-axis.
+    '''
+
+    yaw_ax = (0,0,1)
+    pitch_ax = (1,0,0)
+    roll_ax = (0,1,0)
+
+    axes = np.array([yaw_ax, pitch_ax, roll_ax])
+
+    rotations = [yaw, pitch, roll]
+    
+    for i in range(3):
+        new_points = rotate_along_arbitrary(axes[i], points, rotations[i])
+        new_vectors = rotate_along_arbitrary(axes[i], points+vectors, rotations[i]) - new_points
+        
+        points = new_points
+        vectors = new_vectors
+
+
+        # Update axes
+        #axes = rotate_along_arbitrary(axes[i], axes, rotations[i])
+    
+    return points, vectors
+
+
+
+def test_rotate_vectors():
+    '''
+
+    '''
+    
+    points = []
+    vectors = []
+    
+    horizontals = np.linspace(-60, 60, 10)
+    verticals = np.linspace(0, 180, 10)
+
+    for horizontal in horizontals:
+        for vertical in verticals:
+            point = camera2Fly(horizontal, vertical)
+            vector = np.array([0,0,.2])
+            
+            P2 = force_to_tplane(point, point+vector)
+            
+            points.append(point)
+            vectors.append(P2-point)
+    
+    points = np.array(points)
+    vectors = np.array(vectors)
+
+    points, vectors = rotate_vectors(points, vectors, radians(0), radians(89), 0)
+    
+    from pupil.drosom.plotting import vector_plot
+
+
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')    
+    ax.view_init(elev=90, azim=0)
+    vector_plot(ax, points, vectors)
+    
+    plt.savefig('test_rotate_vectors.png')
+
+
 def test_imx():
     
     P0 = (2, -6)
@@ -440,4 +562,5 @@ def test2_camera_rotation():
 if __name__ == "__main__":
     #test_camvec2Fly()
     #test_force_to_plane()
-    test1_camera_rotation()
+    #test1_camera_rotation()
+    test_rotate_vectors()

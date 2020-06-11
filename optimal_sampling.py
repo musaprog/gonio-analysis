@@ -67,7 +67,7 @@ def optimal(horizontals, verticals):
     #for hor, vers in sorted(goniometer_vals.items(), key=lambda x: int(x[0])):
     #    print('{}: {}'.format(hor, vers))
     
-    return points
+    return np.array(points)
 
 def plot_optimal(points):
 

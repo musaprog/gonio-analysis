@@ -54,6 +54,8 @@ def normalize(P0, P1, scale=1):
 #    return np.mean(np.linalg.norm(points, axis=1))
 
 
+
+
 def nearest_neighbour(point_A, points_B, max_distance=None):
     '''
     Return the nearest point to the point_A from points_B.
@@ -180,7 +182,7 @@ def camera2Fly(horizontal, vertical, radius=1):
     return x, y, z
 
 
-def camera_rotation(horizontal, vertical):
+def camera_rotation(horizontal, vertical, return_degrees=False):
     '''
     Camera's rotation
     '''
@@ -196,7 +198,10 @@ def camera_rotation(horizontal, vertical):
     if vertical > 90:
         rot += radians(180)
         rot = -rot
-   
+  
+    if return_degrees:
+        rot = degrees(rot)
+
     return -rot
 
 

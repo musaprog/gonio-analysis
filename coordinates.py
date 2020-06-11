@@ -8,6 +8,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+
+def to_spherical(x,y,z, return_degrees=False):
+    '''
+    Transform to spherical coordinates (ISO)
+    
+    return_degrees     If true, return angles in degrees instead of radians
+
+    Returns: r, phi, theta
+    '''
+    r = sqrt(x**2+y**2+z**2)
+    phi = atan2(y, x)
+    theta = acos(z/(r))
+    
+    if return_degrees:
+        phi = degrees(phi)
+        theta = degrees(theta)
+
+    return r, phi, theta
+
 def normalize(P0, P1, scale=1):
     '''
     Normalize a vector

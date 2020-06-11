@@ -94,7 +94,7 @@ class DrosoSelect:
         self.groups = SpecimenGroups()
         
 
-    def askUser(self, startswith='', endswith='', contains=''):
+    def ask_user(self, startswith='', endswith='', contains=''):
         '''
         In terminal, ask user to select a Droso folder and can perform simple
         filtering of folders based on folder name.

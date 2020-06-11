@@ -68,6 +68,7 @@ class SpecimenGroups:
     def get_specimens(self, group_name):
         return self.groups[group_name]
 
+
 class DrosoSelect:
     '''
     Selecting a Droso folder based on user input or programmatically.
@@ -78,9 +79,15 @@ class DrosoSelect:
     - add programmatic selection methods of folders
     '''
 
-    def __init__(self):
-        self.path = DROSO_DATADIR
-        
+    def __init__(self, datadir=None):
+        '''
+        datadir     Where the different droso folder are in
+        '''
+        if datadir is None:
+            self.path = DROSO_DATADIR
+        else:
+            self.path = datadir
+
         folders = [fn for fn in os.listdir(self.path) if isdir(join(self.path, fn))]
         self.folders = [os.path.join(self.path, fn) for fn in folders]
  

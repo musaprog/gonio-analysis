@@ -21,8 +21,10 @@ if platform.system() == 'Linux':
 
     # Where folders DrosoX_i, DrosoM_i are
     DROSO_DATADIR = home+'/smallbrains-nas1/array1/pseudopupil_joni'
-    #DROSO_DATADIR = '/win2/imaging_data'
     
+    DROSO_DATADIRS = [home+'/smallbrains-nas1/array1/pseudopupil_imaging',
+            DROSO_DATADIR]
+
 
 elif platform.system() == 'Windows':
     root_dir = CODE_ROOTDIR

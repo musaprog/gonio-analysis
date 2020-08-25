@@ -142,7 +142,7 @@ class DrosoSelect:
                     print('Selecting by group.')
                     break
                 else:
-                    print('Group is invalid.')
+                    print('Group is invalid; Specified specimens do not exist')
              
 
             else:

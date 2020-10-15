@@ -3,6 +3,12 @@ adm_gui
 
 
 DrosoM
+
+ROI selection improvements
+	- ROI select, enable to change frame / repetition for a recording point
+	- after selecting ROIs, do not upscroll Specimens list
+	- selecting ROIs, show the red square
+
 - Movement values from pixels to micrometers
 - Lazy imports for big libraries?
 

@@ -120,13 +120,13 @@ class TerminalDrosoM:
 
         # Ask ROIs if not selected
         for analyser in analysers:
-            if not analyser.isROIsSelected():
-                analyser.selectROIs()
+            if not analyser.are_rois_selected():
+                analyser.select_ROIs()
 
         # Analyse movements if not analysed, othewise load these
         for analyser in analysers:
 
-            if not analyser.isMovementsAnalysed() == (True, True) or 'recalculate' in self.argv:
+            if not analyser.is_measured or 'recalculate' in self.argv:
                 analyser.measure_movement(eye='left')
                 analyser.measure_movement(eye='right')
             analyser.load_analysed_movements()
@@ -149,7 +149,7 @@ class TerminalDrosoM:
         if not 'averaged' in self.argv:
             for analyser in analysers:
                 if 'timeplot' in self.argv:
-                    analyser.timePlot()
+                    analyser.time_plot()
                 if 'magtrace' in self.argv:
                     plotter.plotTimeCourses(analyser)
                 

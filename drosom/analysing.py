@@ -45,9 +45,6 @@ def vertical_filter_points(points_3d, vertical_lower=None, vertical_upper=None, 
     Takes in 3D points and returns an 1D True/False array of length points_3d
     '''
     
-    #verticals = np.arctan( np.sqrt(points_3d[:,0]**2 + points_3d[:,1]**2) / points_3d[:,2] )
-    #verticals = np.degrees(np.arcsin(points_3d[:,2]/abs(points_3d[:,1])))
-    
     verticals = np.degrees(np.arcsin(points_3d[:,2]/ np.cos(points_3d[:,0]) ))
 
     for i_point in range(len(points_3d)):
@@ -91,7 +88,6 @@ class ShortNameable:
         self.short_name = short_name
 
 
-
     
 class SettingAngleLimits:
     
@@ -108,8 +104,6 @@ class SettingAngleLimits:
         '''
         self.va_limits = va_limits
         self.alimits_reverse = reverse
-
-
 
 
 
@@ -165,6 +159,7 @@ class Discardeable():
 
         self.load_discarded()
 
+
     def discard_recording(self, image_folder, i_repeat):
         '''
         Discard a recording
@@ -177,6 +172,7 @@ class Discardeable():
 
         self_discarded_recordings[image_folder].append(i_repeat)
 
+
     def is_discarded(self, image_folder, i_repeat):
         '''
         Checks if image_folder and i_repeats is discarded.
@@ -185,6 +181,7 @@ class Discardeable():
             if i_repeat in self.discarded_recordings[image_folder] or 'all' in self.discarded_recordings[image_folder]:
                 return True
         return False
+
 
     def save_discarder(self):
         '''
@@ -273,7 +270,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             self.stacks = load_data(os.path.join(self.data_path, self.folder))
             
             # Load movements and ROIs if they exists
-            if self.is_rois_selected():
+            if self.are_rois_selected():
                 self.loadROIs()
             
             if self.is_measured():
@@ -361,6 +358,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         return sorted(image_folders) + sorted(special_image_folders)
 
+
     def get_horizontal_vertical(self, image_folder, degrees=True):
         '''
         Tries to return the horizontal and vertical for an image folder.
@@ -379,7 +377,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             return step2degree(horizontal), step2degree(vertical)
         else:
             return horizontal, vertical
-                
+
+
     def get_specimen_directory(self):
         return os.path.join(self.data_path, self.folder)
 
@@ -401,21 +400,21 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         return fns
 
-    def getFolderName(self):
-
-        return self.folder
    
     def get_specimen_name(self):
         '''
         Return the name of the data (droso) folder, such as DrosoM42
         '''              
         return self.folder
-    
+  
+
     @staticmethod
-    def getPosFolder(image_fn):
+    def get_imagefolder(image_fn):
         '''
         Gets the name of the folder where an image lies, for example
         /a/b/c/image -> c
+
+        based on the image filename.
         '''
         return os.path.split(os.path.dirname(image_fn))[1]
     
@@ -431,7 +430,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             antenna_level_offset = False
         
         return antenna_level_offset
-    
+
+
     def _correctAntennaLevel(self, angles):
         '''
         angles  In degrees, tuples, (horizontal, pitch)
@@ -443,7 +443,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 #print('Before correcting {}'.format(angles[i]))
 
         return angles
-    
+
+
     def get_antenna_level_correction(self):
         '''
         Return the antenna level correction or if no correction exists, False.
@@ -485,6 +486,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             return descriptions
 
         return descriptions
+
 
     def get_imaging_parameters(self, image_folder):
         '''
@@ -537,6 +539,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         
         return reversed(parameters)
 
+
     def get_imaging_parameters(self, image_folder):
 
         pass
@@ -559,6 +562,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 return line.lstrip('age ')
 
         return None
+
 
     def get_specimen_sex(self):
         '''
@@ -597,8 +601,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return fns[i_snap]
 
 
-
-    def loadROIs(self):
+    def load_ROIs(self):
         '''
         Load ROIs (pseudopupils selected before) for the left/right eye.
         
@@ -661,7 +664,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         print('ROIs left: {}'.format(len(self.ROIs['left'])))
         print('ROIs right: {}'.format(len(self.ROIs['right'])))
         
-    def selectROIs(self, **kwargs):
+
+    def select_ROIs(self, **kwargs):
         '''
         Selecting the ROIs from the loaded images.
         Currently, only the first frame of each recording is shown.
@@ -676,29 +680,22 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         marker.run()
 
 
-    def select_ROIs(self):
-        return self.selectROIs()
-
-
-    def isROIsSelected(self):
+    def are_rois_selected(self):
         '''
         Returns True if a file for crops/ROIs is found.
         '''
         return os.path.exists(self.CROPS_SAVEFN)
-    
 
-    def is_rois_selected(self):
-        return self.isROIsSelected()
-    
 
     def count_roi_selected_folders(self):
         '''
         Returns the number of imagefolders that have ROIs selected
         '''
-        if self.is_rois_selected():
+        if self.are_rois_selected():
             return self.N_folders_having_rois
         else:
             return 0
+
 
     def folder_has_rois(self, image_folder):
         '''
@@ -727,16 +724,13 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return rois
 
 
-    def isMovementsAnalysed(self):
+    def is_measured(self):
         '''
         Returns (True, True) if analyseMovement results can be found for the fly and bot eyes.
         '''
         print(self.MOVEMENTS_SAVEFN)
-        return (os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right')))
+        return all(os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right')))
 
-
-    def is_measured(self):
-        return all(self.isMovementsAnalysed())
 
 
     def folder_has_movements(self, image_folder):
@@ -754,17 +748,13 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return False
 
 
-    def loadAnalysedMovements(self):
+    def load_analysed_movements(self):
         self.movements = {}
         with open(self.MOVEMENTS_SAVEFN.format('right'), 'r') as fp:
             self.movements['right'] = json.load(fp)
         with open(self.MOVEMENTS_SAVEFN.format('left'), 'r') as fp:
             self.movements['left'] = json.load(fp)
         
-
-    def load_analysed_movements(self):
-        return self.loadAnalysedMovements()
-
 
     def measure_both_eyes(self, **kwargs):
         '''
@@ -894,6 +884,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         #    plt.plot(data['y'])
         #    plt.show()
     
+
     def get_image_interval(image_folder=None):
         '''
         Returns the time interval between sequetive frames, in seconds.
@@ -903,7 +894,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         #FIXME Not implemented
         return 0.010 # 10 ms -> 100 fps
 
-    def timePlot(self):
+
+    def time_plot(self):
         '''
         Not sure anymore what this is but probably movement magnitude over time.
 
@@ -1006,6 +998,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         
         return data
 
+
     def get_displacements_from_folder(self, image_folder):
         '''
         Returns a list of 1D numpy arrays, which give displacement
@@ -1039,7 +1032,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return angles, movement_dict
     
 
-    def get2DVectors(self, eye, mirror_horizontal=True, mirror_pitch=True, correct_level=True):
+    def get_2d_vectors(self, eye, mirror_horizontal=True, mirror_pitch=True, correct_level=True):
         '''
         Creates 2D vectors from the movements analysis data.
             Vector start point: Pupils position at the firts frame
@@ -1099,11 +1092,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return angles, X, Y
 
 
-    def get_2d_vectors(self, *args, **kwargs):
-        return self.get2DVectors(self, *args, **kwargs)
-    
             
-    def getMagnitudeTraces(self, eye):
+    def get_magnitude_traces(self, eye):
         '''
         Return a dictionary of movement magnitudes over time.
         Keys are the angle pairs.  
@@ -1121,7 +1111,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return magnitude_traces
 
     
-    def getMovingROIs(self, eye, angle):
+    def get_moving_ROIs(self, eye, angle):
         '''
         Returns a list of ROIs how they move over time.
         Useful for visualizing.
@@ -1225,6 +1215,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         self.stop_now = True
 
+
     # ------------
     # LINKED DATA
     # linking external data such as ERGs to the DPP data (MAnalyser)
@@ -1287,8 +1278,10 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
     def get_N_specimens(self):
         return len(self.manalysers)
 
+
     def get_specimen_name(self):
         return 'averaged_'+'_'.join([manalyser.getFolderName() for manalyser in self.manalysers])
+
 
     def setInterpolationSteps(self, horizontal_step, vertical_step):
         '''
@@ -1304,200 +1297,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
 
         self.intp_step = (horizontal_step, vertical_step)
 
-# COMMENTING OUT 2D AVERAGING BECAUSE IT'S JUST A BAD APPROXIMATE VERSION OF THE 3D VERSION
-#
-#    @staticmethod
-#    def findDistance(point1, point2):
-#        '''
-#        Returns PSEUDO-distance between two points in the rotation stages angles coordinates (horizontal_angle, vertical_angle).
-#        
-#        It's called pseudo-distance because its not likely the real 3D cartesian distance + the real distance would depend
-#        on the radius that is in our angles coordinate system omitted.
-#
-#        In the horizontal/vertical angle system, two points may seem to be far away but reality (3D cartesian coordinates)
-#        the points are closed to each other. For example, consider points
-#            (90, 10) and (90, 70)
-#        These points are separated by 60 degrees in the vertical (pitch) angle, but because the horizontal angle is 90 degrees
-#        in both cases, they are actually the same point in reality (with different camera rotation)
-#
-#        INPUT ARGUMENTS     DESCRIPTION
-#        point1              (horizontal, vertical)
-#
-#
-#        TODO:   - Implement precise distance calculation in 3D coordinates
-#        '''
-#        # Scaler: When the horizontal angle of both points is close to 90 or -90 degrees, distance
-#        # should be very small
-#        #scaler = abs(math.sin((point1[0] + point2[0])/ 2))
-#        # All this is probably wrong, right way to do this is calculate distances on a sphere
-#        #return scaler * math.sqrt( (point1[0]-point2[0])**2 + (point1[1]-point2[1])**2 )
-#    
-#        return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2)
-#    
-#
-#
-#    # TODO REMOVEME
-#    def get2DVectors(self, eye):
-#        '''
-#        N-nearest neighbour interpolation of 2D vectors, for more see MAnalyser.get2DVectors method.
-#        
-#        N-NEAREST NEIGHBOUR
-#        
-#        Here N-nearest neighbour means, that for each point to be interpolated, we cruerly select N nearest neighbours
-#        whose average sets value to the interpolated point. N = N_manalysers, meaning the number of recorded flies.
-#        
-#        his interpolation method was selected because the way how data was sampled; For each fly, the sampling grid
-#        was similar (every 10 degrees in horizontal and vertical angles, every 5 degrees in horizontal near frontal area),
-#        so weighting the values offers no extra.
-#
-#
-#        Temporal solution, better would be to make vectors in 3D cartesian coordinates
-#        and then interpolate these and then average.
-#
-#        TODO:   - there's optimization work, see fixme markings in the code
-#                - see self.getDistance, this would need work
-#        '''
-#        
-#        N = len(self.manalysers)
-#
-#        # Getting the 2D vectors
-#        ANGLES, X, Y = ([], [], [])
-#        for analyser in self.manalysers:
-#            angles, x, y = analyser.get2DVectors(eye)
-#            ANGLES.extend(angles)
-#            X.extend(x)
-#            Y.extend(y)
-#        
-#        # Interpolation borders or "limits" by taking extreme values of horizontal
-#        # and vertical angles.
-#        # FIXME: What is there's a single outliner far away from others, we have not enough data
-#        # to interpolate in between?
-#        HORIZONTALS = [hor for (hor,pit) in ANGLES]
-#        VERTICALS = [pit for (hor,pit) in ANGLES]
-#        horlim = [np.min(HORIZONTALS), np.max(HORIZONTALS)]
-#        verlim = [np.min(VERTICALS), np.max(VERTICALS)]
-#        
-#        # Performing the interpolation
-#        INTP_ANGLES, INTP_X, INTP_Y = ([], [], [])
-#        
-#        for hor in np.arange(*horlim, self.intp_step[0]):
-#            for ver in np.arange(*verlim, self.intp_step[1]):
-#                
-#                # Here we find N closest point to the point being interpolated
-#                # This is SLOW (FIXME): We wouldn't have to calculate all points if the AGNLES
-#                # would be somehow better sorted
-#                distances_and_indices = [[self.findDistance((hor,ver), angle), i] for (i,angle) in enumerate(ANGLES)]
-#                distances_and_indices.sort(key=lambda x: x[0])
-#                
-#                N_closest = [d_and_i[1] for d_and_i in distances_and_indices[0:N]]
-#                
-#                INTP_X.append( np.mean([X[i] for i in N_closest]) )
-#                INTP_Y.append( np.mean([Y[i] for i in N_closest]) )
-#                INTP_ANGLES.append((hor,ver))
-#                
-#        return INTP_ANGLES, INTP_X, INTP_Y
-#
-#    def nearest_neighbour_3d(self, point_A, points_B, max_distance=None):
-#        '''
-#        Return the nearest point to the point_A from points_B.
-#
-#        point_A         1D np.array [x0, y0, z0]
-#        points_B        2D np.array [ [x1,y1,z1], [z2,y2,z2], ... ]
-#        '''
-#
-#        distances = np.linalg.norm(points_B - point_A, axis=1)
-#        
-#        i_shortest = np.argmin(distances)
-#
-#        if max_distance:
-#            if distances[i_shortest] > max_distance:
-#                return False
-#            
-#        return i_shortest
-#
-# OLD, BEFORE VECTORIZATION
-#        mindist = np.inf
-#        argmin = None
-#    
-#        #ax, ay, az = point_A
-#
-#        for vector in vectors:
-#            #angle, (x0, x1), (y0, y1), (z0, z1) = vector
-#            pointB, vectorsB = vector
-#
-#            #distance = np.sqrt( (ax-x0)**2 + (ay-y0)**2 + (az-z0)**2 )
-#
-#            distance = np.linalg.norm(pointB-np.asarray(pointA))
-#
-#            if distance < mindist:
-#                mindist = distance
-#                argmin = vector
-#
-#            #print(mindist)
-#
-#        if mindist > max_distance:
-#            return False
-#
-#        return argmin
-#    
-#    @staticmethod
-#    def vector_length(vector):
-#        return np.linalg.norm(vector)
-#
-##        if type(vector) == type([]):
-##            angle, x,y,z = vector
-##            length = np.sqrt( (x[0]-x[1])**2 + (y[0]-y[1])**2 + (z[0]-z[1])**2 )
-##        elif type(vector) == type(np.array([0])):
-##            x,y,z = vector
-##            length = np.sqrt( (x)**2 + (y)**2 + (z)**2 )
-##        return length
-##
-#    def average_vector_3d(self, point, vectors):
-#        '''
-#        Average vectors and return a vector at point point.
-#
-#        DIDNT WORK BECAUSE VECTORS NOT ON THE SAME POINT and WE
-#        WANT THE VECTOR TO BE TANGENTIAL TO THE SPEHRE
-#        '''
-#        
-#        #real_vectors = [x[1] for x in vectors]
-#        #real_vectors = vectors[1]
-#        #for point, vec in vectors:
-#        #    #angle, x, y, z = vector
-#        #    
-#        #    #X = x[1] - x[0]
-#        #    #Y = y[1] - y[0]
-#        #    #Z = z[1] - z[0]
-#        #    #real_vectors.append(np.array([X,Y,Z]))
-#        # 
-#        #    #real_vectors.append(vec)
-#
-#
-#        av = np.mean(vectors, axis=0)
-#        if self.vector_length(av) != 0:
-#
-#            av += np.array(point)
-#            av = force_to_tplane(point, av)
-#
-#
-#            
-#            for i in range(0,len(vectors)):
-#                wanted_len = self.vector_length(vectors[i])
-#                
-#                if wanted_len != 0:
-#                    break
-#
-#            av -= np.array(point)
-#            av = (av / self.vector_length(av) * wanted_len)
-#        else:
-#            av = np.array([0,0,0])
-#            pass
-#        #x,y,z = point
-#        
-#        #return (angle_tag, (x, av[0]), (y, av[1]), (z, av[2]) )
-#        return av
-#        
-#
+
     def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=False):
         '''
         Equivalent to MAnalysers get_3d_vectors but interpolates with N-nearest

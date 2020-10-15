@@ -54,10 +54,10 @@ class RecordingPlotter:
         self.selected_recording = selected_recording
         if self.analyser.is_measured():
             self.movement_data = self.analyser.get_movements_from_folder(selected_recording)
+            self.N_repeats = len(next(iter(self.movement_data.values())))
         else:
             self.movement_data = {}
-        
-        self.N_repeats = len(next(iter(self.movement_data.values())))
+            self.N_repeats = 0
     
 
     def magnitude(self, ax):
@@ -78,7 +78,7 @@ class RecordingPlotter:
                 self.magnitudes.append(mag)
         
         
-        ax.legend(fontsize='xx-small', labelspacing=0.1, ncol=int(len(movements)/10)+1, loc='upper left')    
+        ax.legend(fontsize='xx-small', labelspacing=0.1, ncol=int(self.N_repeats/10)+1, loc='upper left')    
         
         ax.set_xlabel('Frame')
         ax.set_ylabel('Displacement sqrt(x^2+y^2) (pixels)')

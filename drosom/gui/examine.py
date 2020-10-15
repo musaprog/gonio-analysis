@@ -53,7 +53,8 @@ from pupil.drosom.gui.plotting import RecordingPlotter
 from pupil.drosom.gui.zero_correct import ZeroCorrect
 from pupil_imsoft.anglepairs import toDegrees
 from pupil.drosom.gui.repetition_selection import RepetitionSelector
-
+from pupil.drosom.kinematics import mean_max_response
+from pupil.drosom import linked_data
 
 class ExamineMenubar(tk.Frame):
     '''
@@ -74,7 +75,14 @@ class ExamineMenubar(tk.Frame):
         file_menu.add_command(label='Set hidden specimens...', command=self.set_hidden)
         file_menu.add_command(label='Exit', command=self.on_exit)
         self.menubar.add_cascade(label='File', menu=file_menu)
+        
 
+        # Imagefolder options
+        plot_menu = tk.Menu(self.menubar, tearoff=0)
+        plot_menu.add_command(label='Max of the mean response', command=lambda: self.prompt_result(mean_max_response(self.parent.analyser, self.parent.selected_recording)))
+        plot_menu.add_separator()
+        self.menubar.add_cascade(label='Image folder', menu=plot_menu)
+        self.plot_menu = plot_menu        
         
         # Data plotting
         plot_menu = tk.Menu(self.menubar, tearoff=0)
@@ -94,6 +102,8 @@ class ExamineMenubar(tk.Frame):
         many_menu.add_command(label='Measure movements (list only unmeasured)...', command=lambda: self.select_specimens(self.batch_measure, with_rois=True, with_movements=False))
         
          
+        many_menu.add_command(label='Create a specimens group...', command=lambda: self.ask_string('Group name', 'Name the new group', self.create_specimens_group))
+
         # Requiers adding get_magnitude_traces to MAverager
         
         #many_menu.add_command(label='Displacement over time', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged magtrace')))
@@ -113,6 +123,13 @@ class ExamineMenubar(tk.Frame):
         self.menubar.add_cascade(label='Many specimens', menu=many_menu)
         
         
+        many_menu.add_separator()
+        # Linking ERG data
+        many_menu.add_command(label="Link ERG data from labbook...",
+                command=lambda: self.select_specimens(linked_data.link_erg_labbook,
+                    command_args=[lambda: filedialog.askopenfilename(title='Select ERG'), lambda: filedialog.askdirectory(title='Select data folder')], return_manalysers=True ) )
+        
+
         self.many_menu = many_menu        
 
 
@@ -124,19 +141,63 @@ class ExamineMenubar(tk.Frame):
         if string:
             command_after(string)
 
+    def prompt_result(self, string):
+        '''
+        Shows the result and also sets it to the clipboard
+        '''
+        self.root.clipboard_clear()
+        self.root.clipboard_append(string)
+ 
+        messagebox.showinfo(title='Result of ', message=string)
+
     def batch_measure(self, specimens):
         targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
         MeasurementWindow(self.root, targets, title='Measure movement', callback_on_exit=self.parent.update_all)
-    
-    def select_specimens(self, command, with_rois=None, with_movements=None, with_correction=None):
+
+
+    def create_specimens_group(self, group_name):
+        '''
+        Create a specimens group that droso.py uses.
+        '''
+        def _create_group(specimens):
+            from pupil.droso import SpecimenGroups
+            groups = SpecimenGroups()
+            groups.new_group(group_name, *specimens)
+            groups.save_groups()
+
+        self.select_specimens(_create_group)
+
+
+    def select_specimens(self, command, with_rois=None, with_movements=None, with_correction=None,
+            command_args=[], execute_callable_args=True, breaking_args=[()],
+            return_manalysers=False):
         '''
         Opens specimen selection window and after ok runs command using
         selected specimens list as the only input argument.
 
-        command         Command to close after fly selection
-        with_rois       List specimens with ROIs selected if True
-        with_movements  List specimens with movements measured if True
+        command                 Command to close after fly selection
+        with_rois               List specimens with ROIs selected if True
+        with_movements          List specimens with movements measured if True
+        command_args            A list of arguments passed to the command
+        execute_callable_args   Callable command_args will get executed and return
+                                    value is used instead
+        breaking_args           If command_args callable return value in this list,
+                                    halt the command
+        return_manalysers       Instead of passing the list of the specimen names as the first
+                                argument to the command, already construct MAnalyser objects and pass those
         '''
+        parsed_args = []
+        for arg in command_args:
+            if execute_callable_args and callable(arg):
+                result = arg()
+                if result in breaking_args:
+                    # Halting
+                    return None
+                parsed_args.append(result)
+            else:
+                parsed_args.append(arg)
+
+
         top = tk.Toplevel()
         top.title('Select specimens')
         top.grid_columnconfigure(0, weight=1)
@@ -150,12 +211,21 @@ class ExamineMenubar(tk.Frame):
             tk.Label(top, text=notify_string).grid()
 
         specimens = self.core.list_specimens(with_rois=with_rois, with_movements=with_movements, with_correction=with_correction) 
-        selector = TickSelect(top, specimens, command)
+        
+        if return_manalysers:
+            # This is quite wierd what is going on here
+            def commandx(specimens, *args, **kwargs):
+                manalysers = [self.core.get_manalyser(specimen) for specimen in specimens]
+                return command(manalysers, *args, **kwargs)
+        else:
+            commandx = command
 
-        #        lambda specimens: self.core.adm_subprocess(specimens, 'averaged'))
+        selector = TickSelect(top, specimens, commandx, callback_args=parsed_args)
+
         selector.grid(sticky='NSEW')
         
         tk.Button(selector, text='Close', command=top.destroy).grid(row=1, column=1)
+
 
     def save_3d_vectors(self):
         analysername = self.parent.analyser.get_specimen_name()
@@ -203,6 +273,12 @@ class ExamineView(tk.Frame):
     - specimen
     - recording
     and plotting the intemediate result for each recording.
+    
+    Important attributes
+    self.current_specimen           Name of the current specimen
+    self.analyser                   MAnalyser object of the current specimen
+    self.selected_recording         Selected recording name (image_folder)
+    
     '''
     
     def __init__(self, parent):
@@ -212,6 +288,11 @@ class ExamineView(tk.Frame):
         self.core = Core()
         
         self.root = self.winfo_toplevel()
+        
+        self.data_directory = None
+        self.current_specimen = None
+        self.selected_recording = None
+
 
         # Make canvas plotter to stretch
         self.grid_rowconfigure(0, weight=1)
@@ -313,11 +394,6 @@ class ExamineView(tk.Frame):
         self.rightside_frame.grid_columnconfigure(0, weight=1)
 
 
-        
-        self.data_directory = None
-        self.current_specimen = None
-        self.selected_recording = None
-
         self.canvases = self.tabs.get_elements()
        
 
@@ -370,9 +446,10 @@ class ExamineView(tk.Frame):
 
     def copy_to_csv(self):
         
-        os.makedirs(os.path.join(PROCESSING_TEMPDIR, self.current_specimen), exist_ok=True)
+        directory = os.path.join(PROCESSING_TEMPDIR, 'clipboard', self.current_specimen)
+        os.makedirs(directory, exist_ok=True)
         
-        with open(os.path.join(PROCESSING_TEMPDIR, self.current_specimen, self.selected_recording), 'w') as fp:
+        with open(os.path.join(directory, self.selected_recording+'.csv'), 'w') as fp:
             
             for i_frame in range(len(self.plotter.magnitudes[0])):
                 formatted = ','.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'

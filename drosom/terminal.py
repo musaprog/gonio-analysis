@@ -13,15 +13,21 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from pupil.drosom.analysing import MAnalyser, MAverager
-from pupil.drosom.plotting import MPlotter, complete_flow_analysis
+from pupil.drosom.plotting import MPlotter, complete_flow_analysis, error_at_flight
+import pupil.drosom.plotting as plotting
 from pupil.drosom.optic_flow import flow_direction, flow_vectors, field_error
 from pupil.droso import DrosoSelect
 from videowrapper import Encoder
-from pupil.image_adjusting import ROIAdjuster
+#from pupil.image_adjusting import ROIAdjuster
 from pupil.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 
 from pupil.antenna_level import AntennaLevelFinder
-from .new_analysing import optic_flow_error
+
+
+from pupil.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
+from pupil.drosom.special.paired import cli_group_and_compare
+from pupil.drosom import reports
+
 
 if 'tk_waiting_window' in sys.argv:
     from pupil.drosom.gui.waiting_window import WaitingWindow
@@ -94,7 +100,7 @@ class TerminalDrosoM:
            
             if data_folder is None:
                 selector = DrosoSelect()
-                directories = selector.askUser(startswith='DrosoM')
+                directories = selector.ask_user()
             else:
                 directories = data_folder
         
@@ -121,11 +127,15 @@ class TerminalDrosoM:
         for analyser in analysers:
 
             if not analyser.isMovementsAnalysed() == (True, True) or 'recalculate' in self.argv:
-                analyser.analyseMovement(eye='left')
-                analyser.analyseMovement(eye='right')
-            analyser.loadAnalysedMovements()
-        
-        
+                analyser.measure_movement(eye='left')
+                analyser.measure_movement(eye='right')
+            analyser.load_analysed_movements()
+    
+        if 'receptive_fields' in self.argv:
+            for analyser in analysers:
+                analyser.receptive_fields = True
+
+   
         
         if 'animation' in self.argv:
             animation = make_animation_angles()
@@ -153,13 +163,18 @@ class TerminalDrosoM:
                 
                 if 'vectormap' in self.argv:
                     plotter.plot_3d_vectormap(analyser, animation=animation)
+                
+                if '1dmagnitude' in self.argv:
+                    folder = self.argv[-1]
+                    plotter.plot_1d_magnitude_from_folder(analyser, folder)
+                
 
-                if 'magnitude' in self.argv:
+                if '2dmagnitude' in self.argv:
                     plotter.plotMagnitude2D(analyser)
 
                 if 'movie' in self.argv:
                     print(analyser.getFolderName())
-                    images, ROIs = analyser.getTimeOrdered()
+                    images, ROIs, angles = analyser.get_time_ordered()
                     
                     workdir = os.path.join(PROCESSING_TEMPDIR_BIGFILES, 'movie_{}'.format(str(datetime.datetime.now())))
                     os.makedirs(workdir, exist_ok=True)
@@ -183,60 +198,73 @@ class TerminalDrosoM:
                     except OSError:
                         print("Temporal directory {} left behind because it's not empty".format(workdir))
 
+                if 'illustrate_experiments' in self.argv:
+                    plotting.illustrate_experiments(analyser)
+
+            if 'norpa_rescue_manyrepeats' in self.argv:
+                norpa_rescue_manyrepeats(analysers)
+            if 'paired_compare' in self.argv:
+                cli_group_and_compare(analysers)
+
+
+            if 'left_right_summary' in self.argv:
+                reports.left_right_summary(analysers)
+
+            if 'pdf_summary' in self.argv:
+                reports.pdf_summary(analysers)
+
         if 'averaged' in self.argv:
             avg_analyser = MAverager(analysers)
             avg_analyser.setInterpolationSteps(5,5)
-            #plotter.plotDirection2D(avg_analyser)
             
             short_name = [arg.split('=')[1] for arg in self.argv if 'short_name=' in arg]
             if short_name:
                 avg_analyser.set_short_name(short_name[0])
+            
+            
+           
+            if 'export_vectormap' in self.argv:
+                print('Exporting 3d vectors')
+                avg_analyser.export_3d_vectors()
 
-            if 'magtrace' in self.argv:
+            elif 'export_optic_flow' in self.argv:
+                #print('Exporting optic flow vectors')
+                #avg_analyser.export_3d_vectors(optic_flow=True)
+
+                import json
+                from pupil.optimal_sampling import optimal as optimal_sampling
+                from pupil.drosom.optic_flow import flow_vectors
+                points = optimal_sampling(np.arange(-90, 90, 5), np.arange(-180, 180, 5))
+                vectors = flow_vectors(points)
+                
+                with open('optic_flow_vectors.json', 'w') as fp:
+                    json.dump({'points': np.array(points).tolist(), 'vectors': np.array(vectors).tolist()}, fp)
+
+
+            elif 'magtrace' in self.argv:
                 plotter.plotTimeCourses(avg_analyser)
             
-            if 'optimal_optic_flow' in self.argv:
-                
-                #points, measured_vecs = avg_analyser.get_3d_vectors('left')
-                #measured_vecs = [np.array(v[1])-np.array(v[0]) for v in vectors_3d]
-                #
-                ##for point, vec in vectors_3d:
-                ##    points.append( np.array([x[0], y[0], z[0]]) )
-                ##    measured_vecs.append( np.array([x[1]-x[0], y[1]-y[0], z[1]-z[0]]) )
-
-
-                #rotations = np.linspace(-180, 180, 100)
-                #
-                #errors = []
-                #for rot in rotations: 
-                #    flow_vecs = [flow_direction(P0, xrot=rot) for P0 in measured_vecs]
-                #    
-                #    
-                #    # Errors for this rotation
-                #    rot_errors = field_error(measured_vecs, flow_vecs)
-                #    
-
-                #    er = np.mean(rot_errors)
-                #    print('Error of {} for rotation {}deg'.format(er, rot))
-                #    errors.append(er)
-
-                #plt.plot(rotations, errors)
-                #plt.show()
-                #
-                #plotter.plot_3d_vectormap(avg_analyser,
-                #        with_optic_flow=rotations[np.argmin(errors)], animation=animation)
-                pass
-            if 'complete_flow_analysis' in self.argv:
+            elif 'complete_flow_analysis' in self.argv:
                 
                 rotations = np.linspace(-180,180, 360)
+                
+                if 'pitch' in self.argv:
+                    axis = 'pitch'
+                elif 'yaw' in self.argv:
+                    axis = 'yaw'
+                elif 'roll' in self.argv:
+                    axis = 'roll'
+                
+                complete_flow_analysis(avg_analyser, rotations, axis)
 
-                complete_flow_analysis(avg_analyser, rotations)
+            elif 'error_at_flight' in self.argv:
+                error_at_flight(avg_analyser)
 
+            elif 'mayavi' in self.argv:
+                plotter.plot_3d_vectormap_mayavi(avg_analyser)
             else:
-                if 'mayavi' in self.argv:
-                    plotter.plot_3d_vectormap_mayavi(avg_analyser)
-                else:
-                    plotter.plot_3d_vectormap(avg_analyser, animation=animation)
+                plotter.plot_3d_vectormap(avg_analyser, animation=animation)
+            
             
 
 
@@ -258,6 +286,7 @@ class TerminalDrosoM:
         if 'animation' in self.argv:
             pass
         else:
+            plt.savefig('fig.png', dpi=600)
             plt.show()
 
         

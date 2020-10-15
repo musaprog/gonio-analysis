@@ -5,6 +5,7 @@ Estimating optic flow field
 from math import cos, sin, radians
 
 import numpy as np
+from scipy.spatial import cKDTree as KDTree
 
 from pupil.coordinates import force_to_tplane, normalize
 
@@ -43,9 +44,11 @@ def flow_vectors(points, xrot=0):
     return np.array([flow_direction(P0, xrot=xrot) for P0 in points])
 
 
-
-def field_error(vectors_A, vectors_B, direction=False):
+def field_error(points_A, vectors_A, points_B, vectors_B, direction=False):
     '''
+    Relieved version where points dont have to overlap
+    
+    Put to A the eye vecotrs
 
     vectors_X   list of vector
     vector      (x,y,z)
@@ -53,16 +56,16 @@ def field_error(vectors_A, vectors_B, direction=False):
     direction   Try to get the direction also (neg/pos)
     '''
     
-    if len(vectors_A) != len(vectors_B):
-        raise ValueError('vectors_A and vectors_B have to be same length')
-    
     N_vectors = len(vectors_A)
-
-    #mean_error = 0
 
     errors = np.empty(N_vectors)
 
-    for i, (vecA, vecB) in enumerate(zip(vectors_A, vectors_B)):
+    kdtree = KDTree(points_B)
+    distances, indices = kdtree.query(points_A, k=10, n_jobs=2)
+    compare_vectors = [np.average([vectors_B[i] for i in indx], axis=0, weights=(1/(np.array(disx)**2)) ) for indx, disx in zip(indices, distances)]
+    #compare_points = [points_B[i] for i in indices]
+
+    for i, (vecA, vecB) in enumerate(zip(vectors_A, compare_vectors)):
     
         angle = np.arccos(np.inner(vecA, vecB)/(np.linalg.norm(vecA) * np.linalg.norm(vecB)))
         error = angle / np.pi
@@ -79,9 +82,4 @@ def field_error(vectors_A, vectors_B, direction=False):
             error = -error
 
         errors[i] = error
-    #print('max error {} and min {}'.format(np.max(errors), np.min(errors)))
     return errors
-
-
-
-

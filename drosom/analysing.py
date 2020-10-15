@@ -31,12 +31,86 @@ from .loading import load_data, angles_from_fn
 from pupil.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector
 from pupil.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
 from pupil.optimal_sampling import optimal
+from pupil.drosom.optic_flow import flow_vectors
 
-
-from pupil_imsoft.anglepairs import toDegrees
+from pupil_imsoft.anglepairs import toDegrees, step2degree
 from marker import Marker
 
 from imalyser.movement import Movemeter
+
+
+
+def vertical_filter_points(points_3d, vertical_lower=None, vertical_upper=None, reverse=False):
+    ''''
+    Takes in 3D points and returns an 1D True/False array of length points_3d
+    '''
+    
+    #verticals = np.arctan( np.sqrt(points_3d[:,0]**2 + points_3d[:,1]**2) / points_3d[:,2] )
+    #verticals = np.degrees(np.arcsin(points_3d[:,2]/abs(points_3d[:,1])))
+    
+    verticals = np.degrees(np.arcsin(points_3d[:,2]/ np.cos(points_3d[:,0]) ))
+
+    for i_point in range(len(points_3d)):
+        if points_3d[i_point][1] < 0:
+            if verticals[i_point] > 0:
+                verticals[i_point] = 180-verticals[i_point]
+            else:
+                verticals[i_point] = -180-verticals[i_point]
+
+    
+    booleans = np.ones(len(points_3d), dtype=np.bool)
+    if vertical_lower is not None:
+        booleans = booleans * (verticals > vertical_lower)
+    if vertical_upper is not None:
+        booleans = booleans * (verticals < vertical_upper)
+    
+    if reverse:
+        booleans = np.invert(booleans)
+
+    return booleans
+ 
+
+
+class ShortNameable:
+    '''
+    Inheriting this class adds getting and setting
+    short_name attribute, and style for matplotlib text.
+    '''
+
+    def get_short_name(self):
+        '''
+        Returns the short_name of object or an emptry string if the short_name
+        has not been set.
+        '''
+        try:
+            return self.short_name
+        except AttributeError:
+            return ''
+
+    def set_short_name(self, short_name):
+        self.short_name = short_name
+
+
+
+    
+class SettingAngleLimits:
+    
+    def __init__(self):
+        self.va_limits = [None, None]
+        self.ha_limits = [None, None]
+        self.alimits_reverse = False
+
+    def set_angle_limits(self, va_limits=(None, None), reverse=False):
+        '''
+        Limit get_3d_vectors
+
+        All units in degrees.
+        '''
+        self.va_limits = va_limits
+        self.alimits_reverse = reverse
+
+
+
 
 
 class VectorGettable:
@@ -74,11 +148,70 @@ class VectorGettable:
         '''
         Returns the sampled points and cartesian 3D-vectors at these points.
         '''
-        return self._get('3d_vectors', *args, **kwargs)
-        
+        #return self._get('3d_vectors', *args, **kwargs)
+        return self._get_3d_vectors(*args, **kwargs)
 
+
+
+class Discardeable():
+    '''
+    Inheriting this class and initializing it grants 
+    '''
+    def __init__(self):
+        self.discard_savefn = os.path.join(PROCESSING_TEMPDIR, 'Manalyser', 'discarded_recordings',
+                'discarded_{}.json'.format(self.folder))
         
-class MAnalyser(VectorGettable):
+        os.makedirs(os.path.dirname(self.self.discard_savefn), exist_ok=True)
+
+        self.load_discarded()
+
+    def discard_recording(self, image_folder, i_repeat):
+        '''
+        Discard a recording
+
+        image_folder    Is pos-folder
+        i_repeat        From 0 to n, or 'all' to discard all repeats
+        '''
+        if image_folder not in self.discarded_recordings.keys():
+            self.discarded_recordings[image_folder] = []
+
+        self_discarded_recordings[image_folder].append(i_repeat)
+
+    def is_discarded(self, image_folder, i_repeat):
+        '''
+        Checks if image_folder and i_repeats is discarded.
+        '''
+        if image_folder in self.discarded_recordings.keys():
+            if i_repeat in self.discarded_recordings[image_folder] or 'all' in self.discarded_recordings[image_folder]:
+                return True
+        return False
+
+    def save_discarder(self):
+        '''
+        Save discarded recordings.
+
+        This has to be called manually ( not called at self.discard_recording() )
+        '''
+        with open(self.discard_savefn, 'w') as fp:
+            json.dump(self.discarded_recordings, fp)
+
+
+    def load_discarded(self):
+        '''
+        Load discard data from disk or if does not exists, initialize
+        self.discarded_recordings
+        
+        Is called at __init__
+        '''
+        if os.path.exists(self.discard_savefn):
+            with open(self.discard_savefn, 'r') as fp:
+                self.discarded_recordings = json.load(fp)
+        else:
+            self.discarded_recordings = {}
+
+
+
+class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
     '''
     Cross-correlation analysis of DrosoM data, saving and loading, and getting
     the analysed data out.
@@ -110,6 +243,10 @@ class MAnalyser(VectorGettable):
         no_data_load        Skip loading data in the constructor
         '''
         super().__init__()
+        #Discardeable().__init__()
+        
+        self.ROIs = None 
+        
         
         self.data_path = data_path
         self.folder = folder
@@ -117,13 +254,21 @@ class MAnalyser(VectorGettable):
         self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser', 'ROIs', 'dynamic_{}_crops.json'.format(folder))
         self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser', 'movements', 'dynamic_{}_{}_movements.json'.format(folder, '{}'))
         
+        self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
+
+
         # Ensure the directories where the crops and movements are saved exist
         os.makedirs(os.path.dirname(self.CROPS_SAVEFN), exist_ok=True)
         os.makedirs(os.path.dirname(self.MOVEMENTS_SAVEFN), exist_ok=True)
-        
+
         if no_data_load:
             # no_data_load was speciefied, skip all data loading
             pass
+
+            # Python dictionary for linked data
+            self.linked_data = {}
+
+
         else:
             self.stacks = load_data(os.path.join(self.data_path, self.folder))
             
@@ -137,15 +282,24 @@ class MAnalyser(VectorGettable):
             self.antenna_level_correction = self._getAntennaLevelCorrection(folder)
             if self.antenna_level_correction == False:
                 print('No antenna level correction value for fly {}'.format(folder))
-        
+
+
+            self.load_linked_data()
+
         # For cahcing frequently used data
         self.cahced = {'3d_vectors': None}
     
         self.stop_now = False
-        
-        
+        self.va_limits = [None, None]
+        self.ha_limits = [None, None]
+        self.alimits_reverse = False
 
+        # If receptive fields == True then give out receptive field
+        # movement directions instead of deep pseudopupil movement directions
+        self.receptive_fields = False
 
+        
+       
     def __fileOpen(self, fn):
         with open(fn, 'r') as fp:
             data = json.load(fp)
@@ -157,48 +311,104 @@ class MAnalyser(VectorGettable):
             json.dump(data, fp)
 
     
-    def list_imagefolders(self, list_special=True):
+    def list_imagefolders(self, list_special=True,
+            horizontal_condition=None, vertical_condition=None):
         '''
         Returns a list of the images containing folders (subfolders).
         
         list_special        Sets wheter to list also image folders with suffixes
+        horizontal_condition    A callable, that when supplied with horizontal (in steps)
+                                    returns either true (includes) or false (excludes).
+        vertical_condition  
         '''
+        def check_conditions(vertical, horizontal):
+            if callable(horizontal_condition):
+                if not horizontal_condition(horizontal):
+                    return False
+            if callable(vertical_condition):
+                if not vertical_condition(vertical):
+                    return False
+            return True
+
         image_folders = []
         special_image_folders = []
 
         for key in self.stacks.keys():
             try:
                 horizontal, vertical = ast.literal_eval(key)
+                if check_conditions(vertical, horizontal) == False:
+                    continue
+
             except (SyntaxError, ValueError):
-                special_image_folders.append('pos'+key)   
+                # This is now a special folder, ie. with a suffix or something else
+                # Try to get the angle anyhow
+                splitted = key.replace('(', ')').split(')')
+                if len(splitted) == 3:
+                    try:
+                        horizontal, vertical = splitted[1].replace(' ', '').split(',')
+                        horizontal = int(horizontal)
+                        vertical = int(vertical)
+                        
+                        if check_conditions(vertical, horizontal) == False:
+                            continue
+                    except:
+                        pass
+
+                special_image_folders.append('pos'+key)
                 continue
 
             image_folders.append('pos'+key)
 
-        #image_folders = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder)) if os.path.isdir(os.path.join(self.data_path, self.folder, fn))]
-        
         return sorted(image_folders) + sorted(special_image_folders)
 
+    def get_horizontal_vertical(self, image_folder, degrees=True):
+        '''
+        Tries to return the horizontal and vertical for an image folder.
+
+        image_folder
+        degrees             If true, return in degrees
+        '''
+        # Trusting that ( and ) only reserved for the angle
+        splitted = key.replace('(', ')').split(')')
+        if len(splitted) == 3:
+            horizontal, vertical = splitted[1].replace(' ', '').split(',')
+            horizontal = int(horizontal)
+            vertical = int(vertical)
+        
+        if degrees:
+            return step2degree(horizontal), step2degree(vertical)
+        else:
+            return horizontal, vertical
+                
     def get_specimen_directory(self):
         return os.path.join(self.data_path, self.folder)
 
     
-    def list_images(self, image_folder):
+    def list_images(self, image_folder, absolute_path=False):
         '''
         List all image filenames in an image folder
         
         FIXME: Alphabetical order not right because no zero padding
+        
+        image_folder        Name of the image folder
+        absolute_path       If true, return filenames with absolute path instead of relative
 
         '''
-        return sorted([fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')])
+        fns = sorted([fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')])
     
+        if absolute_path:
+            fns = [os.path.join(self.data_path, self.folder, image_folder, fn) for fn in fns]
+
+        return fns
+
     def getFolderName(self):
-        '''
-        Return the name of the data (droso) folder, such as DrosoM42
-        '''
+
         return self.folder
    
     def get_specimen_name(self):
+        '''
+        Return the name of the data (droso) folder, such as DrosoM42
+        '''              
         return self.folder
     
     @staticmethod
@@ -327,6 +537,66 @@ class MAnalyser(VectorGettable):
         
         return reversed(parameters)
 
+    def get_imaging_parameters(self, image_folder):
+
+        pass
+
+
+    def get_specimen_age(self):
+        '''
+        Returns age of the specimen, or None if unkown.
+
+        If many age entries uses the latest for that specimen.
+        '''
+        
+        try:
+            self.descriptions_file
+        except AttributeError:
+            self.descriptions_file = self._load_descriptions_file()
+        
+        for line in self.descriptions_file[::-1]:
+            if line.startswith('age '):
+                return line.lstrip('age ')
+
+        return None
+
+    def get_specimen_sex(self):
+        '''
+        Returns sex of the specimen, or None if unkown.
+
+        If many sex entries uses the latest for that specimen.
+        '''
+        
+        try:
+            self.descriptions_file
+        except AttributeError:
+            self.descriptions_file = self._load_descriptions_file()
+        
+        for line in self.descriptions_file[::-1]:
+            if line.startswith('sex '):
+                return line.lstrip('sex ').strip(' ').strip('\n')
+
+        return None
+
+
+    def get_snap_fn(self, i_snap=0, absolute_path=True):
+        '''
+        Returns the first snap image filename taken (or i_snap'th if specified).
+
+        Many time I took a snap image of the fly at (0,0) horizontal/vertical, so this
+        can be used as the "face photo" of the fly. 
+        '''
+
+        snapdir = os.path.join(self.data_path, self.folder, 'snaps')
+        fns = [fn for fn in os.listdir(snapdir) if fn.endswith('.tiff')]
+        fns.sort()
+
+        if absolute_path:
+            fns = [os.path.join(snapdir, fn) for fn in fns]
+
+        return fns[i_snap]
+
+
 
     def loadROIs(self):
         '''
@@ -452,7 +722,7 @@ class MAnalyser(VectorGettable):
             try:
                 roi = self.ROIs[eye][image_folder[3:]]
                 rois.append(roi)
-            except KeyError:
+            except:
                 continue
         return rois
 
@@ -497,11 +767,14 @@ class MAnalyser(VectorGettable):
 
 
     def measure_both_eyes(self, **kwargs):
+        '''
+        Wrapper to self.measure_movement() for both left and right eyes.
+        '''
         for eye in ['left', 'right']:
-            self.analyseMovement(eye, **kwargs)
+            self.measure_movement(eye, **kwargs)
 
 
-    def analyseMovement(self, eye, only_folders=None):
+    def measure_movement(self, eye, only_folders=None):
         '''
         Performs cross-correlation analysis for the selected pseudopupils (ROIs, regions of interest)
         using Movemeter package.
@@ -620,11 +893,15 @@ class MAnalyser(VectorGettable):
         #    plt.plot(data['x'])
         #    plt.plot(data['y'])
         #    plt.show()
-
-
-    def measure_movement(self, *args, **kwargs):
-        return self.analyseMovement(*args, **kwargs)
-
+    
+    def get_image_interval(image_folder=None):
+        '''
+        Returns the time interval between sequetive frames, in seconds.
+        
+        FIXME Not implemented
+        '''
+        #FIXME Not implemented
+        return 0.010 # 10 ms -> 100 fps
 
     def timePlot(self):
         '''
@@ -673,13 +950,16 @@ class MAnalyser(VectorGettable):
         plt.show()
 
 
-    def getTimeOrdered(self):
+    def get_time_ordered(self):
         '''
-        Returns a list of all taken images and ROIs, ordered in time from the first to the last.
+        Get images, ROIs and angles, ordered in recording time for movie making.
+        
+        Returns 3 lists: image_fns, ROIs, angles
+                image_fns
         '''
         self.loadROIs()
 
-        times_and_images = []
+        times_and_data = []
         seen_angles = []
 
         for eye in self.movements:
@@ -687,23 +967,30 @@ class MAnalyser(VectorGettable):
                 
                 if not angle in seen_angles: 
                     time = self.movements[eye][angle][0]['time']
+                    
                     fn = self.stacks[angle][0]
-                    #ROI = self.ROIs[eye][angle]
                     ROI = self.getMovingROIs(eye, angle)
-                    times_and_images.append([time, fn, ROI])
-         
+                    deg_angle = [list(ast.literal_eval(angle.split(')')[0]+')' ))]
+                    toDegrees(deg_angle)
+                    
+                    deg_angle = [deg_angle[0] for i in range(len(fn))]
+
+                    times_and_data.append([time, fn, ROI, deg_angle])
                     seen_angles.append(angle)
-
-        times_and_images.sort(key=lambda x: x[0])
         
-        images = []
+        # Everything gets sorted according to the time
+        times_and_data.sort(key=lambda x: x[0])
+        
+        image_fns = []
         ROIs = []
+        angles = []
 
-        for time, fns, ROI in times_and_images:
-            images.extend(fns)
-            #ROIs.extend([ROI]*len(fns))
+        for time, fns, ROI, angle in times_and_data:
+            image_fns.extend(fns)
             ROIs.extend(ROI)
-        return images, ROIs
+            angles.extend(angle)
+        
+        return image_fns, ROIs, angles
 
 
     def get_movements_from_folder(self, image_folder):
@@ -719,6 +1006,26 @@ class MAnalyser(VectorGettable):
         
         return data
 
+    def get_displacements_from_folder(self, image_folder):
+        '''
+        Returns a list of 1D numpy arrays, which give displacement
+        over time for each repeat.
+
+        If no displacement data, returns an empty list
+
+        Calculated from separete (x,y) data
+        '''
+        displacements = []
+        
+        for eye, data in self.get_movements_from_folder(image_folder).items():
+            for repetition_data in data:
+                x = repetition_data['x']
+                y = repetition_data['y']
+                mag = np.sqrt(np.asarray(x)**2 + np.asarray(y)**2)
+                displacements.append(mag)
+
+        return displacements
+
 
     def get_raw_xy_traces(self, eye):
         '''
@@ -730,7 +1037,7 @@ class MAnalyser(VectorGettable):
         movement_dict = [self.movements[eye][str(angle)] for angle in angles]
         
         return angles, movement_dict
-
+    
 
     def get2DVectors(self, eye, mirror_horizontal=True, mirror_pitch=True, correct_level=True):
         '''
@@ -746,7 +1053,11 @@ class MAnalyser(VectorGettable):
         sorted_angle_keys = sorted(self.movements[eye])
 
         angles = [list(ast.literal_eval(angle.split(')')[0]+')' )) for angle in sorted_angle_keys]
+        
+           
         values = [self.movements[eye][angle] for angle in sorted_angle_keys]
+        #suffix = sorted_angle_keys[0].split(')')[1]
+        #values = [self.movements[eye][angle] for angle in [str(tuple(a))+suffix for a in angles]]
 
      
         toDegrees(angles)
@@ -754,11 +1065,14 @@ class MAnalyser(VectorGettable):
         if correct_level:
             angles = self._correctAntennaLevel(angles)
 
-
+        
         if mirror_horizontal:
             for i in range(len(angles)):
                 angles[i][0] *= -1
-
+            xdirchange = -1
+        else:
+            xdirchange = 1
+        
         if mirror_pitch:
             for i in range(len(angles)):
                 angles[i][1] *= -1
@@ -768,12 +1082,27 @@ class MAnalyser(VectorGettable):
         # Vector X and Y components
         # Fix here if repetitions are needed to be averaged
         # (don't take only x[0] but average)
-        X = [x[0]['x'][-1]-x[0]['x'][0] for x in values]
+        X = [xdirchange*(x[0]['x'][-1]-x[0]['x'][0]) for x in values]
         Y = [x[0]['y'][-1]-x[0]['y'][0] for x in values]
+        
+        #i_frame = int(len(values[0][0]['x'])/3)
+        #X = [xdirchange*(x[0]['x'][i_frame]-x[0]['x'][0]) for x in values]
+        #Y = [x[0]['y'][i_frame]-x[0]['y'][0] for x in values]
+        
+        if self.receptive_fields:
+            X = [-x for x in X]
+            Y = [-y for y in Y]
+
+        #X = [0.1 for x in values]
+        #Y = [0. for x in values]
 
         return angles, X, Y
 
 
+    def get_2d_vectors(self, *args, **kwargs):
+        return self.get2DVectors(self, *args, **kwargs)
+    
+            
     def getMagnitudeTraces(self, eye):
         '''
         Return a dictionary of movement magnitudes over time.
@@ -799,8 +1128,9 @@ class MAnalyser(VectorGettable):
         '''
 
         moving_ROI = []
-
-        self.loadROIs()
+        
+        if not self.ROIs:
+            self.loadROIs()
 
         movements = self.movements[eye][angle][0]
         rx,ry,rw,rh = self.ROIs[eye][angle]
@@ -813,11 +1143,13 @@ class MAnalyser(VectorGettable):
         return moving_ROI
         
     
-    def _get_3d_vectors(self, eye, angle_tagged=False, correct_level=True, normalize_length=0.1):
+    def _get_3d_vectors(self, eye, return_angles=False, correct_level=True, normalize_length=0.1):
         '''
         Returns 3D vectors and their starting points.
     
         correct_level           Use estimated antenna levels
+
+        va_limits       Vertical angle limits in degrees, (None, None) for no limits
         '''
         angles, X, Y = self.get2DVectors(eye, mirror_pitch=False, mirror_horizontal=True,
                 correct_level=False)
@@ -846,30 +1178,46 @@ class MAnalyser(VectorGettable):
             #vectors.append( (tuple(angle), (x0,x1), (y0,y1), (z0, z1)) )
             points[i] = np.array(point0)            
             vectors[i] = np.array(point1) - points[i] 
+            print(vectors[i])
 
-        if angle_tagged:
+        # Vertical/horizontal angle limiting
+        booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],
+                vertical_upper=self.va_limits[1], reverse=self.alimits_reverse)
+        points = points[booleans]
+        vectors = vectors[booleans]
+
+        if return_angles:
             return points, vectors, angles
         else:
             return points, vectors
 
 
-    def get_recording_time(self, recording_name, i_rep=0):
+    def get_recording_time(self, image_folder, i_rep=0):
         '''
-        Returns the timestamp of a recording.
+        Returns the timestamp of a recording, if measure_movement() method has been
+        run for the recording.
 
-        angle       Recording name, such as
+        If no time is found,
+            returns None
+
+        recording_Name      Recording name
+        i_rep               Return the time for recording repeat i_rep
+                                By default, i_rep=0
         '''
 
-        angle = recording_name.lstrip('pos')
+        angle = image_folder.lstrip('pos')
 
         for eye in ['left', 'right']:
             try:
                 return self.movements[eye][angle][i_rep]['time']
             except KeyError:
                 pass
+            except AttributeError:
+                print('No time for {} because movements not analysed'.format(image_folder))
+                return None
+        
+        return None
 
-        raise ValueError(('self.movements[left/right] has no (angle) key {}'
-                'List of available angles: {}').format(angle, list(self.movements['left'].keys())+list(self.movements['right'].keys())))
 
     def stop(self):
         '''
@@ -877,38 +1225,49 @@ class MAnalyser(VectorGettable):
         '''
         self.stop_now = True
 
+    # ------------
+    # LINKED DATA
+    # linking external data such as ERGs to the DPP data (MAnalyser)
+    # ------------
 
-class ShortNameable:
-    '''
-    Inheriting this class adds getting and setting
-    short_name attribute, and style for matplotlib text.
-    '''
-
-    def get_short_name(self):
+    def link_data(self, key, data):
         '''
-        Returns the short_name of object or an emptry string if the short_name
-        has not been set.
+        Data linked to the MAnalyser
         '''
-        try:
-            return self.short_name
-        except AttributeError:
-            return ''
+        self.linked_data[key] = data
 
-    def set_short_name(self, short_name):
-        self.short_name = short_name
+
+    def save_linked_data(self):
+        '''
+        Attempt saving the linked data on disk in JSON format.
+        '''
+        os.makedirs(self.LINK_SAVEDIR, exist_ok=True)
+        
+        for key, data in self.linked_data.items():
+            with open(os.path.join(self.LINK_SAVEDIR, "{}.json".format(key)), 'w') as fp:
+                json.dump(data, fp)
 
     
-    #def get_short_name_style(self):
-    #    try:
-    #        return self.short_name_style
-    #    except AttributeError:
-    #        return 'normal'
+    def load_linked_data(self):
+        '''
+        Load linked data from specimen datadir.
+        '''
+        # Initialize linked data to an empty dict
+        self.linked_data = {}
 
-    #def set_short_name_style(self, style):
-    #    self.short_name_style = syle
+        # Check if linked data directory exsists, if not, the no linked data for this specimen
+        if os.path.exists(self.LINK_SAVEDIR):
+
+            dfiles = [fn for fn in os.listdir(self.LINK_SAVEDIR) if fn.endswith('.json')]
+            
+            for dfile in dfiles:
+                with open(os.path.join(self.LINK_SAVEDIR, dfile), 'r') as fp:
+                    data = json.load(fp)
+                    self.linked_data[dfile.replace('.json', '')] = data
+        
 
 
-class MAverager(VectorGettable, ShortNameable):
+class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
     '''
     Combining and averaging results from many MAnalyser objects.
     
@@ -918,6 +1277,12 @@ class MAverager(VectorGettable, ShortNameable):
     def __init__(self, manalysers, short_name=''):
         
         self.manalysers = manalysers
+
+        self.interpolation = {'left': None, 'right': None}
+        self.va_limits = [None, None]
+        self.ha_limits = [None, None]
+        self.alimits_reverse = False
+
 
     def get_N_specimens(self):
         return len(self.manalysers)
@@ -1133,41 +1498,86 @@ class MAverager(VectorGettable, ShortNameable):
 #        return av
 #        
 #
-    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.15):
+    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=False):
         '''
         Equivalent to MAnalysers get_3d_vectors but interpolates with N-nearest
         neughbours.
         '''
-        interpolated = [[],[]]
-        
-        R = 1
-        intp_dist = (2 * R * np.sin(math.radians(self.intp_step[0])))
-        
-        vectors_3d = []
 
-        for analyser in self.manalysers:
-            vec = analyser.get_3d_vectors(eye, correct_level=True,
-                    normalize_length=normalize_length)
+        if self.interpolation[eye] is None or recalculate:
+
+            interpolated = [[],[]]
+            
+            R = 1
+            intp_dist = (2 * R * np.sin(math.radians(self.intp_step[0])))
+            
+            vectors_3d = []
+
+            for analyser in self.manalysers:
+                vec = analyser.get_3d_vectors(eye, correct_level=True,
+                        normalize_length=normalize_length)
+                
+
+                vectors_3d.append(vec)
+            
+            intp_points = optimal(np.arange(-90, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
             
 
-            vectors_3d.append(vec)
-        
-        intp_points = optimal(np.arange(-90, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
-        
+            for intp_point in intp_points:
+                
+                nearest_vectors = []
+                for vectors in vectors_3d:
+                    i_nearest = nearest_neighbour(intp_point, vectors[0], max_distance=intp_dist)
+                    if not i_nearest is False:
+                        nearest_vectors.append(vectors[1][i_nearest])
 
-        for intp_point in intp_points:
+                if len(nearest_vectors) > len(vectors_3d)/2:
+                    avec = mean_vector(intp_point, nearest_vectors)
+                    interpolated[0].append(np.array(intp_point))
+                    interpolated[1].append(avec)
             
-            nearest_vectors = []
-            for vectors in vectors_3d:
-                i_nearest = nearest_neighbour(intp_point, vectors[0], max_distance=intp_dist)
-                if not i_nearest is False:
-                    nearest_vectors.append(vectors[1][i_nearest])
 
-            if len(nearest_vectors) > len(vectors_3d)/2:
-                avec = mean_vector(intp_point, nearest_vectors)
-                interpolated[0].append(np.array(intp_point))
-                interpolated[1].append(avec)
+            self.interpolation[eye] = np.array(interpolated[0]), np.array(interpolated[1])
+            
+        else:
+            pass
         
-        return np.array(interpolated[0]), np.array(interpolated[1])
         
+        points, vectors = self.interpolation[eye]
 
+        # Vertical/horizontal angle limiting
+        booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],
+                vertical_upper=self.va_limits[1], reverse=self.alimits_reverse)
+        points = points[booleans]
+        vectors = vectors[booleans]
+
+
+        return points, vectors
+
+
+    def export_3d_vectors(self, *args, optic_flow=False, **kwargs):
+        '''
+        Exports the 3D vectors in json format.
+
+        optic_flow          If true, export optic flow instead of the fly vectors
+        '''
+        
+        folder = os.path.join(ANALYSES_SAVEDIR, 'exported_3d_vectors')
+        os.makedirs(folder, exist_ok=True)
+        
+        if optic_flow:
+            fn = '3d_optic_flow_vectors_{}_{}.json'.format(self.get_specimen_name(), datetime.datetime.now())
+        else:
+            fn = '3d_vectors_{}_{}.json'.format(self.get_specimen_name(), datetime.datetime.now())
+        
+        data = {}
+        for eye in ['left', 'right']:
+            points, vectors = self.get_3d_vectors(eye, *args, *kwargs)
+            
+            if optic_flow:
+                vectors = flow_vectors(points, xrot=0)
+
+            data[eye] = {'points': points.tolist(), 'vectors': vectors.tolist()}
+        
+        with open(os.path.join(folder, fn), 'w') as fp:
+            json.dump(data, fp)

@@ -9,9 +9,9 @@ install_requires = [
         'scipy',
         'tifffile',
         'matplotlib',
-        'tk_steroids @ https://github.com/jkemppainen/tk_steroids/archive/master.zip',
-        'roimarker @ https://github.com/jkemppainen/roimarker/archive/master.zip',
-        'movemeter @ https://github.com/jkemppainen/movemeter/archive/master.zip,'
+        'tk_steroids-jkemppainen @ https://github.com/jkemppainen/tk_steroids/archive/master.zip',
+        'roimarker-jkemppainen @ https://github.com/jkemppainen/roimarker/archive/master.zip',
+        'movemeter-jkemppainen @ https://github.com/jkemppainen/movemeter/archive/master.zip,'
         ]
 
 

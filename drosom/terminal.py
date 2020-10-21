@@ -125,8 +125,7 @@ class TerminalDrosoM:
 
         # Analyse movements if not analysed, othewise load these
         for analyser in analysers:
-
-            if not analyser.is_measured or 'recalculate' in self.argv:
+            if analyser.is_measured() == False or 'recalculate' in self.argv:
                 analyser.measure_movement(eye='left')
                 analyser.measure_movement(eye='right')
             analyser.load_analysed_movements()
@@ -212,6 +211,7 @@ class TerminalDrosoM:
 
             if 'pdf_summary' in self.argv:
                 reports.pdf_summary(analysers)
+
 
         if 'averaged' in self.argv:
             avg_analyser = MAverager(analysers)

@@ -271,10 +271,10 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             
             # Load movements and ROIs if they exists
             if self.are_rois_selected():
-                self.loadROIs()
+                self.load_ROIs()
             
             if self.is_measured():
-                self.loadAnalysedMovements()
+                self.load_analysed_movements()
 
             self.antenna_level_correction = self._getAntennaLevelCorrection(folder)
             if self.antenna_level_correction == False:
@@ -633,7 +633,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     good_rois.append(ROIs[i_roi])
             ROIs = good_rois
 
-            pos = self.getPosFolder(image_fn)
+            pos = self.get_imagefolder(image_fn)
             horizontal, pitch = angles_from_fn(pos)
             pos = pos[3:]
 
@@ -729,7 +729,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         Returns (True, True) if analyseMovement results can be found for the fly and bot eyes.
         '''
         print(self.MOVEMENTS_SAVEFN)
-        return all(os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right')))
+        return all((os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right'))))
 
 
 
@@ -783,7 +783,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         
         if not os.path.exists(self.CROPS_SAVEFN):
             self.selectROIs() 
-        self.loadROIs()
+        self.load_ROIs()
         
 
         angles = []
@@ -949,7 +949,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         Returns 3 lists: image_fns, ROIs, angles
                 image_fns
         '''
-        self.loadROIs()
+        self.load_ROIs()
 
         times_and_data = []
         seen_angles = []
@@ -1120,7 +1120,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         moving_ROI = []
         
         if not self.ROIs:
-            self.loadROIs()
+            self.load_ROIs()
 
         movements = self.movements[eye][angle][0]
         rx,ry,rw,rh = self.ROIs[eye][angle]
@@ -1141,7 +1141,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         va_limits       Vertical angle limits in degrees, (None, None) for no limits
         '''
-        angles, X, Y = self.get2DVectors(eye, mirror_pitch=False, mirror_horizontal=True,
+        angles, X, Y = self.get_2d_vectors(eye, mirror_pitch=False, mirror_horizontal=True,
                 correct_level=False)
         
         
@@ -1262,7 +1262,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
     '''
     Combining and averaging results from many MAnalyser objects.
     
-    MAverager acts like MAnalyser object for getting data (like get2DVectors)
+    MAverager acts like MAnalyser object for getting data (like get_2d_vectors)
     but lacks the movement analysis (cross-correlation) related parts.
     '''
     def __init__(self, manalysers, short_name=''):
@@ -1285,7 +1285,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
 
     def setInterpolationSteps(self, horizontal_step, vertical_step):
         '''
-        Set the resolution of the N-nearest neighbour interpolation in Maverager.get2DVectors.
+        Set the resolution of the N-nearest neighbour interpolation in Maverager.get_2d_vectors.
 
         INPUT ARGUMENTS
         horizontal_step

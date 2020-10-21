@@ -50,7 +50,7 @@ class Core:
         specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
         
         if with_rois is not None:
-            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_rois_selected() == with_rois]
+            specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).are_rois_selected() == with_rois]
         
         if with_movements is not None:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).is_measured() == with_movements]

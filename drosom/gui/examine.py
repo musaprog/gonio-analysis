@@ -253,7 +253,7 @@ class ExamineMenubar(tk.Frame):
         Updates menu entry states (enabled/disabled) based specimen's status (ROIs set, etc)
         '''
         
-        rois = manalyser.is_rois_selected()
+        rois = manalyser.are_rois_selected()
         measurements = manalyser.is_measured()
         
         # Plot menu
@@ -415,7 +415,7 @@ class ExamineView(tk.Frame):
         for specimen in specimens:
             analyser = self.core.get_manalyser(specimen, no_data_load=True)
             color = 'yellow'
-            if analyser.is_rois_selected():
+            if analyser.are_rois_selected():
                 color = 'green'
                 if analyser.is_measured():
                     color = 'white'
@@ -523,12 +523,12 @@ class ExamineView(tk.Frame):
         '''
 
         # Ask confirmation if ROIs already selected
-        if self.analyser.is_rois_selected():
+        if self.analyser.are_rois_selected():
             sure = messagebox.askokcancel('Reselect ROIs', 'Are you sure you want to reselect ROIs?')
             if not sure:
                 return None
 
-        self.analyser.selectROIs(callback_on_exit=self.update_all)
+        self.analyser.select_ROIs(callback_on_exit=self.update_all)
 
 
     def measure_movement(self, current_only=False):
@@ -632,9 +632,7 @@ class ExamineView(tk.Frame):
          
         
         # Logick to set buttons inactive/active and their texts
-        if self.analyser.is_rois_selected():
-            
-
+        if self.analyser.are_rois_selected(): 
   
             self.button_rois.config(text='Reselect ROIs')
             self.button_rois.config(bg=self.default_button_bg)
@@ -671,8 +669,8 @@ class ExamineView(tk.Frame):
 
 
 
-        if self.analyser.is_rois_selected():
-            self.analyser.loadROIs()
+        if self.analyser.are_rois_selected():
+            self.analyser.load_ROIs()
 
         # Loading cached analyses and setting the recordings listbox
 

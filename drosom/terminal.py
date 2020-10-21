@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from pupil.drosom.analysing import MAnalyser, MAverager
+from pupil.drosom.orientation_analysis import OAnalyser
 from pupil.drosom.plotting import MPlotter, complete_flow_analysis, error_at_flight
 import pupil.drosom.plotting as plotting
 from pupil.drosom.optic_flow import flow_direction, flow_vectors, field_error
@@ -111,10 +112,16 @@ class TerminalDrosoM:
             
             if 'antenna_level' in self.argv:
                 AntennaLevelFinder().find_level(directory)
-             
-            
+              
             path, folder_name = os.path.split(directory)
-            analyser = MAnalyser(path, folder_name) 
+            
+            # Use either MAnalyser (default), or OAnalyser for
+            # rhabdomere orientation analysis.
+            if 'orientation_analysis' in self.argv:
+                analyser = OAnalyser(path, folder_name)
+            else:
+                analyser = MAnalyser(path, folder_name)
+
             analysers.append(analyser)
             
 

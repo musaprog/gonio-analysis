@@ -7,11 +7,11 @@ with open("README.md", "r") as fh:
 install_requires = [
         'numpy',
         'scipy',
-        'tkinter',
         'tifffile',
         'matplotlib',
-        'movemeter',
-        'tk_steroids',
+        'tk_steroids @ https://github.com/jkemppainen/tk_steroids/archive/master.zip',
+        'roimarker @ https://github.com/jkemppainen/roimarker/archive/master.zip',
+        'movemeter @ https://github.com/jkemppainen/movemeter/archive/master.zip,'
         ]
 
 
@@ -25,7 +25,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/jkemppainen/pupil-analysis",
     packages=setuptools.find_packages(),
-    install_requires=install_requires 
+    install_requires=install_requires, 
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3) ",

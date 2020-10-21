@@ -124,8 +124,9 @@ class RecordingPlotter:
                 self.colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
                 self.colorbar.set_label('Frame')
             else:
-                self.colorbar.set_clim(0, N-1)
-            
+                #self.colorbar.set_clim(0, N-1)
+                pass
+
         ax.set_xlabel('Displacement in X (pixels)')
         ax.set_ylabel('Displacement in Y (pixels)')
         ax.spines['right'].set_visible(False)
@@ -158,7 +159,13 @@ class RecordingPlotter:
         
         # Draw ROI rectangles
         for old_roi in self.roi_rectangles:
-            old_roi.remove()
+            try:
+                old_roi.remove()
+            except NotImplementedError:
+                # This error occurs when something goes from from here on before
+                # the ax.add_patch(roi) line. We can just ignore this as the
+                # ROI has not been ever added to the ax
+                continue
         self.roi_rectangles = []
         
 
@@ -184,9 +191,13 @@ class RecordingPlotter:
             self.roi_imshow.set_data(clipped)
         except AttributeError:
             self.roi_imshow = self.roi_ax.imshow(clipped, cmap='gray')
-
-        text = '\n'.join(self.analyser.get_imaging_parameters(self.selected_recording))
         
+        imaging_params = self.analyser.get_imaging_parameters(self.selected_recording)
+        if imaging_params:
+            text = '\n'.join
+        else:
+            text = 'Unable to fetch imaging parameters'
+
         try:
             self.roi_text.set_text(text)
         except AttributeError:

@@ -44,7 +44,7 @@ from tk_steroids.matplotlib import CanvasPlotter
 
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupilanalysis.antenna_level import AntennaLevelFinder
-from pupilanalysis.rotation_encoders import to_degrees
+from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
 from pupilanalysis.drosom.analysing import MAnalyser
 from pupilanalysis.drosom.plotting import MPlotter

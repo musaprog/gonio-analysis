@@ -43,7 +43,7 @@ def main():
     args = parser.parse_args()
     
     if args.datadir.lower() == 'ask':
-        datadir = simple_select(DROSO_DATADIRS)
+        datadir = input("Input data directory >> ")
     else:
         datadir = args.datadir
 

@@ -11,12 +11,14 @@ import numpy as np
 import tifffile
 
 from pupilanalysis.antenna_level import AntennaLevelFinder
-from pupilanalysis.directories import DROSO_DATADIR, PROCESSING_TEMPDIR_BIGFILES
+from pupilanalysis.directories import PROCESSING_TEMPDIR_BIGFILES
 
 from imalyser.averaging import Templater
 from imalyser.aligning import Aligner
 from imalyser.common import imwrite
 
+
+DROSO_DATADIR = input('Input data directory >> ')
 
 
 def loadReferenceFly(folder):

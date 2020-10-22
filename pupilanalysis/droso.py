@@ -8,7 +8,7 @@ from os import listdir
 from os.path import isdir, join
 
 
-from pupilanalysis.directories import DROSO_DATADIR, CODE_ROOTDIR
+from pupilanalysis.directories import CODE_ROOTDIR
 from pupilanalysis.cli import simple_select
 
 class SpecimenGroups:
@@ -62,7 +62,7 @@ class DrosoSelect:
         datadir     Where the different droso folder are in
         '''
         if datadir is None:
-            self.path = DROSO_DATADIR
+            self.path = input("Input data directory >> ")
         else:
             self.path = datadir
 

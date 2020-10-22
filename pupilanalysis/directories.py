@@ -1,51 +1,31 @@
 '''
 Central settings for save/load directories.
-Note that not all modules may honour these settings.
 '''
 
 import os
 import platform
 
 CODE_ROOTDIR = os.path.dirname(os.path.realpath(__file__))
+USER_HOMEDIR = os.path.expanduser('~')
 
-if platform.system() == 'Linux':
-    # Where for example
-    home = os.getenv("HOME")
-    ANALYSES_SAVEDIR = home+'/analyses/pupil'
-
-    # Where any temporal stuff as disk cahcing would go
-    PROCESSING_TEMPDIR = home+'/analyses/pupil/tmp'
-
-    # If lots of storage is needed
-    PROCESSING_TEMPDIR_BIGFILES = home+'/pupil/tmp'
-
-    # Where folders DrosoX_i, DrosoM_i are
-    DROSO_DATADIR = home+'/smallbrains-nas1/array1/pseudopupil_joni'
-    
-    DROSO_DATADIRS = [home+'/smallbrains-nas1/array1/pseudopupil_imaging',
-            DROSO_DATADIR]
-
-
-elif platform.system() == 'Windows':
-    root_dir = CODE_ROOTDIR
-    DROSO_DATADIR = os.path.join(root_dir, '../DATA')
-    ANALYSES_SAVEDIR = os.path.join(root_dir, '../RESULTS')
-    PROCESSING_TEMPDIR = os.path.join(ANALYSES_SAVEDIR, 'tmp')
-    PROCESSING_TEMPDIR_BIGFILES = PROCESSING_TEMPDIR
-
+if platform.system() == "Windows":
+    PUPILDIR = os.path.join(USER_HOMEDIR, 'PupilAnalysis')
 else:
-    raise OSError('Unkown platform (not Windows or Linux)')
+    PUPILDIR = os.path.join(USER_HOMEDIR, '.pupilanalysis')
 
-# Just another way to access these directories
+
+ANALYSES_SAVEDIR = os.path.join(PUPILDIR 'final_results')
+PROCESSING_TEMPDIR = os.path.join(PUPILDIR 'intermediate_data')
+PROCESSING_TEMPDIR_BIGFILES = os.path.join(PUPILDIR, 'intermediate_bigfiles')
+
+
+# DIRECTORIES THAT HAVE TO BE CREATED
 ALLDIRS= {'ANALYSES_SAVEDIR': ANALYSES_SAVEDIR,
         'PROCESSING_TEMPDIR': PROCESSING_TEMPDIR,
-        'PROCESSING_TEMPDIR_BIGFILES': PROCESSING_TEMPDIR_BIGFILES,
-        'DROSO_DATADIR': DROSO_DATADIR}
+        'PROCESSING_TEMPDIR_BIGFILES': PROCESSING_TEMPDIR_BIGFILES}
 
 
-
-def printDirectories():
-
+def print_directories():
 
     print('These are the directories')
     
@@ -53,22 +33,65 @@ def printDirectories():
         print('{} {}'.format(key, item))
 
 
-def directoriesExist():
+
+def cli_ask_creation(needed_directories):
     '''
-    Check if directories exist, if not, create them.
+    Short command line yes/no.
+    '''
+    print("The following directories have to be created")
+
+    for directory in needed_directories:
+        print("  {}".format(directory))
+
+    print("\nIs this okay? (yes/no)")
+
+    while True:
+        selection = input(">> ").lower()
+
+        if selection == "yes":
+            return True
+        elif selection == "no":
+            return False
+        else:
+            print("Choice not understood, please type yes or no")
+
+
+
+def directories_check(ui=cli_ask_creation):
+    '''
+    Perform a check that the saving directories exist.
     
-    Currently when this module gets imported, this function runs.
+    ui      Callable that returns True if user wants to create
+                the directories or False if not.
+                As the first argument it gets the list of to be created directories
+
+                If ui is not callable, raise an error.
     '''
+    non_existant = []
     
     for key, item in ALLDIRS.items():
 
         if not os.path.exists(item):
-            print('Folder {} for {} did not exist. Attempting to create it.'.format(item, key))
-            os.makedirs(item)
+            non_existant.append(item)
+
+    # If some directories are not created, launch an input requiring
+    # user interaction.
+    if non_existant:
+        if callable(ui):
+            if ui(non_existant) == True:
+                for directory in non_existant:
+                    os.makedirs(directory, exist_ok=True)
+            else:
+                raise NotImplementedError("Reselecting directories in UI not yet implemented")
+        else:
+            raise OSError("All directories not created and ui is not callable")
+
+
 
 if __name__ == "__main__":
-    printDirectories()
+    print_directories()
+else:
+    directories_check()
 
-directoriesExist()
 
 

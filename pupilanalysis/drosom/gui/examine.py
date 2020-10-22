@@ -44,6 +44,7 @@ from tk_steroids.matplotlib import CanvasPlotter
 
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupilanalysis.antenna_level import AntennaLevelFinder
+from pupilanalysis.rotation_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
 from pupilanalysis.drosom.analysing import MAnalyser
 from pupilanalysis.drosom.plotting import MPlotter
@@ -51,7 +52,6 @@ from pupilanalysis.drosom.gui.run_measurement import MeasurementWindow
 from pupilanalysis.drosom.gui.core import Core
 from pupilanalysis.drosom.gui.plotting import RecordingPlotter
 from pupilanalysis.drosom.gui.zero_correct import ZeroCorrect
-from pupilanalysis_imsoft.anglepairs import toDegrees
 from pupilanalysis.drosom.gui.repetition_selection import RepetitionSelector
 from pupilanalysis.drosom.kinematics import mean_max_response
 from pupilanalysis.drosom import linked_data
@@ -714,7 +714,7 @@ class ExamineView(tk.Frame):
         print(self.analyser.get_recording_time(selected_recording))
         
         angles = [list(angles_from_fn(selected_recording))]
-        toDegrees(angles)
+        to_degrees(angles)
         horizontal, vertical = angles[0]
         self.status_horizontal.config(text='Horizontal angle {:.2f} degrees'.format(horizontal))
         self.status_vertical.config(text='Vertical angle {:.2f} degrees'.format(vertical))

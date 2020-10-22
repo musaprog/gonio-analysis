@@ -14,8 +14,8 @@ else:
     PUPILDIR = os.path.join(USER_HOMEDIR, '.pupilanalysis')
 
 
-ANALYSES_SAVEDIR = os.path.join(PUPILDIR 'final_results')
-PROCESSING_TEMPDIR = os.path.join(PUPILDIR 'intermediate_data')
+ANALYSES_SAVEDIR = os.path.join(PUPILDIR, 'final_results')
+PROCESSING_TEMPDIR = os.path.join(PUPILDIR, 'intermediate_data')
 PROCESSING_TEMPDIR_BIGFILES = os.path.join(PUPILDIR, 'intermediate_bigfiles')
 
 

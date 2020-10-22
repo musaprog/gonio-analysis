@@ -6,8 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-from pupil.image_tools import open_adjusted
-from pupil.directories import ANALYSES_SAVEDIR
+from pupilanalysis.image_tools import open_adjusted
+from pupilanalysis.directories import ANALYSES_SAVEDIR
 
 
 def _make_figure(manalyser, n_rows, i_pg):

@@ -8,7 +8,7 @@ import glob
 
 import numpy as np
 
-from pupil.directories import ANALYSES_SAVEDIR
+from pupilanalysis.directories import ANALYSES_SAVEDIR
 
 from biosystfiles import extract as bsextract
 

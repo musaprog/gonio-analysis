@@ -10,15 +10,18 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mati
 import matplotlib.patches as patches
 import matplotlib.colors as mplcolors
+from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
-import pandas as pd
-import seaborn as sns
-from statannot import add_stat_annotation
+#import pandas as pd
+#import seaborn as sns
+#from statannot import add_stat_annotation
 
-from pupil.directories import ANALYSES_SAVEDIR
+from pupilanalysis.directories import ANALYSES_SAVEDIR
+from pupilanalysis.image_tools import open_adjusted
 
-from xray_erg.plotting import Animator
-from xray_erg.interpolating import interpolate
+
+#from xray_erg.plotting import Animator
+#from xray_erg.interpolating import interpolate
 from biosystfiles import extract as bsextract
 from mpl_steroids.scalebar import add_scalebar
 
@@ -701,9 +704,6 @@ def _load_led_spectrums(spectrometer_csv_files):
     return wavelengths, [spectrum/cmax for spectrum in spectrums]
 
 
-
-from matplotlib.backends.backend_pdf import PdfPages
-from pupil.image_tools import open_adjusted
 
 
 def _get_results_keys(results, specimen_name):

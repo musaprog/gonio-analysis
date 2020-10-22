@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pupil.cli import simple_select
+from pupilanalysis.cli import simple_select
 
 
 def cli_group_and_compare(manalysers):

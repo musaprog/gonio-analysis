@@ -4,7 +4,7 @@ Create a summary of the files
 import csv
 import numpy as np
 
-from ..kinematics import mean_max_response
+from pupilanalysis.drosom.kinematics import mean_max_response
 
 def left_right_summary(manalysers):
     

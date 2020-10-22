@@ -12,6 +12,7 @@ install_requires = [
         'tk_steroids-jkemppainen @ https://github.com/jkemppainen/tk_steroids/archive/master.zip',
         'roimarker-jkemppainen @ https://github.com/jkemppainen/roimarker/archive/master.zip',
         'movemeter-jkemppainen @ https://github.com/jkemppainen/movemeter/archive/master.zip',
+        'biosystfiles-jkemppainen @ https://github.com/jkemppainen/python-biosystfiles/archive/master.zip',
         ]
 
 

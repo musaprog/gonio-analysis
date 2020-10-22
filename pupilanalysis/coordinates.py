@@ -5,9 +5,6 @@ import math
 from math import sin, cos, tan, radians, pi, acos, atan, sqrt, degrees, atan2
 
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
 
 def to_spherical(x,y,z, return_degrees=False):
     '''
@@ -560,6 +557,11 @@ def test2_camera_rotation():
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+
+
+    
     #test_camvec2Fly()
     #test_force_to_plane()
     #test1_camera_rotation()

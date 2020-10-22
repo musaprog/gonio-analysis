@@ -3,10 +3,10 @@ import argparse
 
 import matplotlib.pyplot as plt
 
-from pupil.directories import DROSO_DATADIRS
-from pupil.droso import DrosoSelect, simple_select
-from pupil.drosox.analysing import XAnalyser
-from pupil.drosox.plotting import (
+from pupilanalysis.directories import DROSO_DATADIRS
+from pupilanalysis.droso import DrosoSelect, simple_select
+from pupilanalysis.drosox.analysing import XAnalyser
+from pupilanalysis.drosox.plotting import (
         plot_1d_overlap,
         plot_matrix_overlap,
         plot_experiment_illustration

@@ -13,15 +13,14 @@ import ast
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pupil.directories import ANALYSES_SAVEDIR
-from pupil.droso import DrosoSelect
-#from pupil.drosox import XLoader
-from pupil.drosom.loading import load_data
-from pupil.imageshower import ImageShower
-from pupil.binary_search import binary_search_middle
-from pupil_imsoft.anglepairs import toDegrees
-from pupil.drosoalr import loadReferenceFly
+from pupilanalysis.directories import ANALYSES_SAVEDIR
+from pupilanalysis.droso import DrosoSelect
+from pupilanalysis.drosom.loading import load_data
+from pupilanalysis.imageshower import ImageShower
+from pupilanalysis.binary_search import binary_search_middle
+from pupilanalysis.drosoalr import loadReferenceFly
 
+from pupil_imsoft.anglepairs import toDegrees
 from imalyser.matching import MatchFinder
 
 #OLD def _drosom_load(self, folder):

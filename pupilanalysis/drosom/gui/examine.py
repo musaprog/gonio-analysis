@@ -42,19 +42,19 @@ import tifffile
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect, ColorExplanation
 from tk_steroids.matplotlib import CanvasPlotter
 
-from pupil.directories import PROCESSING_TEMPDIR, PROCESSING_TEMPDIR_BIGFILES
-from pupil.antenna_level import AntennaLevelFinder
-from pupil.drosom.loading import angles_from_fn
-from pupil.drosom.analysing import MAnalyser
-from pupil.drosom.plotting import MPlotter
-from pupil.drosom.gui.run_measurement import MeasurementWindow
-from pupil.drosom.gui.core import Core
-from pupil.drosom.gui.plotting import RecordingPlotter
-from pupil.drosom.gui.zero_correct import ZeroCorrect
-from pupil_imsoft.anglepairs import toDegrees
-from pupil.drosom.gui.repetition_selection import RepetitionSelector
-from pupil.drosom.kinematics import mean_max_response
-from pupil.drosom import linked_data
+from pupilanalysis.directories import PROCESSING_TEMPDIR, PROCESSING_TEMPDIR_BIGFILES
+from pupilanalysis.antenna_level import AntennaLevelFinder
+from pupilanalysis.drosom.loading import angles_from_fn
+from pupilanalysis.drosom.analysing import MAnalyser
+from pupilanalysis.drosom.plotting import MPlotter
+from pupilanalysis.drosom.gui.run_measurement import MeasurementWindow
+from pupilanalysis.drosom.gui.core import Core
+from pupilanalysis.drosom.gui.plotting import RecordingPlotter
+from pupilanalysis.drosom.gui.zero_correct import ZeroCorrect
+from pupilanalysis_imsoft.anglepairs import toDegrees
+from pupilanalysis.drosom.gui.repetition_selection import RepetitionSelector
+from pupilanalysis.drosom.kinematics import mean_max_response
+from pupilanalysis.drosom import linked_data
 
 class ExamineMenubar(tk.Frame):
     '''

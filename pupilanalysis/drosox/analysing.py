@@ -3,9 +3,9 @@ import json
 
 import matplotlib.pyplot as plt
 
-from pupil.directories import ANALYSES_SAVEDIR
-from pupil.drosox.loading import load_data
-from pupil.binary_search import (
+from pupilanalysis.directories import ANALYSES_SAVEDIR
+from pupilanalysis.drosox.loading import load_data
+from pupilanalysis.binary_search import (
         binary_search_middle,
         binary_search_left,
         binary_search_right

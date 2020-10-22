@@ -5,7 +5,8 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pupil.directories import PROCESSING_TEMPDIR, ANALYSES_SAVEDIR
+from pupilanalysis.directories import PROCESSING_TEMPDIR, ANALYSES_SAVEDIR
+
 from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
 
 

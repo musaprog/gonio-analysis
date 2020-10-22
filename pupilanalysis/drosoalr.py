@@ -3,7 +3,9 @@ For antenna level search of DrosoM
 '''
 
 import os
-from pupil.directories import CODE_ROOTDIR
+
+from pupilanalysis.directories import CODE_ROOTDIR
+
 
 def loadReferenceFly(folder):
     '''

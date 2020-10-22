@@ -8,25 +8,20 @@ from math import radians
 
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
+from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches
 import matplotlib.animation
 from matplotlib.transforms import Bbox
-#from mayavi import mlab
-from PIL import Image
-
-# Plotting 3D in matplotlib
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 import mpl_toolkits.axes_grid1
 
-#from pupil.coordinates import findClosest
-from pupil.directories import ANALYSES_SAVEDIR, CODE_ROOTDIR
-from .optic_flow import flow_direction
-
-from pupil.coordinates import force_to_tplane
-import pupil.coordinates as coordinates
+from pupilanalysis.directories import ANALYSES_SAVEDIR, CODE_ROOTDIR
+from pupilanalysis.drosom.optic_flow import flow_direction
+from pupilanalysis.coordinates import force_to_tplane
+import pupilanalysis.coordinates as coordinates
 
 CURRENT_ARROW_LENGTH = 1
 

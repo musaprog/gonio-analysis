@@ -4,8 +4,8 @@ import tkinter as tk
 import tifffile
 
 
-from pupil.antenna_level import load_drosom, save_antenna_level_correction
-from pupil.drosoalr import loadReferenceFly
+from pupilanalysis.antenna_level import load_drosom, save_antenna_level_correction
+from pupilanalysis.drosoalr import loadReferenceFly
 from tk_steroids.matplotlib import CanvasPlotter
 
 class ZeroCorrect(tk.Frame):

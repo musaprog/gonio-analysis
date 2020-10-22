@@ -15,7 +15,7 @@ from numpy import sign, mean
 import numpy as np
 import scipy.interpolate
 
-from pupil.directories import PROCESSING_TEMPDIR, ANALYSES_SAVEDIR
+from pupilanalysis.directories import PROCESSING_TEMPDIR, ANALYSES_SAVEDIR
 from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
 
 

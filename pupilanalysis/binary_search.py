@@ -17,15 +17,12 @@ import time
 from math import floor
 
 import matplotlib.pyplot as plt
-import cv2
 
+from pupilanalysis.directories import ANALYSES_SAVEDIR
+from pupilanalysis.droso import DrosoSelect
+from pupilanalysis.imageshower import ImageShower
 
-from pupil.directories import ANALYSES_SAVEDIR
-from pupil.droso import DrosoSelect
-#from pupil.drosox import XLoader
 from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
-from pupil.imageshower import ImageShower
-
 
 
 def inputRead():

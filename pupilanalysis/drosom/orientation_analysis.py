@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 from marker import Marker
 
-from .analysing import MAnalyser
-from ..directories import PROCESSING_TEMPDIR
+from pupilanalysis.drosom.analysing import MAnalyser
+from pupilanalysis.directories import PROCESSING_TEMPDIR
 
 
 class OAnalyser(MAnalyser):

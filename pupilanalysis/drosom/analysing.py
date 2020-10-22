@@ -27,16 +27,15 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .loading import load_data, angles_from_fn
-from pupil.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector
-from pupil.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
-from pupil.optimal_sampling import optimal
-from pupil.drosom.optic_flow import flow_vectors
+from pupilanalysis.drosom.loading import load_data, angles_from_fn
+from pupilanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector
+from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
+from pupilanalysis.optimal_sampling import optimal
+from pupilanalysis.drosom.optic_flow import flow_vectors
 
 from pupil_imsoft.anglepairs import toDegrees, step2degree
-from marker import Marker
-
-from imalyser.movement import Movemeter
+from roimarker import Marker
+from movemeter import Movemeter
 
 
 

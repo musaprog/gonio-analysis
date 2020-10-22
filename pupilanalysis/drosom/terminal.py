@@ -12,26 +12,24 @@ import matplotlib.pyplot as plt
 # Plotting 3D in matplotlib
 from mpl_toolkits.mplot3d import Axes3D
 
-from pupil.drosom.analysing import MAnalyser, MAverager
-from pupil.drosom.orientation_analysis import OAnalyser
-from pupil.drosom.plotting import MPlotter, complete_flow_analysis, error_at_flight
-import pupil.drosom.plotting as plotting
-from pupil.drosom.optic_flow import flow_direction, flow_vectors, field_error
-from pupil.droso import DrosoSelect
-from videowrapper import Encoder
-#from pupil.image_adjusting import ROIAdjuster
-from pupil.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
+from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
+from pupilanalysis.droso import DrosoSelect
+from pupilanalysis.antenna_level import AntennaLevelFinder
+from pupilanalysis.drosom.analysing import MAnalyser, MAverager
+from pupilanalysis.drosom.orientation_analysis import OAnalyser
+from pupilanalysis.drosom.plotting import MPlotter, complete_flow_analysis, error_at_flight
+import pupilanalysis.drosom.plotting as plotting
+from pupilanalysis.drosom.optic_flow import flow_direction, flow_vectors, field_error
+from pupilanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
+from pupilanalysis.drosom.special.paired import cli_group_and_compare
+import pupilanalysis.drosom.reports as reports
 
-from pupil.antenna_level import AntennaLevelFinder
-
-
-from pupil.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
-from pupil.drosom.special.paired import cli_group_and_compare
-from pupil.drosom import reports
+#from videowrapper import Encoder
 
 
 if 'tk_waiting_window' in sys.argv:
-    from pupil.drosom.gui.waiting_window import WaitingWindow
+    from .gui.waiting_window import WaitingWindow
+
 
 def make_animation_angles():
     '''
@@ -239,8 +237,8 @@ class TerminalDrosoM:
                 #avg_analyser.export_3d_vectors(optic_flow=True)
 
                 import json
-                from pupil.optimal_sampling import optimal as optimal_sampling
-                from pupil.drosom.optic_flow import flow_vectors
+                from pupilanalysis.optimal_sampling import optimal as optimal_sampling
+                from pupilanalysis.drosom.optic_flow import flow_vectors
                 points = optimal_sampling(np.arange(-90, 90, 5), np.arange(-180, 180, 5))
                 vectors = flow_vectors(points)
                 

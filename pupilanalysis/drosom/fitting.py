@@ -1,6 +1,6 @@
 import numpy as np
 
-from pupil.coordinates import force_to_tplane, normalize
+from pupilanalysis.coordinates import force_to_tplane, normalize
 
 def get_reference_vector(P0):
     '''

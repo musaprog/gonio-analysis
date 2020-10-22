@@ -8,8 +8,8 @@ from os import listdir
 from os.path import isdir, join
 
 
-from pupil.directories import DROSO_DATADIR, CODE_ROOTDIR
-from pupil.cli import simple_select
+from pupilanalysis.directories import DROSO_DATADIR, CODE_ROOTDIR
+from pupilanalysis.cli import simple_select
 
 class SpecimenGroups:
     '''

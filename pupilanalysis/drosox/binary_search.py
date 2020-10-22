@@ -5,10 +5,10 @@ import time
 import matplotlib.pyplot as plt
 
 
-from pupil.directories import ANALYSES_SAVEDIR
-from pupil.droso import DrosoSelect
-from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
-from pupil.imageshower import ImageShower
+from pupilanalysis.directories import ANALYSES_SAVEDIR
+from pupilanalysis.droso import DrosoSelect
+from pupilanalysis_imsoft.anglepairs import loadAnglePairs, toDegrees
+from pupilanalysis.imageshower import ImageShower
 
 
 

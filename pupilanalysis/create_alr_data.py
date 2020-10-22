@@ -10,8 +10,8 @@ import os
 import numpy as np
 import tifffile
 
-from antenna_level import AntennaLevelFinder
-from directories import DROSO_DATADIR, PROCESSING_TEMPDIR_BIGFILES
+from pupilanalysis.antenna_level import AntennaLevelFinder
+from pupilanalysis.directories import DROSO_DATADIR, PROCESSING_TEMPDIR_BIGFILES
 
 from imalyser.averaging import Templater
 from imalyser.aligning import Aligner

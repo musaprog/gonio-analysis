@@ -4,8 +4,8 @@ import subprocess
 import sys
 import platform
 
-from pupil.drosom.analysing import MAnalyser
-from pupil.directories import ANALYSES_SAVEDIR
+from pupilanalysis.drosom.analysing import MAnalyser
+from pupilanalysis.directories import ANALYSES_SAVEDIR
 
 class Core:
     '''

@@ -1,5 +1,5 @@
 <h1>Pseudopupil analysis suite</h1>
-Specialized spatial motion analysis software for PupilImsoft data.
+Specialized spatial motion analysis software for Pupil Imsoft data.
 
 
 <h2>Installing</h2>
@@ -11,10 +11,10 @@ pip install https://www.github.com/jkemppainen/pseudopupil-analysis/archive/mast
 ```
 
 This should install all the required dependencies, except when on Windows, OpenCV may require
-[Visual C++ Runtime](https://www.microsoft.com/en-us/download/details.aspx?id=48145) to be installed.
+[Visual C++ Runtime 2015](https://www.microsoft.com/download/details.aspx?id=48145) to be installed.
 
 
-<h3>Upgrading<h3>
+<h3>Upgrading</h3>
 
 To upgrade an existing installation to the latest
 
@@ -27,7 +27,9 @@ pip install --force-reinstall https://www.github.com/jkemppainen/pseudopupil-ana
 
 To open the GUI from Python, type the following
 
-```
+```python
 import pupilanalysis.drosom.gui as gui
 gui.run()
 ```
+
+Continues...

@@ -11,7 +11,7 @@ install_requires = [
         'matplotlib',
         'tk_steroids-jkemppainen @ https://github.com/jkemppainen/tk_steroids/archive/master.zip',
         'roimarker-jkemppainen @ https://github.com/jkemppainen/roimarker/archive/master.zip',
-        'movemeter-jkemppainen @ https://github.com/jkemppainen/movemeter/archive/master.zip,'
+        'movemeter-jkemppainen @ https://github.com/jkemppainen/movemeter/archive/master.zip',
         ]
 
 

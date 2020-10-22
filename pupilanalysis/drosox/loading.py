@@ -6,8 +6,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pupilanalysis.directories import PROCESSING_TEMPDIR, ANALYSES_SAVEDIR
+from pupilanalysis import to_degrees
 
-from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
+
+def load_angle_pairs(fn):
+    '''
+    Loading angle pairs from a file.
+    
+    Detached from pupil_imsoft.
+    '''
+    angles = []
+    with open(fn, 'r') as fp:
+        reader = csv.reader(fp)
+        for row in reader:
+            if row:
+                angles.append([int(a) for a in row])
+    return angles
 
 
 def load_data(folder, arl_fly=False):
@@ -28,8 +42,8 @@ def load_data(folder, arl_fly=False):
     fns = [os.path.join(folder,'rot',fn) for fn in os.listdir(os.path.join(folder, 'rot')) if fn.endswith('.tif')]
     fns.sort()
     
-    angles = loadAnglePairs(os.path.join(folder, 'anglepairs.txt'))
-    toDegrees(angles)
+    angles = load_angle_pairs(os.path.join(folder, 'anglepairs.txt'))
+    to_degrees(angles)
     
     print('Angles {} and images {}'.format(len(angles), len(fns)))
     if abs(len(angles) - len(fns)) > 10:

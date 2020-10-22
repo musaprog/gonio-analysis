@@ -22,8 +22,6 @@ from pupilanalysis.directories import ANALYSES_SAVEDIR
 from pupilanalysis.droso import DrosoSelect
 from pupilanalysis.imageshower import ImageShower
 
-from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
-
 
 def inputRead():
     while True:

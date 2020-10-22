@@ -19,9 +19,8 @@ from pupilanalysis.drosom.loading import load_data
 from pupilanalysis.imageshower import ImageShower
 from pupilanalysis.binary_search import binary_search_middle
 from pupilanalysis.drosoalr import loadReferenceFly
+from pupilanalysis.rotary_encoders import to_degrees
 
-from pupil_imsoft.anglepairs import toDegrees
-from imalyser.matching import MatchFinder
 
 #OLD def _drosom_load(self, folder):
 def load_drosom(folder):
@@ -43,7 +42,7 @@ def load_drosom(folder):
 
         #print(str_angle_pair[i_start:i_end])
         angle_pair = [list(ast.literal_eval(str_angle_pair[i_start:i_end]))]
-        toDegrees(angle_pair)
+        to_degrees(angle_pair)
         angle_pair = angle_pair[0]
 
         if -10 < angle_pair[0] < 10:
@@ -129,8 +128,6 @@ class AntennaLevelFinder:
             fig2.canvas.set_window_title('{}'.format(fly))
             m_shower = ImageShower(fig2, ax2)
             
-            #matcher = MatchFinder()
-
             offsets = []
 
             for pitch, image in zip(pitches, images):

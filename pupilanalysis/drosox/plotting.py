@@ -16,7 +16,6 @@ import numpy as np
 import scipy.interpolate
 
 from pupilanalysis.directories import PROCESSING_TEMPDIR, ANALYSES_SAVEDIR
-from pupil_imsoft.anglepairs import loadAnglePairs, toDegrees
 
 
 def plot_1d_overlap(xanalysers):

@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 
 from pupilanalysis.directories import ANALYSES_SAVEDIR
 from pupilanalysis.droso import DrosoSelect
-from pupilanalysis_imsoft.anglepairs import loadAnglePairs, toDegrees
 from pupilanalysis.imageshower import ImageShower
 
 

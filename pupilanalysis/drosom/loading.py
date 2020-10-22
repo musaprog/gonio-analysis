@@ -8,7 +8,8 @@ TODO
 import os
 import ast
 
-from pupil_imsoft.anglepairs import toDegrees
+from pupilanalysis.rotary_encoders import to_degrees
+
 
 def angleFromFn(fn):
     '''
@@ -23,7 +24,7 @@ def angleFromFn(fn):
     ver = int(ver)
     
     angles = [[hor,ver]]
-    toDegrees(angles)
+    to_degrees(angles)
     return angles[0]
 
 

@@ -32,8 +32,8 @@ from pupilanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, ne
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
 from pupilanalysis.optimal_sampling import optimal
 from pupilanalysis.drosom.optic_flow import flow_vectors
+from pupilanalysis.rotary_encoders import to_degrees, step2degree
 
-from pupil_imsoft.anglepairs import toDegrees, step2degree
 from roimarker import Marker
 from movemeter import Movemeter
 
@@ -962,7 +962,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     fn = self.stacks[angle][0]
                     ROI = self.getMovingROIs(eye, angle)
                     deg_angle = [list(ast.literal_eval(angle.split(')')[0]+')' ))]
-                    toDegrees(deg_angle)
+                    to_degrees(deg_angle)
                     
                     deg_angle = [deg_angle[0] for i in range(len(fn))]
 
@@ -1052,7 +1052,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         #values = [self.movements[eye][angle] for angle in [str(tuple(a))+suffix for a in angles]]
 
      
-        toDegrees(angles)
+        to_degrees(angles)
         
         if correct_level:
             angles = self._correctAntennaLevel(angles)

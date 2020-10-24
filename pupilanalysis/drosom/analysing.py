@@ -624,7 +624,10 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             marker_markings = json.load(fp)
 
         for image_fn, ROIs in marker_markings.items():
-                        
+            
+            # Since use to relative filenames in the ROIs savefile
+            image_fn = os.path.join(self.data_path, self.folder, image_fn)
+
             # ROIs smaller than 7 pixels a side are not loaded
             good_rois = []
             for i_roi in range(len(ROIs)):
@@ -675,7 +678,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         to_cropping = [stacks[0][0] for str_angles, stacks in self.stacks.items()]
 
         fig, ax = plt.subplots()
-        marker = Marker(fig, ax, to_cropping, self.CROPS_SAVEFN, **kwargs)
+        marker = Marker(fig, ax, to_cropping, self.CROPS_SAVEFN,
+                relative_fns_from=os.path.join(self.data_path, self.folder), **kwargs)
         marker.run()
 
 

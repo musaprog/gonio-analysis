@@ -23,7 +23,7 @@ from pupilanalysis.image_tools import open_adjusted
 #from xray_erg.plotting import Animator
 #from xray_erg.interpolating import interpolate
 from biosystfiles import extract as bsextract
-from mpl_steroids.scalebar import add_scalebar
+#from mpl_steroids.scalebar import add_scalebar
 
 
 RESCUES = ['Rh1', 'Rh3', 'Rh4', 'Rh5', 'Rh6']

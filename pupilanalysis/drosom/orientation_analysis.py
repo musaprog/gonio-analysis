@@ -6,7 +6,7 @@ import json
 
 import matplotlib.pyplot as plt
 
-from marker import Marker
+from roimarker import Marker
 
 from pupilanalysis.drosom.analysing import MAnalyser
 from pupilanalysis.directories import PROCESSING_TEMPDIR

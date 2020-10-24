@@ -247,9 +247,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         self.data_path = data_path
         self.folder = folder
         
-        self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser', 'ROIs', 'dynamic_{}_crops.json'.format(folder))
-        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser', 'movements', 'dynamic_{}_{}_movements.json'.format(folder, '{}'))
-        
+        self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'rois_{}.json'.format(folder))
+        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'movements_{}_{}.json'.format(folder, '{}'))
+
         self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
 
 

@@ -830,7 +830,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
             # Old upscale was 4
             meter = Movemeter(upscale=10)
-            meter.setData(stacks, ROIs)
+            meter.set_data(stacks, ROIs)
             
             for stack_i, angle in enumerate(angles):
                 
@@ -844,7 +844,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 print('Analysing {} eye pseudopupil motion from position {}, done {}/{} for this eye'.format(eye.upper(), angle, stack_i+1, len(ROIs)))
 
                 print("Calculating ROI's movement...")
-                x, y = meter.measureMovement(stack_i, max_movement=15)[0]
+                x, y = meter.measure_movement(stack_i, max_movement=15)[0]
                 
                 print('Done.')
                 
@@ -855,7 +855,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     except KeyError:
                         self.movements[angle] = []
                     
-                    tags = meter.getMetadata(stack_i)['Image ImageDescription'].values.split('"')
+                    tags = meter.get_metadata(stack_i)['Image ImageDescription'].values.split('"')
                     time = tags[tags.index('start_time') + 2]
                     self.movements[angle].append({'x': x, 'y':y, 'time': time})
         else:

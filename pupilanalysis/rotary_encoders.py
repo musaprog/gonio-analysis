@@ -13,9 +13,9 @@ def to_degrees(angle_pairs):
     angle_pairs     List of (horizontal, vertical)
     '''
 
-    for i in range(len(angles)):
-        angles[i][0] *= (360/1024)
-        angles[i][1] *= (360/1024)
+    for i in range(len(angle_pairs)):
+        angle_pairs[i][0] *= (360/1024)
+        angle_pairs[i][1] *= (360/1024)
 
 
 def step2degree(step, steps_per_revolution=DEFAULT_STEPS_PER_REVOLUTION):

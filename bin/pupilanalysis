@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+from pupilanalysis.drosom import terminal
+terminal.main()

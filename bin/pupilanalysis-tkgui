@@ -1,0 +1,3 @@
+#!/usr/bin/python3
+import pupilanalysis.drosom.gui as tkgui
+tkgui.run()

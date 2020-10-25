@@ -3,6 +3,8 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+# Version number to __version__ variable
+exec(open("pupilanalysis/version.py").read())
 
 install_requires = [
         'numpy',
@@ -18,7 +20,7 @@ install_requires = [
 
 setuptools.setup(
     name="pupil-analysis",
-    version="0.0.1",
+    version=__version__,
     author="Joni Kemppainen",
     author_email="jjtkemppainen1@sheffield.ac.uk",
     description="Spatial motion analysis program",

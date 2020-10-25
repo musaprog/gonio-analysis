@@ -513,7 +513,7 @@ class ExamineView(tk.Frame):
         '''
         Select/reselect a single ROI
         '''
-        self.analyser.selectROIs(callback_on_exit=self.update_specimen,
+        self.analyser.select_ROIs(callback_on_exit=self.update_specimen,
                 reselect_fns=[self.selected_recording], old_markings=True)
 
 

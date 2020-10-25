@@ -9,15 +9,15 @@ install_requires = [
         'scipy',
         'tifffile',
         'matplotlib',
-        'tk_steroids-jkemppainen @ https://github.com/jkemppainen/tk_steroids/archive/master.zip',
-        'roimarker-jkemppainen @ https://github.com/jkemppainen/roimarker/archive/master.zip',
-        'movemeter-jkemppainen @ https://github.com/jkemppainen/movemeter/archive/master.zip',
-        'biosystfiles-jkemppainen @ https://github.com/jkemppainen/python-biosystfiles/archive/master.zip',
+        'tk-steroids',
+        'roimarker',
+        'movemeter',
+        'python-biosystfiles',
         ]
 
 
 setuptools.setup(
-    name="pupilanalysis-jkemppainen", # Replace with your own username
+    name="pupil-analysis",
     version="0.0.1",
     author="Joni Kemppainen",
     author_email="jjtkemppainen1@sheffield.ac.uk",

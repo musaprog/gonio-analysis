@@ -13,7 +13,8 @@ class Core:
     '''
 
     def __init__(self):
-        pass
+        self.analyser = None
+        self.selected_recording = None
 
 
     def set_data_directory(self, data_directory):
@@ -143,3 +144,8 @@ class Core:
         except FileNotFoundError:
             line = ''
         return line
+
+
+    def update_gui(self):
+        raise ValueError("GUI should overload update_gui method in Core core.py")
+

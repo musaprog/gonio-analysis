@@ -41,6 +41,7 @@ import tifffile
 
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect, ColorExplanation
 from tk_steroids.matplotlib import CanvasPlotter
+from tk_steroids.menumaker import MenuMaker
 
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupilanalysis.antenna_level import AntennaLevelFinder
@@ -56,6 +57,15 @@ from pupilanalysis.drosom.gui.repetition_selection import RepetitionSelector
 from pupilanalysis.drosom.kinematics import mean_max_response
 from pupilanalysis.drosom import linked_data
 
+from pupilanalysis.drosom.gui.menu_commands import (
+        FileCommands,
+        ImageFolderCommands,
+        SpecimenCommands,
+        ManySpecimenCommands
+        )
+
+
+
 class ExamineMenubar(tk.Frame):
     '''
     Menubar class for the examine GUI.
@@ -68,202 +78,27 @@ class ExamineMenubar(tk.Frame):
         self.root = parent.root
         self.core = parent.core
         self.menubar = tk.Menu(self)
-        
-        # File menu
-        file_menu = tk.Menu(self.menubar, tearoff=0)
-        file_menu.add_command(label='Set data directory', command=self.parent.set_data_directory)
-        file_menu.add_command(label='Set hidden specimens...', command=self.set_hidden)
-        file_menu.add_command(label='Exit', command=self.on_exit)
-        self.menubar.add_cascade(label='File', menu=file_menu)
-        
 
-        # Imagefolder options
-        plot_menu = tk.Menu(self.menubar, tearoff=0)
-        plot_menu.add_command(label='Max of the mean response', command=lambda: self.prompt_result(mean_max_response(self.parent.analyser, self.parent.selected_recording)))
-        plot_menu.add_separator()
-        self.menubar.add_cascade(label='Image folder', menu=plot_menu)
-        self.plot_menu = plot_menu        
-        
-        # Data plotting
-        plot_menu = tk.Menu(self.menubar, tearoff=0)
-        plot_menu.add_command(label='Vectormap', command=lambda: self.core.adm_subprocess('current', 'vectormap'))
-        plot_menu.add_command(label='Vectormap - rotating video', command=lambda: self.core.adm_subprocess('current', 'tk_waiting_window vectormap animation'))  
-        plot_menu.add_command(label='Vectormap to txt file', command=self.save_3d_vectors)
-        plot_menu.add_separator()
-        plot_menu.add_command(label='Mean displacement over time - plot', command=lambda: self.core.adm_subprocess('current', 'magtrace'))
-        plot_menu.add_command(label='Mean displacement over time - to clipboard', command=lambda: self.parent.specimen_traces_to_clipboard(mean=True))
-        self.menubar.add_cascade(label='Specimen', menu=plot_menu)
-        self.plot_menu = plot_menu        
-        
-        # Data plotting
-        many_menu = tk.Menu(self.menubar, tearoff=0)
-        
-        many_menu.add_command(label='Measure movements (list all)', command=lambda: self.select_specimens(self.batch_measure, with_rois=True))
-        many_menu.add_command(label='Measure movements (list only unmeasured)...', command=lambda: self.select_specimens(self.batch_measure, with_rois=True, with_movements=False))
-        
-         
-        many_menu.add_command(label='Create a specimens group...', command=lambda: self.ask_string('Group name', 'Name the new group', self.create_specimens_group))
+        # File command and menu
+        self.file_commands = FileCommands(self.parent, self.core, 'File')
+        self.file_commands._connect(self.menubar, tearoff=0)
 
-        # Requiers adding get_magnitude_traces to MAverager
-        
-        #many_menu.add_command(label='Displacement over time', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'averaged magtrace')))
-        
-        #many_menu.add_command(label='Select  movements...', command=lambda: )
-        #
-        
-        many_menu.add_separator()
-        many_menu.add_command(label='Averaged vectormap...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged'), with_movements=True, with_correction=True)) 
-        many_menu.add_command(label='Averaged vectormap - rotating video', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation'), with_movements=True, with_correction=True)) 
-        many_menu.add_command(label='Averaged vectormap - rotating video - set title', command= lambda: self.ask_string('Set title', 'Give video title', lambda title: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation short_name={}'.format(title)), with_movements=True, with_correction=True))) 
-        
-        
-        many_menu.add_separator()
-        
-        many_menu.add_command(label='Comparision to optic flow - video...', command=lambda: self.select_specimens(lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged complete_flow_analysis'), with_movements=True, with_correction=True)) 
-        self.menubar.add_cascade(label='Many specimens', menu=many_menu)
-        
-        
-        many_menu.add_separator()
-        # Linking ERG data
-        many_menu.add_command(label="Link ERG data from labbook...",
-                command=lambda: self.select_specimens(linked_data.link_erg_labbook,
-                    command_args=[lambda: filedialog.askopenfilename(title='Select ERG'), lambda: filedialog.askdirectory(title='Select data folder')], return_manalysers=True ) )
-        
+        # Imagefolder command and menu
+        self.imagefolder_commands = ImageFolderCommands(self.parent, self.core, 'Image folder')
+        self.imagefolder_commands._connect(self.menubar, tearoff=0)
 
-        self.many_menu = many_menu        
+        # Specimen commands and menu
+        self.specimen_commands = SpecimenCommands(self.parent, self.core, 'Specimen')
+        self.specimen_commands._connect(self.menubar, tearoff=0)
 
-
-
+        # Many specimen commands and menu
+        self.many_specimen_commands = ManySpecimenCommands(self.parent, self.core, 'Many specimens')
+        self.many_specimen_commands._connect(self.menubar, tearoff=0)
+       
+        
         self.winfo_toplevel().config(menu=self.menubar)
    
-    def ask_string(self, title, prompt, command_after):
-        string = simpledialog.askstring(title, prompt, parent=self.parent)
-        if string:
-            command_after(string)
-
-    def prompt_result(self, string):
-        '''
-        Shows the result and also sets it to the clipboard
-        '''
-        self.root.clipboard_clear()
-        self.root.clipboard_append(string)
- 
-        messagebox.showinfo(title='Result of ', message=string)
-
-    def batch_measure(self, specimens):
-        targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
-        MeasurementWindow(self.root, targets, title='Measure movement', callback_on_exit=self.parent.update_all)
-
-
-    def create_specimens_group(self, group_name):
-        '''
-        Create a specimens group that droso.py uses.
-        '''
-        def _create_group(specimens):
-            from pupil.droso import SpecimenGroups
-            groups = SpecimenGroups()
-            groups.new_group(group_name, *specimens)
-            groups.save_groups()
-
-        self.select_specimens(_create_group)
-
-
-    def select_specimens(self, command, with_rois=None, with_movements=None, with_correction=None,
-            command_args=[], execute_callable_args=True, breaking_args=[()],
-            return_manalysers=False):
-        '''
-        Opens specimen selection window and after ok runs command using
-        selected specimens list as the only input argument.
-
-        command                 Command to close after fly selection
-        with_rois               List specimens with ROIs selected if True
-        with_movements          List specimens with movements measured if True
-        command_args            A list of arguments passed to the command
-        execute_callable_args   Callable command_args will get executed and return
-                                    value is used instead
-        breaking_args           If command_args callable return value in this list,
-                                    halt the command
-        return_manalysers       Instead of passing the list of the specimen names as the first
-                                argument to the command, already construct MAnalyser objects and pass those
-        '''
-        parsed_args = []
-        for arg in command_args:
-            if execute_callable_args and callable(arg):
-                result = arg()
-                if result in breaking_args:
-                    # Halting
-                    return None
-                parsed_args.append(result)
-            else:
-                parsed_args.append(arg)
-
-
-        top = tk.Toplevel()
-        top.title('Select specimens')
-        top.grid_columnconfigure(0, weight=1)
-        top.grid_rowconfigure(1, weight=1)
-
-
-        if with_rois or with_movements or with_correction:
-            notify_string = 'Listing specimens with '
-            notify_string += ' and '.join([string for onoff, string in zip([with_rois, with_movements, with_correction],
-                ['ROIs', 'movements', 'correction']) if onoff ])
-            tk.Label(top, text=notify_string).grid()
-
-        specimens = self.core.list_specimens(with_rois=with_rois, with_movements=with_movements, with_correction=with_correction) 
-        
-        if return_manalysers:
-            # This is quite wierd what is going on here
-            def commandx(specimens, *args, **kwargs):
-                manalysers = [self.core.get_manalyser(specimen) for specimen in specimens]
-                return command(manalysers, *args, **kwargs)
-        else:
-            commandx = command
-
-        selector = TickSelect(top, specimens, commandx, callback_args=parsed_args)
-
-        selector.grid(sticky='NSEW')
-        
-        tk.Button(selector, text='Close', command=top.destroy).grid(row=1, column=1)
-
-
-    def save_3d_vectors(self):
-        analysername = self.parent.analyser.get_specimen_name()
-        fn = tk.filedialog.asksaveasfilename(initialfile=analysername, defaultextension='.npy')
-        if fn:
-            base = fn.rstrip('.npy')
-            for eye in ['left', 'right']:
-                d3_vectors = self.parent.analyser.get_3d_vectors(eye)
-                np.save(base+'_'+eye+'.npy', d3_vectors)
-
-    def on_exit(self):
-        self.winfo_toplevel().destroy()
-
-    def set_hidden(self):
-        string = self.core.get_hidden()
-
-        newstring = simpledialog.askstring('Set hidden specimens', 'Hidestring (comma separated)',
-                initialvalue=string, parent=self)
-        print(newstring)
-        self.core.set_hidden(newstring)
-        self.parent.set_data_directory(ask=False)
-
-    def update_states(self, manalyser):
-        '''
-        Updates menu entry states (enabled/disabled) based specimen's status (ROIs set, etc)
-        '''
-        
-        rois = manalyser.are_rois_selected()
-        measurements = manalyser.is_measured()
-        
-        # Plot menu
-        if measurements and rois:
-            state = tk.NORMAL
-        else:
-            state = tk.DISABLED
-        self.plot_menu.entryconfig(0, state=state)        
-        self.plot_menu.entryconfig(1, state=state)        
-        
+       
 
 
 class ExamineView(tk.Frame):
@@ -317,7 +152,7 @@ class ExamineView(tk.Frame):
 
         # The 1st buttons frame, selecting root data directory
         self.buttons_frame_1 = ButtonsFrame(self.leftside_frame, ['Set data directory'],
-                [self.set_data_directory, self.set_data_directory])
+                [self.menu.file_commands.set_data_directory, self.menu.file_commands.set_data_directory])
         self.buttons_frame_1.grid(row=0, column=0, sticky='NW', columnspan=2)
 
  
@@ -425,24 +260,6 @@ class ExamineView(tk.Frame):
 
 
 
-    def set_data_directory(self, ask=True):
-        '''
-        When the button set data diorectory is pressed.
-        '''
-
-        if ask:
-            self.directory = filedialog.askdirectory(initialdir='/home/joni/smallbrains-nas1/array1')
-            if not self.directory:
-                return None
-
-        
-        self.data_directory = self.directory
-        self.core.set_data_directory(self.directory)
-        
-        specimens = self.core.list_specimens()
-
-        self.specimen_box.set_selections(specimens, self._color_specimens(specimens))
-
 
     def copy_to_csv(self):
         
@@ -456,6 +273,9 @@ class ExamineView(tk.Frame):
                 fp.write(formatted)
 
     
+
+
+
     def specimen_traces_to_clipboard(self, mean=False):
         '''
         If mean==True, copy only the average trace.
@@ -579,7 +399,8 @@ class ExamineView(tk.Frame):
                 'alr_data',
                 callback=callback)
         self.correct_frame.grid(sticky='NSEW')
-        
+       
+
     def update_specimen(self):
         '''
         Updates GUI colors, button states etc. to right values.
@@ -753,10 +574,16 @@ class ExamineView(tk.Frame):
         
         for canvas in self.canvases:
             canvas.update()
- 
+    
+
     def update_all(self):
-        self.set_data_directory(ask=False)
+        specimens = self.core.list_specimens()
+        self.specimen_box.set_selections(specimens, self._color_specimens(specimens))
+
+       
         self.update_specimen()
+
+
 
 
 def main():

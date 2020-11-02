@@ -117,11 +117,6 @@ class ExamineView(tk.Frame):
     - recording
     and plotting the intemediate result for each recording.
     
-    Important attributes
-    self.current_specimen           Name of the current specimen
-    self.analyser                   MAnalyser object of the current specimen
-    self.selected_recording         Selected recording name (image_folder)
-    
     '''
     
     def __init__(self, parent):
@@ -133,11 +128,6 @@ class ExamineView(tk.Frame):
         
         self.root = self.winfo_toplevel()
         
-        self.data_directory = None
-        self.current_specimen = None
-        self.selected_recording = None
-
-
         # Make canvas plotter to stretch
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=3)
@@ -194,7 +184,7 @@ class ExamineView(tk.Frame):
        
         self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
                 ['Reselect ROI', 'Remeasure', 'Copy to clipboard'],
-                [self.menu.imagefolder_commands.select_ROIs, lambda: self.menu.specimen_commands.measure_movement(current_only=True), self.copy_to_clipboard])
+                [self.menu.imagefolder_commands.select_ROIs, self.menu.imagefolder_commands.measure_movement, self.copy_to_clipboard])
         self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         
@@ -272,10 +262,10 @@ class ExamineView(tk.Frame):
 
     def copy_to_csv(self):
         
-        directory = os.path.join(PROCESSING_TEMPDIR, 'clipboard', self.current_specimen)
+        directory = os.path.join(PROCESSING_TEMPDIR, 'clipboard', self.core.current_specimen)
         os.makedirs(directory, exist_ok=True)
         
-        with open(os.path.join(directory, self.selected_recording+'.csv'), 'w') as fp:
+        with open(os.path.join(directory, self.core.selected_recording+'.csv'), 'w') as fp:
             
             for i_frame in range(len(self.plotter.magnitudes[0])):
                 formatted = ','.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'
@@ -297,8 +287,8 @@ class ExamineView(tk.Frame):
         
         self.root.clipboard_append(formatted)
         
-        for pos_folder in self.analyser.list_imagefolders():
-            all_movements = self.analyser.get_movements_from_folder(pos_folder)
+        for pos_folder in self.core.analyser.list_imagefolders():
+            all_movements = self.core.analyser.get_movements_from_folder(pos_folder)
             
             #movements = movements['left'] + movements['right']
             
@@ -314,6 +304,8 @@ class ExamineView(tk.Frame):
             formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
         self.root.clipboard_append(formatted)
        
+
+
     def copy_data_to_clipboard(self, data):
         self.root.clipboard_clear()
 
@@ -322,6 +314,8 @@ class ExamineView(tk.Frame):
         
         self.root.clipboard_append(formatted)
        
+
+
     def copy_to_clipboard(self):
         self.root.clipboard_clear()
         
@@ -353,9 +347,9 @@ class ExamineView(tk.Frame):
         colors = []
         for recording in recordings:
             color = 'yellow'
-            if self.analyser.folder_has_rois(recording):
+            if self.core.analyser.folder_has_rois(recording):
                 color = 'green'
-                if self.analyser.folder_has_movements(recording):
+                if self.core.analyser.folder_has_movements(recording):
                     color = 'white'
             
             colors.append(color)
@@ -366,21 +360,19 @@ class ExamineView(tk.Frame):
         '''
         When a selection happens in the specimens listbox.
         '''
-        self.current_specimen = specimen
         self.specimen_control_frame.config(text=specimen)
 
-        self.analyser = self.core.get_manalyser(specimen)
         self.core.set_current_specimen(specimen)
         
 
         # Recordings box
-        recordings = self.analyser.list_imagefolders()
+        recordings = self.core.analyser.list_imagefolders()
         self.recording_box.enable()
         self.recording_box.set_selections(recordings, colors=self._color_recordings(recordings))
          
         
         # Logick to set buttons inactive/active and their texts
-        if self.analyser.are_rois_selected(): 
+        if self.core.analyser.are_rois_selected(): 
   
             self.button_rois.config(text='Reselect ROIs')
             self.button_rois.config(bg=self.default_button_bg)
@@ -393,7 +385,7 @@ class ExamineView(tk.Frame):
             for button in self.buttons_frame_3.get_buttons():
                 button.config(state=tk.NORMAL)
 
-            if self.analyser.is_measured():
+            if self.core.analyser.is_measured():
                 self.button_measure.config(text='Remeasure movement')
                 self.button_measure.config(bg=self.default_button_bg)
             else:
@@ -417,26 +409,24 @@ class ExamineView(tk.Frame):
 
 
 
-        if self.analyser.are_rois_selected():
-            self.analyser.load_ROIs()
+        if self.core.analyser.are_rois_selected():
+            self.core.analyser.load_ROIs()
 
         # Loading cached analyses and setting the recordings listbox
 
-        if self.analyser.is_measured():
-            self.analyser.load_analysed_movements()
+        if self.core.analyser.is_measured():
+            self.core.analyser.load_analysed_movements()
             #self.recording_box.enable()
             
         
-        self.menu.update_states(self.analyser)
-
-        self.plotter.set_analyser(self.analyser)
+        self.plotter.set_analyser(self.core.analyser)
         
-        N_rois = self.analyser.count_roi_selected_folders()
-        N_image_folders = len(self.analyser.list_imagefolders())
+        N_rois = self.core.analyser.count_roi_selected_folders()
+        N_image_folders = len(self.core.analyser.list_imagefolders())
         self.status_rois.config(text='ROIs selected {}/{}'.format(N_rois, N_image_folders))
         
         try:
-            self.correction = self.analyser.get_antenna_level_correction()
+            self.correction = self.core.analyser.get_antenna_level_correction()
         except:
             self.correction = False
         if self.correction is not False:
@@ -454,12 +444,12 @@ class ExamineView(tk.Frame):
         selected_recording      Name of the recording. If 'current', keeps the current
         '''
         if selected_recording == 'current':
-            selected_recording = self.selected_recording
+            selected_recording = self.core.selected_recording
         else:
-            self.selected_recording = selected_recording
+            self.core.set_selected_recording(selected_recording)
 
         
-        print(self.analyser.get_recording_time(selected_recording))
+        print(self.core.analyser.get_recording_time(selected_recording))
         
         angles = [list(angles_from_fn(selected_recording))]
         to_degrees(angles)
@@ -503,23 +493,20 @@ class ExamineView(tk.Frame):
             canvas.update()
 
 
-    def update_specimen(self):
+    def update_specimen(self, changed_specimens=False):
         '''
         Updates GUI colors, button states etc. to right values.
         
         Call this if there has been changes to specimens/image_folders by an
         external process or similar.
-        '''
-        if self.current_specimen is not None:
-            self.on_specimen_selection(self.current_specimen)
+        '''        
+        if changed_specimens:
+            specimens = self.core.list_specimens()
+            self.specimen_box.set_selections(specimens, self._color_specimens(specimens))
 
+        if self.core.current_specimen is not None:
+            self.on_specimen_selection(self.core.current_specimen)
 
-    def update_all(self):
-        specimens = self.core.list_specimens()
-        self.specimen_box.set_selections(specimens, self._color_specimens(specimens))
-
-       
-        self.update_specimen()
 
 
 

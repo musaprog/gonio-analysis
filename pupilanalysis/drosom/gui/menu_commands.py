@@ -30,12 +30,12 @@ def ask_string(title, prompt):
 
 
 
-def prompt_result(self, string):
+def prompt_result(self, tk_root, string):
     '''
     Shows the result and also sets it to the clipboard
     '''
-    self.root.clipboard_clear()
-    self.root.clipboard_append(string)
+    tk_root.clipboard_clear()
+    tk_root.clipboard_append(string)
 
     messagebox.showinfo(title='Result of ', message=string)
 
@@ -150,7 +150,7 @@ class FileCommands(ModifiedMenuMaker):
     
         self.core.set_data_directory(directory)
         
-        self.mainview.update_specimens()
+        self.core.update_gui(changed_specimens=True)
 
     
     def set_hidden_specimens(self):
@@ -160,7 +160,7 @@ class FileCommands(ModifiedMenuMaker):
                 initialvalue=string, parent=self)
         
         self.core.set_hidden(newstring)
-        self.mainview.update_specimens()
+        self.core.update_gui(changed_specimens=True)
 
 
     def settings(self):
@@ -180,7 +180,7 @@ class ImageFolderCommands(ModifiedMenuMaker):
     def max_of_the_mean_response(self):
         
         result = mean_max_response(self.core.analyser, self.core.selected_recording)
-        prompt_result(result)
+        prompt_result(self.tk_root, result)
 
 
     def select_ROIs(self):
@@ -188,7 +188,14 @@ class ImageFolderCommands(ModifiedMenuMaker):
                 reselect_fns=[self.core.selected_recording], old_markings=True)
 
 
-
+    def measure_movement(self):
+        '''
+        Run Movemeter (cross-correlation) on the selected image folder.
+        '''
+        func = lambda: self.core.analyser.measure_both_eyes(only_folders=str(self.core.selected_recording))
+        
+        MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
+ 
 
 
 
@@ -212,7 +219,7 @@ class SpecimenCommands(ModifiedMenuMaker):
 
 
 
-    def measure_movement(self, current_only=False):
+    def measure_movement(self):
         '''
         Run Movemeter (cross-correlation) on the specimen.
         '''
@@ -223,12 +230,9 @@ class SpecimenCommands(ModifiedMenuMaker):
             if not sure:
                 return None
         
-        if current_only:
-            func = lambda: self.core.analyser.measure_both_eyes(only_folders=str(self.selected_recording))
-        else:
-            func = self.core.analyser.measure_both_eyes
+        func = self.core.analyser.measure_both_eyes
         
-        MeasurementWindow(self.root, [func], title='Measure movement', callback_on_exit=self.update_all)
+        MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
     
 
 

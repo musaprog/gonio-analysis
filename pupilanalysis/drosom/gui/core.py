@@ -10,12 +10,22 @@ from pupilanalysis.directories import ANALYSES_SAVEDIR
 class Core:
     '''
     Tkinter independent functions, reusable for other GUI implementations.
+    
+    self.data_directory
+    self.current_specimen           Name of the current specimen
+    self.analyser                   MAnalyser object of the current specimen
+    self.selected_recording         Selected recording name (image_folder)
+
+
     '''
 
     def __init__(self):
+        
+        self.data_directory = None
+        self.current_specimen = None
         self.analyser = None
         self.selected_recording = None
-
+        
 
     def set_data_directory(self, data_directory):
         '''
@@ -29,6 +39,11 @@ class Core:
         Update Core's knowledge about the currently selected specimen.
         '''
         self.current_specimen = specimen_name
+        self.analyser = self.get_manalyser(specimen_name)
+
+    
+    def set_selected_recording(self, selected_recording):
+        self.selected_recording = selected_recording
 
 
     def list_specimens(self, with_rois=None, with_movements=None, with_correction=None):
@@ -123,6 +138,7 @@ class Core:
         
         subprocess.run(command, shell=True)
 
+
     def set_hidden(self, hidestring):
         '''
         hidesting       "specimen1,specimen2,..."
@@ -146,6 +162,6 @@ class Core:
         return line
 
 
-    def update_gui(self):
+    def update_gui(self, changed_specimens=False):
         raise ValueError("GUI should overload update_gui method in Core core.py")
 

@@ -15,9 +15,10 @@ import tkinter.simpledialog as simpledialog
 
 from tk_steroids.menumaker import MenuMaker
 
+import pupilanalysis
 from pupilanalysis.droso import SpecimenGroups
 from pupilanalysis.drosom import linked_data
-
+from pupilanalysis.drosom.gui.run_measurement import MeasurementWindow
 
 
 def ask_string(title, prompt):
@@ -115,7 +116,7 @@ class ModifiedMenuMaker(MenuMaker):
         self.core = core
         self.tk_root = tk_root
 
-        self.replacement_dict['__DASH__'] = ' - '
+        self.replacement_dict['DASH'] = '-'
         self.replacement_dict['_'] = ' '
 
 
@@ -125,13 +126,15 @@ class FileCommands(ModifiedMenuMaker):
     File menu commands for examine view.
     '''
 
-    def force_order(self):
+    def _force_order(self):
         '''
         Let's force menu ordering. See the documentation from the
         menu maker.
         '''
         menu = ['set_data_directory',
                 'set_hidden_specimens',
+                '.',
+                'settings',
                 '.',
                 'exit']
         return menu
@@ -160,6 +163,9 @@ class FileCommands(ModifiedMenuMaker):
         self.mainview.update_specimens()
 
 
+    def settings(self):
+        pass
+
     def exit(self):
         self.tk_root.winfo_toplevel().destroy()
 
@@ -177,6 +183,13 @@ class ImageFolderCommands(ModifiedMenuMaker):
         prompt_result(result)
 
 
+    def select_ROIs(self):
+        self.core.analyser.select_ROIs(callback_on_exit=self.core.update_gui,
+                reselect_fns=[self.core.selected_recording], old_markings=True)
+
+
+
+
 
 
 class SpecimenCommands(ModifiedMenuMaker):
@@ -184,15 +197,82 @@ class SpecimenCommands(ModifiedMenuMaker):
     Commands for the currentlt selected specimen.
     '''
 
-    def vectormap__DASH__interactive_plot(self):
+    def select_ROIs(self):
+        '''
+        Select regions of interests (ROIs) for the currently selected specimen.
+        '''
+            
+        # Ask confirmation if ROIs already selected
+        if self.core.analyser.are_rois_selected():
+            sure = messagebox.askokcancel('Reselect ROIs', 'Are you sure you want to reselect ROIs?')
+            if not sure:
+                return None
+       
+        self.core.analyser.select_ROIs(callback_on_exit=self.core.update_gui)
+
+
+
+    def measure_movement(self, current_only=False):
+        '''
+        Run Movemeter (cross-correlation) on the specimen.
+        '''
+        
+        # Ask confirmation if ROIs already selected
+        if self.core.analyser.is_measured():
+            sure = messagebox.askokcancel('Remeasure movements', 'Are you sure you want to remeasure?')
+            if not sure:
+                return None
+        
+        if current_only:
+            func = lambda: self.core.analyser.measure_both_eyes(only_folders=str(self.selected_recording))
+        else:
+            func = self.core.analyser.measure_both_eyes
+        
+        MeasurementWindow(self.root, [func], title='Measure movement', callback_on_exit=self.update_all)
+    
+
+
+    def antenna_level(self):
+        '''
+        Start antenna level search for the current specimen 
+        '''
+        
+        # Try to close and destroy if any other antenna_level
+        # windows are open (by accident)
+        try:
+            self.correct_window.destroy()
+        except:
+            # Nothing to destroy
+            pass
+
+        #fullpath = os.path.join(self.data_directory, self.current_specimen)
+        #self.core.adm_subprocess('current', 'antenna_level', open_terminal=True)
+        self.correct_window = tk.Toplevel()
+        self.correct_window.title('Zero correction -  {}'.format(self.current_specimen))
+        self.correct_window.grid_columnconfigure(0, weight=1)
+        self.correct_window.grid_rowconfigure(0, weight=1)
+
+        def callback():
+            self.correct_window.destroy()
+            self.core.update_gui()
+
+        self.correct_frame = ZeroCorrect(self.correct_window,
+                os.path.join(self.core.directory, self.core.current_specimen), 
+                'alr_data',
+                callback=callback)
+        self.correct_frame.grid(sticky='NSEW')
+
+
+
+    def vectormap_DASH_interactive_plot(self):
         self.core.adm_subprocess('current', 'vectormap')
 
 
-    def vectormap__DASH__rotating_video(self):
+    def vectormap_DASH_rotating_video(self):
         self.core.adm_subprocess('current', 'tk_waiting_window vectormap animation')
 
     
-    def vectormap__DASH__export_npy(self):
+    def vectormap_DASH_export_npy(self):
         analysername = self.core.analyser.get_specimen_name()
         fn = tk.filedialog.asksaveasfilename(initialfile=analysername, defaultextension='.npy')
         if fn:
@@ -219,12 +299,12 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement', callback_on_exit=self.core.update_gui)
 
 
-    def measure_movements__DASH__list_all(self):
+    def measure_movements_DASH_list_all(self):
 
         select_specimens(self.core, self._batch_measure, with_rois=True)
 
 
-    def measure_movements__DASH__list_only_unmeasured(self):
+    def measure_movements_DASH_list_only_unmeasured(self):
 
         select_specimens(self._batch_measure, with_rois=True, with_movements=False)
 
@@ -243,20 +323,20 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         select_specimens(self.core, _create_group)
 
 
-    def averaged_vectormap__DASH__interactive_plot(self):
+    def averaged_vectormap_DASH_interactive_plot(self):
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged'), with_movements=True, with_correction=True)
 
 
     
-    def averaged_vectormap__DASH__rotating_video(self):
+    def averaged_vectormap_DASH_rotating_video(self):
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation'), with_movements=True, with_correction=True) 
 
         
-    def averaged_vectormap__DASH__rotating_video__DASH__set_title(self):
+    def averaged_vectormap_DASH_rotating_video_DASH_set_title(self):
         ask_string('Set title', 'Give video title', lambda title: select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation short_name={}'.format(title)), with_movements=True, with_correction=True)) 
         
         
-    def comparision_to_optic_flow__DASH__video(self): 
+    def comparision_to_optic_flow_DASH_video(self): 
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged complete_flow_analysis'), with_movements=True, with_correction=True) 
         
     
@@ -264,6 +344,14 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         select_specimens(self.core, linked_data.link_erg_labbook, command_args=[lambda: filedialog.askopenfilename(title='Select ERG'), lambda: filedialog.askdirectory(title='Select data folder')], return_manalysers=True )
         
 
+class OtherCommands(ModifiedMenuMaker):
+    '''
+    All kinds of various commands and tools.
+    '''
 
-
+    def about(self):
+        message = 'Pupil analysis'
+        message += "\nVersion {}".format(pupilanalysis.__version__)
+        message += '\n\nGPL-3.0 License'
+        tk.messagebox.showinfo(title='About', message=message)
 

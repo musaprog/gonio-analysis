@@ -49,7 +49,6 @@ from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
 from pupilanalysis.drosom.analysing import MAnalyser
 from pupilanalysis.drosom.plotting import MPlotter
-from pupilanalysis.drosom.gui.run_measurement import MeasurementWindow
 from pupilanalysis.drosom.gui.core import Core
 from pupilanalysis.drosom.gui.plotting import RecordingPlotter
 from pupilanalysis.drosom.gui.zero_correct import ZeroCorrect
@@ -61,7 +60,8 @@ from pupilanalysis.drosom.gui.menu_commands import (
         FileCommands,
         ImageFolderCommands,
         SpecimenCommands,
-        ManySpecimenCommands
+        ManySpecimenCommands,
+        OtherCommands
         )
 
 
@@ -82,6 +82,8 @@ class ExamineMenubar(tk.Frame):
         # File command and menu
         self.file_commands = FileCommands(self.parent, self.core, 'File')
         self.file_commands._connect(self.menubar, tearoff=0)
+        
+        self.menubar.add_command(label="|")
 
         # Imagefolder command and menu
         self.imagefolder_commands = ImageFolderCommands(self.parent, self.core, 'Image folder')
@@ -95,7 +97,13 @@ class ExamineMenubar(tk.Frame):
         self.many_specimen_commands = ManySpecimenCommands(self.parent, self.core, 'Many specimens')
         self.many_specimen_commands._connect(self.menubar, tearoff=0)
        
+        self.menubar.add_command(label="|")
         
+        # Other commands and menu
+        self.other_commands = OtherCommands(self.parent, self.core, 'Other')
+        self.other_commands._connect(self.menubar, tearoff=0)
+        
+
         self.winfo_toplevel().config(menu=self.menubar)
    
        
@@ -121,6 +129,7 @@ class ExamineView(tk.Frame):
         tk.Frame.__init__(self, parent)
         
         self.core = Core()
+        self.core.update_gui = self.update_specimen
         
         self.root = self.winfo_toplevel()
         
@@ -163,7 +172,7 @@ class ExamineView(tk.Frame):
         # The 2nd buttons frame, ROIs and movements
         self.buttons_frame_2 = ButtonsFrame(self.specimen_control_frame,
                 ['Select ROIs', 'Measure movement', 'Zero correct', 'Copy to clipboard'],
-                [self.select_rois, self.measure_movement, self.antenna_level, self.specimen_traces_to_clipboard])
+                [self.menu.specimen_commands.select_ROIs, self.menu.specimen_commands.measure_movement, self.menu.specimen_commands.antenna_level, self.specimen_traces_to_clipboard])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_rois, self.button_measure, self.button_zero, self.copy_mean = self.buttons_frame_2.get_buttons()
         self.copy_mean.grid(row=1, column=0, columnspan=3, sticky='W')
@@ -185,7 +194,7 @@ class ExamineView(tk.Frame):
        
         self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
                 ['Reselect ROI', 'Remeasure', 'Copy to clipboard'],
-                [self.select_roi, lambda: self.measure_movement(current_only=True), self.copy_to_clipboard])
+                [self.menu.imagefolder_commands.select_ROIs, lambda: self.menu.specimen_commands.measure_movement(current_only=True), self.copy_to_clipboard])
         self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         
@@ -328,89 +337,7 @@ class ExamineView(tk.Frame):
         self.root.clipboard_append(formatted)
         
         self.copy_to_csv()
-
-    def select_roi(self):
-        '''
-        Select/reselect a single ROI
-        '''
-        self.analyser.select_ROIs(callback_on_exit=self.update_specimen,
-                reselect_fns=[self.selected_recording], old_markings=True)
-
-
-    def select_rois(self):
-        '''
-        When the analyse_button is pressed.
-        '''
-
-        # Ask confirmation if ROIs already selected
-        if self.analyser.are_rois_selected():
-            sure = messagebox.askokcancel('Reselect ROIs', 'Are you sure you want to reselect ROIs?')
-            if not sure:
-                return None
-
-        self.analyser.select_ROIs(callback_on_exit=self.update_all)
-
-
-    def measure_movement(self, current_only=False):
-        '''
-        When the measure movement button is pressed.
-        '''
-        
-        # Ask confirmation if ROIs already selected
-        if self.analyser.is_measured():
-            sure = messagebox.askokcancel('Remeasure movements', 'Are you sure you want to remeasure?')
-            if not sure:
-                return None
-        
-        if current_only:
-            func = lambda: self.analyser.measure_both_eyes(only_folders=str(self.selected_recording))
-        else:
-            func = self.analyser.measure_both_eyes
-        
-        MeasurementWindow(self.root, [func], title='Measure movement', callback_on_exit=self.update_all)
-    
-
-    def antenna_level(self):
-        '''
-        Start antenna level search for the current specimen 
-        '''
-        
-        # Try to close and destroy if any other antenna_level
-        # windows are open (by accident)
-        try:
-            self.correct_window.destroy()
-        except:
-            # Nothing to destroy
-            pass
-
-        #fullpath = os.path.join(self.data_directory, self.current_specimen)
-        #self.core.adm_subprocess('current', 'antenna_level', open_terminal=True)
-        self.correct_window = tk.Toplevel()
-        self.correct_window.title('Zero correction -  {}'.format(self.current_specimen))
-        self.correct_window.grid_columnconfigure(0, weight=1)
-        self.correct_window.grid_rowconfigure(0, weight=1)
-
-        def callback():
-            self.correct_window.destroy()
-            self.update_specimen()
-
-        self.correct_frame = ZeroCorrect(self.correct_window,
-                os.path.join(self.directory, self.current_specimen), 
-                'alr_data',
-                callback=callback)
-        self.correct_frame.grid(sticky='NSEW')
        
-
-    def update_specimen(self):
-        '''
-        Updates GUI colors, button states etc. to right values.
-        
-        Call this if there has been changes to specimens/image_folders by an
-        external process or similar.
-        '''
-        if self.current_specimen is not None:
-            self.on_specimen_selection(self.current_specimen)
-        
         
 
     def _color_recordings(self, recordings):
@@ -574,7 +501,18 @@ class ExamineView(tk.Frame):
         
         for canvas in self.canvases:
             canvas.update()
-    
+
+
+    def update_specimen(self):
+        '''
+        Updates GUI colors, button states etc. to right values.
+        
+        Call this if there has been changes to specimens/image_folders by an
+        external process or similar.
+        '''
+        if self.current_specimen is not None:
+            self.on_specimen_selection(self.current_specimen)
+
 
     def update_all(self):
         specimens = self.core.list_specimens()

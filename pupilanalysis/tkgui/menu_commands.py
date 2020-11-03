@@ -8,17 +8,21 @@ In the beginning of the module, there are some needed functions.
 
 import os
 
+import numpy as np
 import tkinter as tk
 import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 import tkinter.simpledialog as simpledialog
 
+from tk_steroids.elements import TickSelect
 from tk_steroids.menumaker import MenuMaker
 
 import pupilanalysis
 from pupilanalysis.droso import SpecimenGroups
 from pupilanalysis.drosom import linked_data
+from pupilanalysis.drosom.kinematics import mean_max_response
 from pupilanalysis.tkgui.run_measurement import MeasurementWindow
+from pupilanalysis.tkgui.zero_correct import ZeroCorrect
 
 
 def ask_string(title, prompt):

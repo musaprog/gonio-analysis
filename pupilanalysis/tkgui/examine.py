@@ -21,40 +21,21 @@ Polishing
 
 '''
 import os
-import multiprocessing
-import subprocess
 import sys
 import ctypes
-import json
 
 import numpy as np
 import tkinter as tk
-import tkinter.messagebox as messagebox
-import tkinter.filedialog as filedialog
-import tkinter.simpledialog as simpledialog
 
-# PLotting
-import matplotlib.pyplot as plt
-import matplotlib.cm
-import matplotlib.widgets
-import tifffile
-
-from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, TickSelect, ColorExplanation
+from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, ColorExplanation
 from tk_steroids.matplotlib import CanvasPlotter
-from tk_steroids.menumaker import MenuMaker
 
-from pupilanalysis.directories import PROCESSING_TEMPDIR, PROCESSING_TEMPDIR_BIGFILES
-from pupilanalysis.antenna_level import AntennaLevelFinder
+from pupilanalysis.directories import PROCESSING_TEMPDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
-from pupilanalysis.drosom.analysing import MAnalyser
-from pupilanalysis.drosom.plotting import MPlotter
 from pupilanalysis.tkgui.core import Core
 from pupilanalysis.tkgui.plotting import RecordingPlotter
-from pupilanalysis.tkgui.zero_correct import ZeroCorrect
 from pupilanalysis.tkgui.repetition_selection import RepetitionSelector
-from pupilanalysis.drosom.kinematics import mean_max_response
-from pupilanalysis.drosom import linked_data
 
 from pupilanalysis.tkgui.menu_commands import (
         FileCommands,

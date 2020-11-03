@@ -164,8 +164,8 @@ class ExamineView(tk.Frame):
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
        
         self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
-                ['Reselect ROI', 'Remeasure', 'Copy to clipboard'],
-                [self.menu.imagefolder_commands.select_ROIs, self.menu.imagefolder_commands.measure_movement, self.copy_to_clipboard])
+                ['Reselect ROI', 'Remeasure', 'Copy displacement'],
+                [self.menu.imagefolder_commands.select_ROIs, self.menu.imagefolder_commands.measure_movement, lambda: self.copy_plotter_to_clipboard(1)])
         self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         
@@ -194,6 +194,7 @@ class ExamineView(tk.Frame):
         ColorExplanation(self.leftside_frame, ['white', 'green', 'yellow'],
                 ['Movements measured', 'ROIs selected', 'No ROIs']).grid(row=5, column=0, sticky='NW')
 
+
         # RIGHTSIDE frame        
         self.rightside_frame = tk.Frame(self)
         self.rightside_frame.grid(row=0, column=1, sticky='NWES')
@@ -219,7 +220,12 @@ class ExamineView(tk.Frame):
         self.plotter = RecordingPlotter()
                 
         # Add buttons for selecting single repeats from a recording
-        RepetitionSelector(self.rightside_frame, self.plotter, update_command=lambda: self.on_recording_selection('current')).grid(row=1, column=0)
+        self.repetition_selector = RepetitionSelector(self.rightside_frame, self.plotter,
+                update_command=lambda: self.on_recording_selection('current'))
+        self.repetition_selector.grid(row=1, column=0)
+        
+        tk.Button(self.repetition_selector, text='Copy to clipboard',
+                command=self.copy_plotter_to_clipboard).grid(row=0, column=4)
 
 
 
@@ -242,38 +248,26 @@ class ExamineView(tk.Frame):
 
 
 
-
-    def copy_to_csv(self):
-        
-        directory = os.path.join(PROCESSING_TEMPDIR, 'clipboard', self.core.current_specimen)
-        os.makedirs(directory, exist_ok=True)
-        
-        with open(os.path.join(directory, self.core.selected_recording+'.csv'), 'w') as fp:
-            
-            for i_frame in range(len(self.plotter.magnitudes[0])):
-                formatted = ','.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'
-                fp.write(formatted)
-
-    
-
-
-
     def specimen_traces_to_clipboard(self, mean=False):
         '''
         If mean==True, copy only the average trace.
         Otherwise, copy all the traces of the fly.
         '''
+
+        # Always first clear clipboard; If something goes wrong, the user
+        # doesn't want to keep pasting old data thinking it's new.
+        self.root.clipboard_clear()
+
+        if self.core.selected_recording is None:
+            return None
+
         formatted = '' 
         data = []
 
-        self.root.clipboard_clear()
-        
         self.root.clipboard_append(formatted)
         
         for pos_folder in self.core.analyser.list_imagefolders():
             all_movements = self.core.analyser.get_movements_from_folder(pos_folder)
-            
-            #movements = movements['left'] + movements['right']
             
             for eye, movements in all_movements.items():
                 for repetition in range(len(movements)):
@@ -285,36 +279,46 @@ class ExamineView(tk.Frame):
         
         for i_frame in range(len(data[0])):
             formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
+        
         self.root.clipboard_append(formatted)
        
 
 
-    def copy_data_to_clipboard(self, data):
+    def copy_plotter_to_clipboard(self, force_i_tab=None):
+        '''
+        Copies data currently visible on theopen plotter tab to the clipboard.
+        
+        force_i_tab         Copy from the specified tab index, instead of
+                            the currently opened tab
+        '''
+        
+        # Always first clear clipboard; If something goes wrong, the user
+        # doesn't want to keep pasting old data thinking it's new.
         self.root.clipboard_clear()
+        
+        if self.core.selected_recording is None:
+            return None
 
+        if force_i_tab is not None:
+            i_tab = int(force_i_tab)
+        else:
+            i_tab = self.tabs.i_current
+        
+        # Select data based on where we want to copy
+        if i_tab == 0:
+            pass
+        elif i_tab == 1:
+            data = self.plotter.magnitudes
+        elif i_tab == 2:
+            data = self.plotter.xys
+
+        # Format the data for tkinter clipboard copy
+        formatted = ''
         for i_frame in range(len(data[0])):
             formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
         
         self.root.clipboard_append(formatted)
-       
-
-
-    def copy_to_clipboard(self):
-        self.root.clipboard_clear()
         
-        formatted = ''
-        
-
-        #for points in self.plotter.magnitudes:
-        #    formatted += '\t'.join([str(x) for x in points.tolist()]) + '\n'
-        
-        for i_frame in range(len(self.plotter.magnitudes[0])):
-            formatted += '\t'.join([str(self.plotter.magnitudes[i_repeat][i_frame]) for i_repeat in range(len(self.plotter.magnitudes)) ]) + '\n'
-        
-        self.root.clipboard_append(formatted)
-        
-        self.copy_to_csv()
-       
         
 
     def _color_recordings(self, recordings):

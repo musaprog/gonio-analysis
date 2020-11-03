@@ -90,6 +90,9 @@ class RecordingPlotter:
         '''
         Plot (x, y) where time is encoded by color.
         '''
+        
+        self.xys = []
+
         for eye, movements in self.movement_data.items():
             for repetition in range(len(movements)):
                 
@@ -109,7 +112,9 @@ class RecordingPlotter:
             
                 ax.scatter(x[0], y[0], color='black')
                 ax.scatter(x[-1], y[-1], color='gray')
-
+                
+            
+                self.xys.append([x, y])
 
 
         # Colormap

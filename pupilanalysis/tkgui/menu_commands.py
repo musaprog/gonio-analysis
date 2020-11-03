@@ -18,12 +18,13 @@ from tk_steroids.elements import TickSelect
 from tk_steroids.menumaker import MenuMaker
 
 import pupilanalysis
+from pupilanalysis.directories import USER_HOMEDIR
 from pupilanalysis.droso import SpecimenGroups
 from pupilanalysis.drosom import linked_data
 from pupilanalysis.drosom.kinematics import mean_max_response
+from pupilanalysis.tkgui import settings
 from pupilanalysis.tkgui.run_measurement import MeasurementWindow
 from pupilanalysis.tkgui.zero_correct import ZeroCorrect
-
 
 
 def ask_string(title, prompt, tk_parent):
@@ -147,17 +148,31 @@ class FileCommands(ModifiedMenuMaker):
         '''
         Asks user for the data directory.
         '''
-        directory = filedialog.askdirectory()
+        previousdir = settings.get('last_datadir', default=USER_HOMEDIR)
+        
+        # Check if the previous data directory stil exists (usb drive for example)
+        if not os.path.isdir(previousdir):
+            previousdir = USER_HOMEDIR 
+
+        directory = filedialog.askdirectory(
+                parent=self.tk_root,
+                title='Select directory containing specimens',
+                mustexist=True,
+                initialdir=previousdir
+                )
+
         if not directory:
             return None
     
         self.core.set_data_directory(directory)
-        
         self.core.update_gui(changed_specimens=True)
+        
+        settings.set('last_datadir', directory)
 
     
     def settings(self):
         pass
+
 
     def exit(self):
         self.tk_root.winfo_toplevel().destroy()

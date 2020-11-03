@@ -24,17 +24,16 @@ from pupilanalysis.drosom.kinematics import mean_max_response
 from pupilanalysis.tkgui.run_measurement import MeasurementWindow
 from pupilanalysis.tkgui.zero_correct import ZeroCorrect
 
-
-def ask_string(title, prompt):
+def ask_string(title, prompt, tk_parent):
     '''
     Asks the user for a string.
     '''
-    string = simpledialog.askstring(title, prompt, parent=self.parent)
+    string = simpledialog.askstring(title, prompt, parent=tk_parent)
     return string
 
 
 
-def prompt_result(self, tk_root, string):
+def prompt_result(tk_root, string):
     '''
     Shows the result and also sets it to the clipboard
     '''
@@ -291,7 +290,7 @@ class SpecimenCommands(ModifiedMenuMaker):
 
     
     def mean_displacement_over_time(self):
-        command=lambda: self.core.adm_subprocess('current', 'magtrace')
+        self.core.adm_subprocess('current', 'magtrace')
 
 
 
@@ -323,10 +322,11 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         '''
 
         group_name = ask_string('Group name', 'Name the new group')
-        
-        groups = SpecimenGroups()
-        groups.new_group(group_name, *specimens)
-        groups.save_groups()
+       
+        def _create_group(specimens):
+            groups = SpecimenGroups()
+            groups.new_group(group_name, *specimens)
+            groups.save_groups()
 
         select_specimens(self.core, _create_group)
 

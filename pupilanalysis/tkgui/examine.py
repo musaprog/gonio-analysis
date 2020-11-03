@@ -201,7 +201,9 @@ class ExamineView(tk.Frame):
         
         canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
         tab_names = ['ROI', 'Displacement', 'XY']
-        self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))])
+        self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))],
+                on_select_callback=self.update_plot)
+        
         self.tabs.grid(row=0, column=0, sticky='NWES')
 
         # Make canvas plotter to stretch
@@ -418,6 +420,7 @@ class ExamineView(tk.Frame):
         self.button_rois.config(state=tk.NORMAL)
 
 
+
     def on_recording_selection(self, selected_recording):
         '''
         When a selection happens in the recordings listbox.
@@ -439,39 +442,33 @@ class ExamineView(tk.Frame):
         self.status_vertical.config(text='Vertical angle {:.2f} degrees'.format(vertical))
         
 
-
-        # Plotting related
-
         self.plotter.set_recording(selected_recording)
-
-
-        i_plot = -1
+        
+        # Plotting only the view we have currently open
+        self.update_plot(self.tabs.i_current)
         
 
-        # Add imaging parameters
-        i_plot += 1
-        fig, ax = self.canvases[i_plot].get_figax()
-        #ax.clear()
-        self.plotter.ROI(ax)
-       
-        # Manipulating figure size? Put it to fill the window
-        #fig.set_size_inches(10, 10, forward=True)
-        #self.canvases[0].update_size()
 
-        i_plot += 1
-        fig, ax = self.canvases[i_plot].get_figax()
-        ax.clear()
-        self.plotter.magnitude(ax)
-        
-          
-        i_plot += 1
-        fig, ax = self.canvases[i_plot].get_figax()
-        ax.clear()
-        self.plotter.xy(ax) 
+    def update_plot(self, i_plot):
+        '''
+        i_plot      Index of the plot (from 0 to N-1 tabs)
+        '''
+        if self.core.selected_recording is None:
+            return None
 
-        
-        for canvas in self.canvases:
-            canvas.update()
+        fig, ax = self.canvases[i_plot].get_figax()
+
+        if i_plot == 0:
+            self.plotter.ROI(ax)
+        elif i_plot == 1:
+            ax.clear()
+            self.plotter.magnitude(ax)
+        elif i_plot == 2:  
+            ax.clear()
+            self.plotter.xy(ax) 
+
+        self.canvases[i_plot].update()
+
 
 
     def update_specimen(self, changed_specimens=False):

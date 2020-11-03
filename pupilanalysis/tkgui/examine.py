@@ -49,14 +49,14 @@ from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
 from pupilanalysis.drosom.analysing import MAnalyser
 from pupilanalysis.drosom.plotting import MPlotter
-from pupilanalysis.drosom.gui.core import Core
-from pupilanalysis.drosom.gui.plotting import RecordingPlotter
-from pupilanalysis.drosom.gui.zero_correct import ZeroCorrect
-from pupilanalysis.drosom.gui.repetition_selection import RepetitionSelector
+from pupilanalysis.tkgui.core import Core
+from pupilanalysis.tkgui.plotting import RecordingPlotter
+from pupilanalysis.tkgui.zero_correct import ZeroCorrect
+from pupilanalysis.tkgui.repetition_selection import RepetitionSelector
 from pupilanalysis.drosom.kinematics import mean_max_response
 from pupilanalysis.drosom import linked_data
 
-from pupilanalysis.drosom.gui.menu_commands import (
+from pupilanalysis.tkgui.menu_commands import (
         FileCommands,
         ImageFolderCommands,
         SpecimenCommands,

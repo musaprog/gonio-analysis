@@ -18,7 +18,7 @@ from tk_steroids.menumaker import MenuMaker
 import pupilanalysis
 from pupilanalysis.droso import SpecimenGroups
 from pupilanalysis.drosom import linked_data
-from pupilanalysis.drosom.gui.run_measurement import MeasurementWindow
+from pupilanalysis.tkgui.run_measurement import MeasurementWindow
 
 
 def ask_string(title, prompt):

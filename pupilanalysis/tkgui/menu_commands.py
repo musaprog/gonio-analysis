@@ -24,6 +24,8 @@ from pupilanalysis.drosom.kinematics import mean_max_response
 from pupilanalysis.tkgui.run_measurement import MeasurementWindow
 from pupilanalysis.tkgui.zero_correct import ZeroCorrect
 
+
+
 def ask_string(title, prompt, tk_parent):
     '''
     Asks the user for a string.
@@ -135,8 +137,6 @@ class FileCommands(ModifiedMenuMaker):
         menu maker.
         '''
         menu = ['set_data_directory',
-                'set_hidden_specimens',
-                '.',
                 'settings',
                 '.',
                 'exit']
@@ -156,16 +156,6 @@ class FileCommands(ModifiedMenuMaker):
         self.core.update_gui(changed_specimens=True)
 
     
-    def set_hidden_specimens(self):
-        string = self.core.get_hidden()
-
-        newstring = simpledialog.askstring('Set hidden specimens', 'Hidestring (comma separated)',
-                initialvalue=string, parent=self)
-        
-        self.core.set_hidden(newstring)
-        self.core.update_gui(changed_specimens=True)
-
-
     def settings(self):
         pass
 

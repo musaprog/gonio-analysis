@@ -73,11 +73,6 @@ class Core:
         
         if with_correction is not None:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction() is not False]
-        
-
-        hidden = self.get_hidden()
-        
-        specimens = [specimen for specimen in specimens if not specimen in hidden.split(',')]
 
         return sorted(specimens)
 
@@ -137,29 +132,6 @@ class Core:
         print(command)
         
         subprocess.run(command, shell=True)
-
-
-    def set_hidden(self, hidestring):
-        '''
-        hidesting       "specimen1,specimen2,..."
-        '''
-        
-        hidelist = os.path.join(ANALYSES_SAVEDIR, 'hidelist.txt')
-        with open(hidelist, 'w') as fp:
-            fp.write(hidestring)
-
-
-    def get_hidden(self):
-        '''
-        Returns hidestring, see set_hidden for more.
-        '''
-        hidelist = os.path.join(ANALYSES_SAVEDIR, 'hidelist.txt')
-        try:
-            with open(hidelist, 'r') as fp:
-                line = fp.read()
-        except FileNotFoundError:
-            line = ''
-        return line
 
 
     def update_gui(self, changed_specimens=False):

@@ -143,7 +143,7 @@ class ExamineView(tk.Frame):
         # The 2nd buttons frame, ROIs and movements
         self.buttons_frame_2 = ButtonsFrame(self.specimen_control_frame,
                 ['Select ROIs', 'Measure movement', 'Zero correct', 'Copy to clipboard'],
-                [self.menu.specimen_commands.select_ROIs, self.menu.specimen_commands.measure_movement, self.menu.specimen_commands.antenna_level, self.specimen_traces_to_clipboard])
+                [self.menu.specimen_commands.select_ROIs, self.menu.specimen_commands.measure_movement, self.menu.specimen_commands.zero_correct, self.specimen_traces_to_clipboard])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_rois, self.button_measure, self.button_zero, self.copy_mean = self.buttons_frame_2.get_buttons()
         self.copy_mean.grid(row=1, column=0, columnspan=3, sticky='W')

@@ -184,7 +184,12 @@ class ImageFolderCommands(ModifiedMenuMaker):
     '''
     Commands for the currently selected image folder.
     '''
-    
+   
+    def _force_order(self):
+        return ['select_ROIs', 'measure_movement',
+                '.',
+                'max_of_the_mean_response']
+
     def max_of_the_mean_response(self):
         
         result = mean_max_response(self.core.analyser, self.core.selected_recording)
@@ -211,6 +216,12 @@ class SpecimenCommands(ModifiedMenuMaker):
     '''
     Commands for the currentlt selected specimen.
     '''
+
+    def _force_order(self):
+        return ['select_ROIs', 'measure_movement', 'zero_correct',
+                '.',
+                'mean_displacement_over_time',
+                '.']
 
     def select_ROIs(self):
         '''
@@ -244,7 +255,7 @@ class SpecimenCommands(ModifiedMenuMaker):
     
 
 
-    def antenna_level(self):
+    def zero_correct(self):
         '''
         Start antenna level search for the current specimen 
         '''
@@ -305,6 +316,17 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     Commands for all of the specimens in the current data directory.
     Usually involves a checkbox to select the wanted specimens.
     '''
+
+    def _force_order(self):
+        return ['measure_movements_DASH_list_all', 'measure_movements_DASH_list_only_unmeasured',
+                '.',
+                'averaged_vectormap_DASH_interactive_plot', 'averaged_vectormap_DASH_rotating_video',
+                'averaged_vectormap_DASH_rotating_video_DASH_set_title',
+                '.',
+                'comparision_to_optic_flow_DASH_video',
+                '.',
+                'create_specimens_group',
+                'link_ERG_data_from_labbook']
     
     def _batch_measure(self, specimens):
         targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]

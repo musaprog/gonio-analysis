@@ -30,7 +30,7 @@ import tkinter as tk
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, ColorExplanation
 from tk_steroids.matplotlib import CanvasPlotter
 
-from pupilanalysis.directories import PROCESSING_TEMPDIR
+from pupilanalysis.directories import PROCESSING_TEMPDIR, PUPILDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
 from pupilanalysis.tkgui.core import Core
@@ -207,6 +207,7 @@ class ExamineView(tk.Frame):
         
         self.tabs.grid(row=0, column=0, sticky='NWES')
 
+
         # Make canvas plotter to stretch
         self.rightside_frame.grid_rowconfigure(0, weight=1)
         self.rightside_frame.grid_columnconfigure(0, weight=1)
@@ -247,6 +248,10 @@ class ExamineView(tk.Frame):
         return colors
 
 
+    def copy_to_csv(self, formatted): 
+        with open(os.path.join(PUPILDIR, 'clipboard.csv'), 'w') as fp:
+            fp.write(formatted.replace('\t', ','))
+
 
     def specimen_traces_to_clipboard(self, mean=False):
         '''
@@ -254,6 +259,8 @@ class ExamineView(tk.Frame):
         Otherwise, copy all the traces of the fly.
         '''
 
+        formatted = '' 
+        
         # Always first clear clipboard; If something goes wrong, the user
         # doesn't want to keep pasting old data thinking it's new.
         self.root.clipboard_clear()
@@ -261,7 +268,6 @@ class ExamineView(tk.Frame):
         if self.core.selected_recording is None:
             return None
 
-        formatted = '' 
         data = []
 
         self.root.clipboard_append(formatted)
@@ -281,7 +287,8 @@ class ExamineView(tk.Frame):
             formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
         
         self.root.clipboard_append(formatted)
-       
+        self.copy_to_csv(formatted)       
+
 
 
     def copy_plotter_to_clipboard(self, force_i_tab=None):
@@ -291,6 +298,7 @@ class ExamineView(tk.Frame):
         force_i_tab         Copy from the specified tab index, instead of
                             the currently opened tab
         '''
+        formatted = ''
         
         # Always first clear clipboard; If something goes wrong, the user
         # doesn't want to keep pasting old data thinking it's new.
@@ -306,20 +314,20 @@ class ExamineView(tk.Frame):
         
         # Select data based on where we want to copy
         if i_tab == 0:
-            pass
+            data = self.plotter.image
         elif i_tab == 1:
             data = self.plotter.magnitudes
         elif i_tab == 2:
             data = self.plotter.xys
 
         # Format the data for tkinter clipboard copy
-        formatted = ''
         for i_frame in range(len(data[0])):
             formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
         
         self.root.clipboard_append(formatted)
-        
-        
+        self.copy_to_csv(formatted)
+
+
 
     def _color_recordings(self, recordings):
         '''

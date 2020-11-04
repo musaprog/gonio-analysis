@@ -312,6 +312,10 @@ class ExamineView(tk.Frame):
         else:
             i_tab = self.tabs.i_current
         
+        # Make sure we have the correct data in the plot by reissuing
+        # the plotting command
+        self.update_plot(i_tab)
+        
         # Select data based on where we want to copy
         if i_tab == 0:
             data = self.plotter.image

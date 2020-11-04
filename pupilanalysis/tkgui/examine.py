@@ -218,7 +218,7 @@ class ExamineView(tk.Frame):
 
         self.default_button_bg = self.button_rois.cget('bg')
 
-        self.plotter = RecordingPlotter()
+        self.plotter = RecordingPlotter(self.core)
                 
         # Add buttons for selecting single repeats from a recording
         self.repetition_selector = RepetitionSelector(self.rightside_frame, self.plotter,
@@ -414,8 +414,6 @@ class ExamineView(tk.Frame):
             #self.recording_box.enable()
             
         
-        self.plotter.set_analyser(self.core.analyser)
-        
         N_rois = self.core.analyser.count_roi_selected_folders()
         N_image_folders = len(self.core.analyser.list_imagefolders())
         self.status_rois.config(text='ROIs selected {}/{}'.format(N_rois, N_image_folders))
@@ -454,8 +452,6 @@ class ExamineView(tk.Frame):
         self.status_vertical.config(text='Vertical angle {:.2f} degrees'.format(vertical))
         
 
-        self.plotter.set_recording(selected_recording)
-        
         # Plotting only the view we have currently open
         self.update_plot(self.tabs.i_current)
         

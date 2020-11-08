@@ -1,8 +1,19 @@
 <h1>Pseudopupil analysis suite</h1>
-Specialized spatial motion analysis software for PupilImsoft data.
+Specialised spatial motion analysis software for Pupil Imsoft data.
+
+Can be used for data that follows hierarchy
+```
+data_directory
+├── specimen_01
+│   ├── experiment_01
+│   │   ├── image_001.tif
+│   │   └── image_002.tif
+│   └── ...
+└── ...
+```
 
 
-<h2>Installing</h2>
+<h2>Installing with pip</h2>
 
 The latest version from PyPi can be installed with the command
 
@@ -26,6 +37,11 @@ pip install --upgrade pupil-analysis
 To open the GUI from Python
 
 ```python
-import pupilanalysis.drosom.gui as gui
+import pupilanalysis.tkgui as gui
 gui.run()
+```
+
+or from command line
+```
+python -m pupilanalysis.tkgui
 ```

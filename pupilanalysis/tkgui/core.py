@@ -10,11 +10,22 @@ from pupilanalysis.directories import ANALYSES_SAVEDIR
 class Core:
     '''
     Tkinter independent functions, reusable for other GUI implementations.
+    
+    self.data_directory
+    self.current_specimen           Name of the current specimen
+    self.analyser                   MAnalyser object of the current specimen
+    self.selected_recording         Selected recording name (image_folder)
+
+
     '''
 
     def __init__(self):
-        pass
-
+        
+        self.data_directory = None
+        self.current_specimen = None
+        self.analyser = None
+        self.selected_recording = None
+        
 
     def set_data_directory(self, data_directory):
         '''
@@ -28,6 +39,11 @@ class Core:
         Update Core's knowledge about the currently selected specimen.
         '''
         self.current_specimen = specimen_name
+        self.analyser = self.get_manalyser(specimen_name)
+
+    
+    def set_selected_recording(self, selected_recording):
+        self.selected_recording = selected_recording
 
 
     def list_specimens(self, with_rois=None, with_movements=None, with_correction=None):
@@ -57,11 +73,6 @@ class Core:
         
         if with_correction is not None:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction() is not False]
-        
-
-        hidden = self.get_hidden()
-        
-        specimens = [specimen for specimen in specimens if not specimen in hidden.split(',')]
 
         return sorted(specimens)
 
@@ -122,24 +133,7 @@ class Core:
         
         subprocess.run(command, shell=True)
 
-    def set_hidden(self, hidestring):
-        '''
-        hidesting       "specimen1,specimen2,..."
-        '''
-        
-        hidelist = os.path.join(ANALYSES_SAVEDIR, 'hidelist.txt')
-        with open(hidelist, 'w') as fp:
-            fp.write(hidestring)
 
+    def update_gui(self, changed_specimens=False):
+        raise ValueError("GUI should overload update_gui method in Core core.py")
 
-    def get_hidden(self):
-        '''
-        Returns hidestring, see set_hidden for more.
-        '''
-        hidelist = os.path.join(ANALYSES_SAVEDIR, 'hidelist.txt')
-        try:
-            with open(hidelist, 'r') as fp:
-                line = fp.read()
-        except FileNotFoundError:
-            line = ''
-        return line

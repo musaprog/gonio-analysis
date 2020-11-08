@@ -21,12 +21,25 @@ class RecordingPlotter:
     -----------
     Attributes
     -----------
-    i_repeat        If
+    self.core
+        Reference to the Core instance
+    self.selected_recording
+        The recording currently plotted at the plotter
+    self.i_repeat
+        None if show all traces, otherwise the index of repeat to be shown
+    self.N_repeats
+        The total number of repeats in the image folder.
+
     '''
 
-    def __init__(self):
+    def __init__(self, core):
+        '''
+        core    An instance of the Core class in core.py
+        '''
+
+        self.core = core
         
-        self.analyser = None
+        # Keeps internally track of the current recording on plot
         self.selected_recording = None
 
         self.colorbar = None
@@ -35,35 +48,32 @@ class RecordingPlotter:
         self.N_repeats = 0
         self.i_repeat = None
 
-    def set_analyser(self, analyser):
-        '''
-        Set the current MAnalyser object.
-        Returns None
-        '''
-        self.analyser = analyser
 
+    def _check_recording(self):
+        '''
+        Check from core if the selected has changed.
+        '''
+        selected_recording = self.core.selected_recording
 
-    def set_recording(self, selected_recording):
-        '''
-        Set the current selected_recording, ie. the name of the image folder (string).
-        Returns None
-        '''
         if self.selected_recording != selected_recording:
             self.i_repeat = None
         
         self.selected_recording = selected_recording
-        if self.analyser.is_measured():
-            self.movement_data = self.analyser.get_movements_from_folder(selected_recording)
+        if self.core.analyser.is_measured():
+            self.movement_data = self.core.analyser.get_movements_from_folder(selected_recording)
             self.N_repeats = len(next(iter(self.movement_data.values())))
         else:
             self.movement_data = {}
             self.N_repeats = 0
     
 
+
     def magnitude(self, ax):
         '''
         Plot a displacement over time of the current specimen/recording.
         '''
+        self._check_recording()
+        
         self.magnitudes = []
         
         for eye, movements in self.movement_data.items():
@@ -90,6 +100,10 @@ class RecordingPlotter:
         '''
         Plot (x, y) where time is encoded by color.
         '''
+        self._check_recording()
+        
+        self.xys = []
+
         for eye, movements in self.movement_data.items():
             for repetition in range(len(movements)):
                 
@@ -109,7 +123,9 @@ class RecordingPlotter:
             
                 ax.scatter(x[0], y[0], color='black')
                 ax.scatter(x[-1], y[-1], color='gray')
-
+                
+            
+                self.xys.append([x, y])
 
 
         # Colormap
@@ -140,6 +156,8 @@ class RecordingPlotter:
         '''
         Plot specimen/recording image, and the ROIs and imaging parameters on top of it.
         '''
+        self._check_recording()
+        
         self.roi_ax = ax
         fig = ax.get_figure()
         
@@ -148,7 +166,7 @@ class RecordingPlotter:
         except AttributeError:
             self.slider_ax = fig.add_axes([0.2, 0, 0.6, 0.1])
 
-        image_fn = os.path.join(self.analyser.get_specimen_directory(), self.selected_recording, self.analyser.list_images(self.selected_recording)[0])
+        image_fn = os.path.join(self.core.analyser.get_specimen_directory(), self.selected_recording, self.core.analyser.list_images(self.selected_recording)[0])
         self.image = tifffile.imread(image_fn)
         
         try:
@@ -169,7 +187,7 @@ class RecordingPlotter:
         self.roi_rectangles = []
         
 
-        for roi in self.analyser.get_rois(self.selected_recording):
+        for roi in self.core.analyser.get_rois(self.selected_recording):
             patch = matplotlib.patches.Rectangle((roi[0], roi[1]), roi[2], roi[3],
                     fill=False, edgecolor='White')
             self.roi_rectangles.append(patch)
@@ -192,7 +210,7 @@ class RecordingPlotter:
         except AttributeError:
             self.roi_imshow = self.roi_ax.imshow(clipped, cmap='gray')
         
-        imaging_params = self.analyser.get_imaging_parameters(self.selected_recording)
+        imaging_params = self.core.analyser.get_imaging_parameters(self.selected_recording)
         if imaging_params:
             text = '\n'.join
         else:

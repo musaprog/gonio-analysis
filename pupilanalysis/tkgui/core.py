@@ -4,6 +4,7 @@ import subprocess
 import sys
 import platform
 
+from pupilanalysis.directories import CODE_ROOTDIR
 from pupilanalysis.drosom.analysing import MAnalyser
 from pupilanalysis.directories import ANALYSES_SAVEDIR
 
@@ -101,8 +102,7 @@ class Core:
 
        
         # 2) Find the full path to the adm Python file in the pupil root
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-        pyfile = os.path.join(root, 'drosom/terminal.py')
+        pyfile = os.path.join(CODE_ROOTDIR, 'drosom/terminal.py')
         
         # Check for spaces in the filename. If there are spaces in the filename,
         # we have to encapsulate the filename by quation marks

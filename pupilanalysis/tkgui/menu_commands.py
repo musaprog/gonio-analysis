@@ -330,7 +330,9 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     
     def _batch_measure(self, specimens):
         targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
-        MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement', callback_on_exit=self.core.update_gui)
+
+        MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement',
+                callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
 
 
     def measure_movements_DASH_list_all(self):

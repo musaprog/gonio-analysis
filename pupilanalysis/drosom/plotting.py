@@ -304,7 +304,7 @@ class MPlotter:
         avg = []
 
         for eye in ['left', 'right']:
-            traces = manalyser.getMagnitudeTraces(eye)
+            traces = manalyser.get_magnitude_traces(eye)
             
             for angle in traces:
                 print(np.max(traces[angle]))

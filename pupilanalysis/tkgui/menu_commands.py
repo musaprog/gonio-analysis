@@ -340,7 +340,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
     def measure_movements_DASH_list_only_unmeasured(self):
 
-        select_specimens(self._batch_measure, with_rois=True, with_movements=False)
+        select_specimens(self.core, self._batch_measure, with_rois=True, with_movements=False)
 
 
     def create_specimens_group(self):

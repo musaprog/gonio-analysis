@@ -234,7 +234,7 @@ class SpecimenCommands(ModifiedMenuMaker):
             if not sure:
                 return None
        
-        self.core.analyser.select_ROIs(callback_on_exit=self.core.update_gui)
+        self.core.analyser.select_ROIs(callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
 
 
 

@@ -234,7 +234,7 @@ class SpecimenCommands(ModifiedMenuMaker):
             if not sure:
                 return None
        
-        self.core.analyser.select_ROIs(callback_on_exit=self.core.update_gui)
+        self.core.analyser.select_ROIs(callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
 
 
 
@@ -330,7 +330,9 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     
     def _batch_measure(self, specimens):
         targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
-        MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement', callback_on_exit=self.core.update_gui)
+
+        MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement',
+                callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
 
 
     def measure_movements_DASH_list_all(self):
@@ -340,7 +342,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
     def measure_movements_DASH_list_only_unmeasured(self):
 
-        select_specimens(self._batch_measure, with_rois=True, with_movements=False)
+        select_specimens(self.core, self._batch_measure, with_rois=True, with_movements=False)
 
 
     def create_specimens_group(self):

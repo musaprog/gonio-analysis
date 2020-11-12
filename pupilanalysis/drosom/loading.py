@@ -89,6 +89,10 @@ def load_data(drosom_folder):
         files = os.listdir(os.path.join(drosom_folder, folder))
         tiff_files = [f for f in files if f.endswith('.tiff') or f.endswith('.tif')]
         
+        if len(tiff_files) == 0:
+            # Skip if no images in the folder
+            continue
+
         # FIXED sorting does not work becauce imsfot lasyness in indexing, no zero padding!!! :DDDDD
         tiff_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
             

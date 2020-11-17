@@ -23,6 +23,7 @@ Polishing
 import os
 import sys
 import ctypes
+import itertools
 
 import numpy as np
 import tkinter as tk
@@ -323,6 +324,8 @@ class ExamineView(tk.Frame):
             data = self.plotter.magnitudes
         elif i_tab == 2:
             data = self.plotter.xys
+            data = list(itertools.chain(*data))
+            
 
         # Format the data for tkinter clipboard copy
         for i_frame in range(len(data[0])):

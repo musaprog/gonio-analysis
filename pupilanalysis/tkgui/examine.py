@@ -31,6 +31,7 @@ import tkinter as tk
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, ColorExplanation
 from tk_steroids.matplotlib import CanvasPlotter
 
+from pupilanalysis import __version__
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PUPILDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
@@ -510,7 +511,7 @@ def main():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
     root = tk.Tk()
-    root.title('Pupil analysis - Tkinter GUI')
+    root.title('Pupil analysis - Tkinter GUI - {}'.format(__version__))
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
     root.minsize(800,600)

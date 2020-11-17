@@ -339,6 +339,9 @@ class MPlotter:
         animation           Sequence of (elevation, azimuth) points to create an
                                 animation of object rotation
         '''
+        
+        if animation:
+            animation = make_animation_angles()
 
         fig = plt.figure(figsize=(15,15))
         fig.canvas.set_window_title(manalyser.get_specimen_name())

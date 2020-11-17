@@ -8,7 +8,7 @@ from os import listdir
 from os.path import isdir, join
 
 
-from pupilanalysis.directories import CODE_ROOTDIR
+from pupilanalysis.directories import PUPILDIR
 from pupilanalysis.cli import simple_select
 
 class SpecimenGroups:
@@ -23,14 +23,18 @@ class SpecimenGroups:
 
     def load_groups(self):
         try:
-            with open(os.path.join(CODE_ROOTDIR, 'specimen_groups.txt'), 'r') as fp:
+            with open(os.path.join(PUPILDIR, 'specimen_groups.txt'), 'r') as fp:
                 self.groups = json.load(fp)
         except FileNotFoundError:
             print('No specimen groups')
 
     def save_groups(self):
-        with open(os.path.join(CODE_ROOTDIR, 'specimen_groups.txt'), 'w') as fp:
-            json.dump(self.groups, fp)
+        '''
+        Save groups but only if groups has some members (does not save an empty dict)
+        '''
+        if len(self.groups.keys()) >= 0:
+            with open(os.path.join(PUPILDIR, 'specimen_groups.txt'), 'w') as fp:
+                json.dump(self.groups, fp)
 
       
     def new_group(self, group_name, *specimens):

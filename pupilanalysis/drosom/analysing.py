@@ -899,53 +899,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return 0.010 # 10 ms -> 100 fps
 
 
-    def time_plot(self):
-        '''
-        Not sure anymore what this is but probably movement magnitude over time.
-
-        UPDATE
-        probably the magnitude of the movement as a function of ISI
-        '''
-
-        data = []
-        
-        for eye in ['left', 'right']:
-            for angle in self.movements[eye]:
-                data.extend(self.movements[eye][angle])
-
-        data.sort(key=lambda x: x['time'])
-        
-        for d in data:
-            print(d['time'])
-
-        X = [0]
-        #X.extend( [(datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S.%f')).total_seconds()
-        #    for i in range(1, len(data))] )
-        
-        for i in range(1, len(data)):
-            # We need these try blocks because sometimmes seconds are integer and we have no %f
-            try:
-                this_time = datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S.%f')
-            except ValueError:
-                this_time = datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S') 
-            try:
-                previous_time = datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S.%f')
-            except ValueError:
-                previous_time = datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S') 
-            
-            X.append((this_time-previous_time).total_seconds())
-
-        xx = [x['x'][-1]-x['x'][0] for x in data]
-        yy = [x['y'][-1]-x['y'][0] for x in data]
-        Z = [math.sqrt(x**2+y**2) for (x,y) in zip(xx, yy)]
-        
-        print(X)
-        print(Z)
-
-        plt.scatter(X, Z)
-        plt.show()
-
-
     def get_time_ordered(self):
         '''
         Get images, ROIs and angles, ordered in recording time for movie making.

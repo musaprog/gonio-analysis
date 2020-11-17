@@ -220,6 +220,8 @@ class SpecimenCommands(ModifiedMenuMaker):
     def _force_order(self):
         return ['select_ROIs', 'measure_movement', 'zero_correct',
                 '.',
+                'measure_movement_DASH_in_absolute_coordinates',
+                '.',
                 'mean_displacement_over_time',
                 '.']
 
@@ -238,7 +240,7 @@ class SpecimenCommands(ModifiedMenuMaker):
 
 
 
-    def measure_movement(self):
+    def measure_movement(self, absolute_coordinates=False):
         '''
         Run Movemeter (cross-correlation) on the specimen.
         '''
@@ -249,10 +251,13 @@ class SpecimenCommands(ModifiedMenuMaker):
             if not sure:
                 return None
         
-        func = self.core.analyser.measure_both_eyes
+        func = lambda: self.core.analyser.measure_both_eyes(absolute_coordinates=absolute_coordinates)
         
         MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
     
+
+    def measure_movement_DASH_in_absolute_coordinates(self):
+        self.measure_movement(absolute_coordinates=True)
 
 
     def zero_correct(self):
@@ -319,6 +324,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
     def _force_order(self):
         return ['measure_movements_DASH_list_all', 'measure_movements_DASH_list_only_unmeasured',
+                'measure_movements_DASH_in_absolute_coordinates',
                 '.',
                 'averaged_vectormap_DASH_interactive_plot', 'averaged_vectormap_DASH_rotating_video',
                 'averaged_vectormap_DASH_rotating_video_DASH_set_title',
@@ -328,8 +334,11 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 'create_specimens_group',
                 'link_ERG_data_from_labbook']
     
-    def _batch_measure(self, specimens):
-        targets = [self.core.get_manalyser(specimen).measure_both_eyes for specimen in specimens]
+    def _batch_measure(self, specimens, absolute_coordinates=False):
+        
+        # Here lambda requires specimen=specimen keyword argument; Otherwise only
+        # the last specimen gets analysed N_specimens times
+        targets = [lambda specimen=specimen: self.core.get_manalyser(specimen).measure_both_eyes(absolute_coordinates=absolute_coordinates) for specimen in specimens]
 
         MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement',
                 callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
@@ -343,6 +352,12 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     def measure_movements_DASH_list_only_unmeasured(self):
 
         select_specimens(self.core, self._batch_measure, with_rois=True, with_movements=False)
+
+    
+    def measure_movements_DASH_in_absolute_coordinates(self):
+        func = lambda specimens: self._batch_measure(specimens, absolute_coordinates=True)
+        select_specimens(self.core, func, with_rois=True, with_movements=False)
+
 
 
     def create_specimens_group(self):

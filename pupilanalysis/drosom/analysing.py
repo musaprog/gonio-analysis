@@ -767,7 +767,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             self.measure_movement(eye, **kwargs)
 
 
-    def measure_movement(self, eye, only_folders=None):
+    def measure_movement(self, eye, only_folders=None,
+            max_movement=30, absolute_coordinates=False):
         '''
         Performs cross-correlation analysis for the selected pseudopupils (ROIs, regions of interest)
         using Movemeter package.
@@ -778,6 +779,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         INPUT ARGUMENTS         DESCRIPTION
         eye                     'left' or 'right'
         only_folders            Analyse only image folders in the given list (that is only_folders).
+        max_movement            Maximum total displacement in x or y expected. Lower values faster.
+        absolute_coordinates    Return movement values in absolute image coordinates
 
         Cross-correlation analysis is the slowest part of the DrosoM pipeline.
         '''
@@ -833,7 +836,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
             # Old upscale was 4
-            meter = Movemeter(upscale=10)
+            meter = Movemeter(upscale=10, absolute_results=absolute_coordinates)
             meter.set_data(stacks, ROIs)
             
             for stack_i, angle in enumerate(angles):
@@ -848,20 +851,18 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 print('Analysing {} eye pseudopupil motion from position {}, done {}/{} for this eye'.format(eye.upper(), angle, stack_i+1, len(ROIs)))
 
                 print("Calculating ROI's movement...")
-                x, y = meter.measure_movement(stack_i, max_movement=15)[0]
+                x, y = meter.measure_movement(stack_i, max_movement=max_movement)[0]
                 
                 print('Done.')
                 
-                # Failsafe for crazy values
-                if not max(np.max(np.abs(x)), np.max(np.abs(y))) > 100:
-                    try:
-                        self.movements[angle]
-                    except KeyError:
-                        self.movements[angle] = []
-                    
-                    tags = meter.get_metadata(stack_i)['Image ImageDescription'].values.split('"')
-                    time = tags[tags.index('start_time') + 2]
-                    self.movements[angle].append({'x': x, 'y':y, 'time': time})
+                try:
+                    self.movements[angle]
+                except KeyError:
+                    self.movements[angle] = []
+                
+                tags = meter.get_metadata(stack_i)['Image ImageDescription'].values.split('"')
+                time = tags[tags.index('start_time') + 2]
+                self.movements[angle].append({'x': x, 'y':y, 'time': time})
         else:
             self.movements = {}
             

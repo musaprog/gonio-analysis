@@ -9,9 +9,6 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Plotting 3D in matplotlib
-from mpl_toolkits.mplot3d import Axes3D
-
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupilanalysis.droso import DrosoSelect
 from pupilanalysis.antenna_level import AntennaLevelFinder
@@ -19,7 +16,6 @@ from pupilanalysis.drosom.analysing import MAnalyser, MAverager
 from pupilanalysis.drosom.orientation_analysis import OAnalyser
 from pupilanalysis.drosom.plotting import MPlotter, complete_flow_analysis, error_at_flight
 import pupilanalysis.drosom.plotting as plotting
-from pupilanalysis.drosom.optic_flow import flow_direction, flow_vectors, field_error
 from pupilanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
 from pupilanalysis.drosom.special.paired import cli_group_and_compare
 import pupilanalysis.drosom.reports as reports

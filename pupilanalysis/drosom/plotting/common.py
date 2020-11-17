@@ -13,7 +13,7 @@ CURRENT_ARROW_LENGTH = 1
 
 VECTORMAP_PULSATION_PARAMETERS = {'step_size': 0.02, 'low_val': 0.33, 'high_val': 1}
 
-       
+
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, x0, y0, z0, x1, y1, z1, *args, **kwargs):
@@ -25,6 +25,35 @@ class Arrow3D(FancyArrowPatch):
         xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
         self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
         FancyArrowPatch.draw(self, renderer)
+
+
+
+def make_animation_angles():
+    '''
+    Returns the matplotlib angles to rotate a 3D plot
+    
+    This really shouldnt be here...
+    '''
+
+    animation = []
+    step = 0.5 # old 0.5
+    sidego = 30
+    # go up, to dorsal
+    for i in np.arange(-30,60,step):
+        animation.append((i,90))
+    #rotate azim
+    for i in np.arange(90,90+sidego,step*2):
+        animation.append((60,i))
+    # go back super down, to ventral
+    for i in np.arange(0,120,step):
+        animation.append((60-i,90+sidego))
+    # rotate -azim
+    for i in np.arange(0,2*sidego,step*2): 
+        animation.append((-60,90+sidego-i))
+    # go up back to dorsal
+    for i in np.arange(0,120, step):
+        animation.append((-60+i,90-sidego))
+    return animation
 
 
 

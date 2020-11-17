@@ -16,7 +16,8 @@ from pupilanalysis.antenna_level import AntennaLevelFinder
 from pupilanalysis.drosom.analysing import MAnalyser, MAverager
 from pupilanalysis.drosom.orientation_analysis import OAnalyser
 from pupilanalysis.drosom import plotting
-from pupilanalysis.drosom.plotting import MPlotter, complete_flow_analysis, error_at_flight
+from pupilanalysis.drosom.plotting.plotter import MPlotter
+from pupilanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
 from pupilanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
 from pupilanalysis.drosom.special.paired import cli_group_and_compare
 import pupilanalysis.drosom.reports as reports
@@ -141,7 +142,9 @@ def main():
 
     parser.add_argument('--reverse-directions',
             help='Reverse movement directions')
-
+    
+    # Other settings
+    parser.add_argument('--tk_waiting_window', help='(internal) Launches a tkinter waiting window')
 
     # Different analyses for separate specimens
 
@@ -180,7 +183,7 @@ def main():
         selector = DrosoSelect()
         directories = selector.parse_specimens(args.specimens)
     else:
-        selector = DrosoSelect()
+        selector = DrosoSelect(datadir=data_directory)
         directories = selector.ask_user()
      
         analysers = []
@@ -226,7 +229,7 @@ def main():
         analysers = [avg_analyser]
     
     
-    function = args.analysis()
+    function = analyses[args.analysis]
     
     for analyser in analysers:
         function(analyser)

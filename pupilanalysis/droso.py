@@ -101,7 +101,7 @@ class DrosoSelect:
             # 2) Otherwise first try if indices to self.folders
             try:
                 sel_indices = [int(i) for i in user_input.split(',')]
-                selections = [folders[i] for i in sel_indices]
+                selections = [self.filt_folders[i] for i in sel_indices]
             except IndexError:
                 print('One of the given numbers goes over limits, try again.')
             
@@ -140,8 +140,10 @@ class DrosoSelect:
         available_commands = ['new_group', 'list_groups', ]
 
         # Filtering of folders based on their name: startswith, endswith, and contains
-        folders = [f for f in self.folders if
+        self.filt_folders = [f for f in self.folders if
                 os.path.split(f)[1].startswith(startswith) and os.path.split(f)[1].endswith(endswith) and contains in os.path.split(f)[1]]
+        
+        folders = self.filt_folders
 
         print('\nSelect a Droso folder (give either number or drosoname, to select many comma split)')
         for i, folder in enumerate(folders):

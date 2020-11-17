@@ -13,12 +13,14 @@ from pupilanalysis.directories import ANALYSES_SAVEDIR
 from pupilanalysis.drosom.optic_flow import flow_direction
 
 
+from .common import make_animation_angles, vector_plot
+
+
 class MPlotter:
 
  
     def __init__(self):
         
-        self.plots = {}
         self.savedir = os.path.join(ANALYSES_SAVEDIR, 'mplots')
         os.makedirs(self.savedir, exist_ok=True)
     
@@ -26,46 +28,7 @@ class MPlotter:
         self.magnitude_1d_figax = None
 
 
-    def save(self):
-        '''
-        Saves all the plots made to the analysis savedirectory.
-        '''
 
-        for plot_name in self.plots:
-            fn = os.path.join(self.savedir, plot_name)
-            self.plots[plot_name]['fig'].savefig(fn+'.svg', format='svg')
-
-    def setLimits(self, limit):
-        '''
-        Sets all the plots to the same limits
-
-        limit       'common', 'individual' or to set fixed for all: (min_hor, max_hor, min_pit, max_pit)
-        '''
-
-        if len(limit) == 4:
-            limit = tuple(limit)
-        
-        elif limit == 'common':
-            
-            manalysers = [self.plots[plot_name]['manalyser'] for plot_name in self.plots]
-
-            limits = [1000, -1000, 1000, -1000]
-            
-            for manalyser in manalysers:
-                for eye in ['left', 'right']:
-                    angles, X, Y = manalyser.get2DVectors(eye)
-                    horizontals, pitches = zip(*angles)
-                    
-                    #print(horizontals)
-                    limits[0] = min(limits[0], np.min(horizontals))
-                    limits[1] = max(limits[1], np.max(horizontals))
-                    limits[2] = min(limits[2], np.min(pitches))
-                    limits[3] = max(limits[3], np.max(pitches))
-        
-        for ax in [self.plots[plot_name]['ax'] for plot_name in self.plots]:
-            ax.set_xlim(limits[0]-10, limits[1]+10)
-            ax.set_ylim(limits[2]-10, limits[3]+10)
-    
     def displacement_over_time(self, manalyser):
         
         displacement_traces = []
@@ -180,10 +143,8 @@ class MPlotter:
         for key in ['top', 'right']:
             ax.spines[key].set_visible(False)
        
-        plot_name = 'direction2D_{}'.format(manalyser.getFolderName())
-        self.plots[plot_name] = {'fig': fig, 'ax': ax, 'manalyser': manalyser}
+   
 
-    
     def plot_1d_magnitude_from_folder(self, manalyser, image_folder):
         '''
         Plots 1D displacement magnitude over time.

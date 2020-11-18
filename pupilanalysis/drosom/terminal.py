@@ -94,37 +94,40 @@ def main(custom_args=None):
     parser.add_argument('-D', '--data_directory', nargs=1,
             help='Data directory')
 
-    parser.add_argument('-S', '--specimens', nargs='+',
-            help='Names of specimens')
+    parser.add_argument('-S', '--specimens', nargs=1,
+            help='Comma separeted list of specimen names')
 
     
 
     # Analyser settings
-    parser.add_argument('-a', '--average',
+    parser.add_argument('-a', '--average', action='store_true',
             help='Average and interpolate the results over the specimens')
 
     parser.add_argument('-t', '--type', default='motion', choices=['motion', 'orientation'],
             help='Analyser type, either "motion" or "orientation"')
     
-    parser.add_argument('-r', '--reselect-rois',
+    parser.add_argument('-r', '--reselect-rois', action='store_true',
             help='Reselect ROIs')
  
-    parser.add_argument('-R', '--recalculate-movements',
+    parser.add_argument('-R', '--recalculate-movements', action='store_true',
             help='Recalculate with Movemeter')
 
-    parser.add_argument('--reverse-directions',
+    parser.add_argument('--reverse-directions', action='store_true',
             help='Reverse movement directions')
     
     # Other settings
-    parser.add_argument('--tk_waiting_window', help='(internal) Launches a tkinter waiting window')
+    parser.add_argument('--tk_waiting_window', action='store_true',
+            help='(internal) Launches a tkinter waiting window')
+    parser.add_argument('--unittest', action='store_true',
+            help='Skips showing the plots')
 
     # Different analyses for separate specimens
 
-    parser.add_argument('analysis', metavar='ANALYSIS',
+    parser.add_argument('analysis', metavar='analysis',
             choices=analyses.keys(),
             help='Analysis method or action. Allowed analyses are '+', '.join(analyses.keys()))
 
-    args = parser.parse_args()
+    args = parser.parse_args(custom_args)
     
 
 
@@ -136,9 +139,9 @@ def main(custom_args=None):
     # Getting the data directory
     # --------------------------
     if args.data_directory:
-        print('Using data directory {}'.format(args.data_directory))
+        print('Using data directory {}'.format(args.data_directory[0]))
         
-        data_directory = args.data_directory
+        data_directory = args.data_directory[0]
     else:
         data_directory = input('Data directory >> ')
     
@@ -152,17 +155,16 @@ def main(custom_args=None):
     if args.specimens:
         print('Using specimens {}'.format(args.specimens))
 
-        selector = DrosoSelect()
-        directories = selector.parse_specimens(args.specimens)
+        selector = DrosoSelect(datadir=data_directory)
+        directories = selector.parse_specimens(args.specimens[0])
     else:
         selector = DrosoSelect(datadir=data_directory)
         directories = selector.ask_user()
      
-        analysers = []
             
     # Setting up analysers
     # ---------------------
-    
+    analysers = []
     Analyser = Analysers[args.type]
 
     for directory in directories: 
@@ -209,7 +211,8 @@ def main(custom_args=None):
     if args.tk_waiting_window:
         self.waiting_window.close()
 
-    plt.show()
+    if not args.unittest:
+        plt.show()
 
 
 if __name__ == "__main__":

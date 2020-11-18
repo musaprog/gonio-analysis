@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
+from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS as analyses
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupilanalysis.droso import DrosoSelect
 from pupilanalysis.antenna_level import AntennaLevelFinder
@@ -22,8 +23,14 @@ from pupilanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
 from pupilanalysis.drosom.special.paired import cli_group_and_compare
 import pupilanalysis.drosom.reports as reports
 
+
 if 'tk_waiting_window' in sys.argv:
     from .gui.waiting_window import WaitingWindow
+
+
+
+Analysers = {'orientation': OAnalyser, 'motion': MAnalyser}
+
 
 
 def roimovement_video(analyser):
@@ -75,46 +82,11 @@ def export_optic_flow():
 
 
          
-def main():
+def main(custom_args=None):
     
-    plotter = MPlotter()
+    if custom_args is None:
+        custom_args = sys.argv[1:]
     
-
-    Analysers = {'orientation': OAnalyser, 'motion': MAnalyser}
-
-
-    # Functions that take only one input argument that is the MAnalyser
-    analyses = {}
-    analyses['vectormap'] = plotter.plot_3d_vectormap
-    analyses['vectormap_mayavi'] = plotter.plot_3d_vectormap_mayavi
-    analyses['vectormap_video'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)
-    analyses['magtrace'] = plotter.plotTimeCourses
-    analyses['2d_vectormap'] =  plotter.plotDirection2D
-    analyses['trajectories'] = plotter.plot_2d_trajectories
-    analyses['2dmagnitude'] = plotter.plotMagnitude2D
-
-    # Analyser + image_folder
-    #analyses['1dmagnitude'] = plotter.plot_1d_magnitude_from_folder
-
-    analyses['illustrate_experiments_video'] = plotting.illustrate_experiments
-    analyses['norpa_rescue_manyrepeats'] = norpa_rescue_manyrepeats
-    analyses['compare_paired'] = cli_group_and_compare
-    analyses['left_right_summary'] = reports.left_right_summary
-    analyses['pdf_summary'] = reports.pdf_summary
-    
-    rotations = np.linspace(-180,180, 360)
-    analyses['flow_analysis_yaw'] = lambda analyser: complete_flow_analysis(analyser, rotations, 'yaw')
-    analyses['flow_analysis_roll'] = lambda analyser: complete_flow_analysis(analyser, rotations, 'roll')
-    analyses['flow_analysis_pitch'] = lambda analyser: complete_flow_analysis(analyser, rotations, 'pitch')
-
-    analyses['error_at_flight'] = error_at_flight
-    
-    analyses['export_vectormap'] = lambda analyser: analyser.export_3d_vectors()
-
-
-
-   
-
     parser = argparse.ArgumentParser(description=__doc__)
     
     

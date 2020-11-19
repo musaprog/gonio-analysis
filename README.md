@@ -1,4 +1,4 @@
-<h1>Pseudopupil analysis suite</h1>
+<h1>Pseudopupil Analysis suite</h1>
 Specialised spatial motion analysis software for Pupil Imsoft data.
 
 Can be used for data that follows hierarchy
@@ -13,9 +13,21 @@ data_directory
 ```
 
 
-<h2>Installing with pip</h2>
+<h2>Installing</h2>
 
-The latest version from PyPi can be installed with the command
+<h3>Installer on Windows (easiest)</h3>
+
+Windows installers that bundle together Pseudopupil Analysis and all its depencies,
+including a complete Python runtime, are provided at
+[Releases](https://github.com/jkemppainen/pupil-analysis/releases).
+
+The installer creates a start menu shorcut.
+
+Use <em>Add or Remove programs</em> to uninstall.
+
+<h3>Using pip (the python standard way)</h3>
+
+The latest version from [PyPi](https://pypi.org/) can be installed with the command
 
 ```
 pip install pupil-analysis
@@ -25,14 +37,17 @@ This should install all the required dependencies, except when on Windows, OpenC
 [Visual C++ Runtime 2015](https://www.microsoft.com/download/details.aspx?id=48145) to be installed.
 
 
-Then to upgrade an existing installation to the latest version
+Afterwards, to upgrade an existing installation to the latest version
 
 ```
 pip install --upgrade pupil-analysis
 ```
 
+In case of regressions, a specific version of the suite (for example 0.1.2) can be installed
 
-<h2>Graphical user interface (GUI)</h2>
+```
+pip install pupil-analysis==0.1.2
+```
 
 To open the GUI from Python
 

@@ -45,6 +45,8 @@ def fetch_wheels():
 
 def build(pupilversion, pythonversion):
     
+    os.system('get_tkdeps.py')
+    
     fetch_wheels()
     wheels = [os.path.join('wheels', fn) for fn in os.listdir('wheels') if fn.endswith('.whl')]
     

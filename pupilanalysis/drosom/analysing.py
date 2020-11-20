@@ -1054,20 +1054,88 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
             
-    def get_magnitude_traces(self, eye):
+    def get_magnitude_traces(self, eye, image_folder=None,
+            mean_repeats=False, mean_imagefolders=False):
         '''
-        Return a dictionary of movement magnitudes over time.
-        Keys are the angle pairs.  
-        '''
-        magnitude_traces = {}
+        Get all movement magnitudes (sqrt(x**2+y**2)) from the specified eye.
+        The results are returned as a dictionary where the keys are the
+        angle pairs (self.movements keys)
 
-        for angle in self.movements[eye]:
-            x = self.movements[eye][angle][0]['x']
-            y = self.movements[eye][angle][0]['y']
+        eye : string or None
+            "left" or "right".
+            None leads to taking mean where eyes overlap
+        image_folder : string
+            If specified, return movements from this image folder.
+            Otherwise by default None, movements from all image folders.
+        mean_repeats : bool
+            Wheter take mean of the mean repeats.
+        mean_imagefolders : bool
+            Only makes sense when image_folder is None
+        mean_eyes : bool
+            Only makes sense when eye is None
+
+        Returns
+            if mean_repeats == True
+                magnitude_traces = {angle_01: [mag_mean], ...}
+            if mean_repeats == False
+                magnitude_traces = {angle_01: [mag_rep1, mag_rep2,...], ...}
             
+            if mean_imagefolders, there's only one key 'mean'
 
-            mag = np.sqrt(np.asarray(x)**2 + np.asarray(y)**2)
-            magnitude_traces[angle] = mag
+        '''
+        alleye_magnitude_traces = {}
+        
+        if eye is None:
+            eyes = self.eyes
+        else:
+            eyes = [eye]
+
+        if image_folder is None:
+            movement_keys = set().union(*[list(self.movements[eye].keys()) for eye in eyes])
+        else:
+            movement_keys = [image_folder]
+        
+        for eye in eyes:
+            magnitude_traces = {}
+            for angle in self.movements[eye]:
+
+                magnitude_traces[angle] = []
+                
+                for i_repeat in range(len(self.movements[eye])):
+                    x = self.movements[eye][angle][i_repeat]['x']
+                    y = self.movements[eye][angle][i_repeat]['y']
+
+                    mag = np.sqrt(np.asarray(x)**2 + np.asarray(y)**2)
+                    magnitude_traces[angle].append( mag )
+                
+                if mean_repeats:
+                    magnitude_traces[angle] = [np.mean(magnitude_traces[angle], axis=0)]
+
+            if mean_imagefolders:
+                tmp = np.mean([val for val in magnitude_traces.values()], axis=0)
+                
+                magnitude_traces = {}
+                magnitude_traces['imagefoldersmean'] = tmp
+
+            alleye_magnitude_traces[eye] = magnitude_traces
+
+        
+
+
+        if len(eyes) > 1:
+            merge = {}
+            # Merge (mean) eyes where one imagefolder hols data from both eyes
+
+            angles = [list(val.keys()) for val in alleye_magnitude_traces.values()]
+            angles = set().union(*angles)
+            
+            for angle in angles:
+                data = [alleye_magnitude_traces[eye].get(angle, None) for eye in eyes]
+                data = [d for d in data if d is not None]
+                merge[angle] = np.mean(data, axis=0)
+
+            
+            magnitude_traces = merge
 
         return magnitude_traces
 

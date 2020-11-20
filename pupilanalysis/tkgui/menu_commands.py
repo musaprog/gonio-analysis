@@ -14,7 +14,7 @@ import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 import tkinter.simpledialog as simpledialog
 
-from tk_steroids.elements import TickSelect
+from tk_steroids.dialogs import TickSelect
 from tk_steroids.menumaker import MenuMaker
 
 import pupilanalysis

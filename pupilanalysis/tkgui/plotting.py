@@ -10,6 +10,7 @@ import tifffile
 
 from tk_steroids.matplotlib import CanvasPlotter
 
+from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
 
 class RecordingPlotter:
     '''
@@ -49,7 +50,7 @@ class RecordingPlotter:
         self.i_repeat = None
 
 
-    def _check_recording(self):
+    def _check_recording(self, skip_datafetch=False):
         '''
         Check from core if the selected has changed.
         '''
@@ -59,41 +60,29 @@ class RecordingPlotter:
             self.i_repeat = None
         
         self.selected_recording = selected_recording
-        if self.core.analyser.is_measured():
-            self.movement_data = self.core.analyser.get_movements_from_folder(selected_recording)
-            self.N_repeats = len(next(iter(self.movement_data.values())))
-        else:
-            self.movement_data = {}
-            self.N_repeats = 0
-    
+
+        if not skip_datafetch:
+            if self.core.analyser.is_measured():
+                self.movement_data = self.core.analyser.get_movements_from_folder(selected_recording)
+                self.N_repeats = len(next(iter(self.movement_data.values())))
+                pass
+            else:
+                self.movement_data = {}
+                self.N_repeats = 0
+        
 
 
     def magnitude(self, ax):
         '''
         Plot a displacement over time of the current specimen/recording.
         '''
-        self._check_recording()
+        self._check_recording(skip_datafetch=True)
         
-        self.magnitudes = []
-        
-        for eye, movements in self.movement_data.items():
-            for repetition in range(len(movements)):
-                
-                if (self.i_repeat is not None) and self.i_repeat != repetition:
-                    continue
-
-                mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
-                ax.plot(mag, label=str(repetition))
-                
-                self.magnitudes.append(mag)
-        
-        
-        ax.legend(fontsize='xx-small', labelspacing=0.1, ncol=int(self.N_repeats/10)+1, loc='upper left')    
-        
-        ax.set_xlabel('Frame')
-        ax.set_ylabel('Displacement sqrt(x^2+y^2) (pixels)')
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
+        ax, self.magnitudes, N_repeats = plot_1d_magnitude(self.core.analyser,
+                self.selected_recording,
+                i_repeat=self.i_repeat,
+                label='EYE-repIREPEAT',
+                ax=ax)
 
  
     def xy(self, ax):

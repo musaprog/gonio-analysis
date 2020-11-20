@@ -1093,15 +1093,19 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         if image_folder is None:
             movement_keys = set().union(*[list(self.movements[eye].keys()) for eye in eyes])
         else:
-            movement_keys = [image_folder]
+            movement_keys = [image_folder[3:]]
         
         for eye in eyes:
             magnitude_traces = {}
-            for angle in self.movements[eye]:
+            for angle in movement_keys:
+                
+                if self.movements[eye].get(angle, None) is None:
+                    # Continue if data for this eye
+                    continue
 
                 magnitude_traces[angle] = []
                 
-                for i_repeat in range(len(self.movements[eye])):
+                for i_repeat in range(len(self.movements[eye][angle])):
                     x = self.movements[eye][angle][i_repeat]['x']
                     y = self.movements[eye][angle][i_repeat]['y']
 
@@ -1110,6 +1114,10 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 
                 if mean_repeats:
                     magnitude_traces[angle] = [np.mean(magnitude_traces[angle], axis=0)]
+
+            if magnitude_traces == {}:
+                # If nothing for this eye
+                continue
 
             if mean_imagefolders:
                 tmp = np.mean([val for val in magnitude_traces.values()], axis=0)

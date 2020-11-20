@@ -65,7 +65,11 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
                 N_repeats += 1
                 
                 if label:
-                    _label = label.replace('EYE', eye).replace('ANGLE', angle).replace('IREPEAT', str(_i_repeat))
+                    if eye is None:
+                        eyename = '+'.join(manalyser.eyes)
+                    else:
+                        eyename = eye
+                    _label = label.replace('EYE', eyename).replace('ANGLE', str(angle)).replace('IREPEAT', str(_i_repeat))
                 else:
                     _label = ''
 

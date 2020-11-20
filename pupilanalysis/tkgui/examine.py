@@ -23,6 +23,7 @@ Polishing
 import os
 import sys
 import ctypes
+import itertools
 
 import numpy as np
 import tkinter as tk
@@ -30,6 +31,7 @@ import tkinter as tk
 from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, ColorExplanation
 from tk_steroids.matplotlib import CanvasPlotter
 
+from pupilanalysis import __version__
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PUPILDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
@@ -323,6 +325,8 @@ class ExamineView(tk.Frame):
             data = self.plotter.magnitudes
         elif i_tab == 2:
             data = self.plotter.xys
+            data = list(itertools.chain(*data))
+            
 
         # Format the data for tkinter clipboard copy
         for i_frame in range(len(data[0])):
@@ -507,7 +511,7 @@ def main():
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
     root = tk.Tk()
-    root.title('Pupil analysis - Tkinter GUI')
+    root.title('Pupil analysis - Tkinter GUI - {}'.format(__version__))
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
     root.minsize(800,600)

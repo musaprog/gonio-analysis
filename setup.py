@@ -7,7 +7,9 @@ with open("README.md", "r") as fh:
 exec(open("pupilanalysis/version.py").read())
 
 install_requires = [
-        'numpy',
+        # As a workaround for a recent Windows numpy bug, do not use 1.19.4 or later for now 
+        #https://developercommunity.visualstudio.com/content/problem/1207405/fmod-after-an-update-to-windows-2004-is-causing-a.html?page=2&pageSize=10&sort=votes&type=problem
+        'numpy<=1.19.3',
         'scipy',
         'tifffile',
         'matplotlib',

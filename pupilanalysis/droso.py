@@ -8,7 +8,7 @@ from os import listdir
 from os.path import isdir, join
 
 
-from pupilanalysis.directories import CODE_ROOTDIR
+from pupilanalysis.directories import PUPILDIR
 from pupilanalysis.cli import simple_select
 
 class SpecimenGroups:
@@ -23,14 +23,18 @@ class SpecimenGroups:
 
     def load_groups(self):
         try:
-            with open(os.path.join(CODE_ROOTDIR, 'specimen_groups.txt'), 'r') as fp:
+            with open(os.path.join(PUPILDIR, 'specimen_groups.txt'), 'r') as fp:
                 self.groups = json.load(fp)
         except FileNotFoundError:
             print('No specimen groups')
 
     def save_groups(self):
-        with open(os.path.join(CODE_ROOTDIR, 'specimen_groups.txt'), 'w') as fp:
-            json.dump(self.groups, fp)
+        '''
+        Save groups but only if groups has some members (does not save an empty dict)
+        '''
+        if len(self.groups.keys()) >= 0:
+            with open(os.path.join(PUPILDIR, 'specimen_groups.txt'), 'w') as fp:
+                json.dump(self.groups, fp)
 
       
     def new_group(self, group_name, *specimens):
@@ -70,6 +74,59 @@ class DrosoSelect:
         self.folders = [os.path.join(self.path, fn) for fn in folders]
  
         self.groups = SpecimenGroups()
+    
+
+    def parse_specimens(self, user_input):
+        '''
+        Parse user input to get manalyser names.
+
+        Arguments
+        ---------
+        *user_input : string
+            Comma separated list of specimen names or indices of self.folders,
+            or a group name.
+        
+        Raises ValueError if unable to parse.
+        '''
+        
+        # 1) If user supplies a specimen group name
+        if user_input in self.groups.get_groups().keys():
+            user_input = ','.join(self.groups.get_specimens(user_input))
+
+            sel_keys = [os.path.basename(x) for x in user_input.split(',')]
+            selections = [folder for folder in self.folders if os.path.basename(folder) in sel_keys]
+            
+            if len(selections) == len(sel_keys):
+                print('Selecting by group.')
+            else:
+                print('Group is invalid; Specified specimens do not exist')
+         
+        else:
+            # 2) Otherwise first try if indices to self.folders
+            try:
+                sel_indices = [int(i) for i in user_input.split(',')]
+                selections = [self.filt_folders[i] for i in sel_indices]
+            except IndexError:
+                print('One of the given numbers goes over limits, try again.')
+            
+            # 3) Next try if specifying by specimen names
+            except ValueError:
+                print('Not number values given, trying with base names')
+                
+                sel_keys = [os.path.basename(x) for x in user_input.split(',')]
+                selections = [folder for folder in self.folders if os.path.basename(folder) in sel_keys]
+                
+                if len(selections) == len(sel_keys):
+                    print('Worked.')
+                else:
+                    print('Did not work, try again.')
+        
+        try:
+            selections
+        except:
+            ValueError("parse_specimens unable to process {}".format(user_input))
+
+        return selections
         
 
     def ask_user(self, startswith='', endswith='', contains=''):
@@ -87,8 +144,10 @@ class DrosoSelect:
         available_commands = ['new_group', 'list_groups', ]
 
         # Filtering of folders based on their name: startswith, endswith, and contains
-        folders = [f for f in self.folders if
+        self.filt_folders = [f for f in self.folders if
                 os.path.split(f)[1].startswith(startswith) and os.path.split(f)[1].endswith(endswith) and contains in os.path.split(f)[1]]
+        
+        folders = self.filt_folders
 
         print('\nSelect a Droso folder (give either number or drosoname, to select many comma split)')
         for i, folder in enumerate(folders):
@@ -109,41 +168,13 @@ class DrosoSelect:
                 self.groups.new_group(*splitted[1:])
             elif splitted[0] == 'list_groups':
                 print(self.groups.get_groups())
-            
-            elif user_input in self.groups.get_groups().keys():
-                user_input = ','.join(self.groups.get_specimens(user_input))
-
-                sel_keys = [os.path.basename(x) for x in user_input.split(',')]
-                selections = [folder for folder in self.folders if os.path.basename(folder) in sel_keys]
-                
-                if len(selections) == len(sel_keys):
-                    print('Selecting by group.')
-                    break
-                else:
-                    print('Group is invalid; Specified specimens do not exist')
-             
-
             else:
-
                 try:
-                    sel_indices = [int(i) for i in user_input.split(',')]
-                    selections = [folders[i] for i in sel_indices]
+                    selections = self.parse_specimens(user_input)
                     break
-                except IndexError:
-                    print('One of the given numbers goes over limits, try again.')
                 except ValueError:
-                    
-                    print('Not number values given, trying with base names')
-                    
-                    sel_keys = [os.path.basename(x) for x in user_input.split(',')]
-                    selections = [folder for folder in self.folders if os.path.basename(folder) in sel_keys]
-                    
-                    if len(selections) == len(sel_keys):
-                        print('Worked.')
-                        break
-                    else:
-                        print('Did not work, try again.')
-                 
+                    pass
+
         print('\nSelected {}\n'.format(selections))
         
         self.groups.save_groups()

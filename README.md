@@ -1,7 +1,7 @@
-<h1>Pseudopupil analysis suite</h1>
+<h1>Pseudopupil Analysis suite</h1>
 Specialised spatial motion analysis software for Pupil Imsoft data.
 
-Can be used for data that follows hierarchy
+In general, can be used for data that follows hierarchy
 ```
 data_directory
 ├── specimen_01
@@ -13,9 +13,26 @@ data_directory
 ```
 
 
-<h2>Installing with pip</h2>
+<h2>Installing</h2>
 
-The latest version from PyPi can be installed with the command
+There are two supported installation ways at the moment.
+On Windows, the stand-alone installer is probably the best option unless you are familiar with Python.
+On other platforms, use pip.
+
+<h3>Installer on Windows (easiest)</h3>
+
+A Windows installer that bundles together Pseudopupil Analysis suite and all its depencies,
+including a complete Python runtime, is provided at
+[Releases](https://github.com/jkemppainen/pupil-analysis/releases).
+
+The installer creates a start menu shorcut called <em>Pupil Analysis</em>,
+which can be used to launch the GUI.
+
+To uninstall, use <em>Add or Remove programs</em> feature in Windows.
+
+<h3>Using pip (the python standard way)</h3>
+
+The latest version from [PyPi](https://pypi.org/) can be installed with the command
 
 ```
 pip install pupil-analysis
@@ -25,16 +42,19 @@ This should install all the required dependencies, except when on Windows, OpenC
 [Visual C++ Runtime 2015](https://www.microsoft.com/download/details.aspx?id=48145) to be installed.
 
 
-Then to upgrade an existing installation to the latest version
+Afterwards, to upgrade an existing installation to the latest version
 
 ```
 pip install --upgrade pupil-analysis
 ```
 
+In case of regressions, a specific version of the suite (for example 0.1.2) can be installed
 
-<h2>Graphical user interface (GUI)</h2>
+```
+pip install pupil-analysis==0.1.2
+```
 
-To open the GUI from Python
+Finally, to open the GUI from Python
 
 ```python
 import pupilanalysis.tkgui as gui
@@ -45,3 +65,16 @@ or from command line
 ```
 python -m pupilanalysis.tkgui
 ```
+
+<h2>How to use</h2>
+
+First, open your data directory. Next, select the regions of interest (ROIs) and then run measure movements.
+The ROIs and movements are saved on disk (<em>C:\Users\USER\PupilAnalysis</em> or <em>/home/USER/.pupilanalysis</em>), so these steps are needed only once per specimen.
+
+After the initial steps you, can perform further analyses in the program or
+export the data by copy-pasting to your favourite spread sheet or plotting program.
+
+
+<h3>Notes</h3>
+This is still an early development version (expect rough edges).
+

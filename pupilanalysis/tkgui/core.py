@@ -88,11 +88,16 @@ class Core:
 
     def adm_subprocess(self, specimens, terminal_args, open_terminal=False):
         '''
-        Starts a analyse drosom (adm) subprocess / drosom/terminal.py
+        Invokes drosom/terminal.py
         
-        specimens           'current' for current selection or list of specimen names (strings)
-        terminal_args        Agruments passed to the plotter
-        open_terminal       If true open in a cmd window (on Windows) or lxterm (on Linux)
+        Arguments
+        ---------
+        specimens : list of string
+            List of specimen names or 'current'
+        terminal_args : string
+            Agruments passed to the plotter
+        open_terminal : bool
+            If true open in a cmd window (on Windows) or lxterm (on Linux)
         '''
         
         # 1) Find python executable and wrap the filename by quation marks if spaces present
@@ -111,14 +116,13 @@ class Core:
 
         # 3) Get the specimen directoires (full paths separated by space)
         if specimens == 'current':
-            manalysers = [self.get_manalyser(self.current_specimen)]
+            specimen_names = self.analyser.folder
         else:
-            manalysers = [self.get_manalyser(name) for name in specimens]
-        specimen_directories = ' '.join(['"'+manalyser.get_specimen_directory()+'"' for manalyser in manalysers])
+            specimen_names = ','.join(specimens)
         
 
-        arguments = '{} {}'.format(specimen_directories, terminal_args)
-        
+        arguments = '-D {} -S {} {}'.format(self.data_directory, specimen_names, terminal_args)
+
         command = '{} {} {} &'.format(python, pyfile, arguments)
         
         if open_terminal:

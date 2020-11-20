@@ -767,7 +767,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             self.measure_movement(eye, **kwargs)
 
 
-    def measure_movement(self, eye, only_folders=None):
+    def measure_movement(self, eye, only_folders=None,
+            max_movement=30, absolute_coordinates=False):
         '''
         Performs cross-correlation analysis for the selected pseudopupils (ROIs, regions of interest)
         using Movemeter package.
@@ -778,6 +779,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         INPUT ARGUMENTS         DESCRIPTION
         eye                     'left' or 'right'
         only_folders            Analyse only image folders in the given list (that is only_folders).
+        max_movement            Maximum total displacement in x or y expected. Lower values faster.
+        absolute_coordinates    Return movement values in absolute image coordinates
 
         Cross-correlation analysis is the slowest part of the DrosoM pipeline.
         '''
@@ -833,7 +836,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
             # Old upscale was 4
-            meter = Movemeter(upscale=10)
+            meter = Movemeter(upscale=10, absolute_results=absolute_coordinates)
             meter.set_data(stacks, ROIs)
             
             for stack_i, angle in enumerate(angles):
@@ -848,20 +851,18 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 print('Analysing {} eye pseudopupil motion from position {}, done {}/{} for this eye'.format(eye.upper(), angle, stack_i+1, len(ROIs)))
 
                 print("Calculating ROI's movement...")
-                x, y = meter.measure_movement(stack_i, max_movement=15)[0]
+                x, y = meter.measure_movement(stack_i, max_movement=max_movement)[0]
                 
                 print('Done.')
                 
-                # Failsafe for crazy values
-                if not max(np.max(np.abs(x)), np.max(np.abs(y))) > 100:
-                    try:
-                        self.movements[angle]
-                    except KeyError:
-                        self.movements[angle] = []
-                    
-                    tags = meter.get_metadata(stack_i)['Image ImageDescription'].values.split('"')
-                    time = tags[tags.index('start_time') + 2]
-                    self.movements[angle].append({'x': x, 'y':y, 'time': time})
+                try:
+                    self.movements[angle]
+                except KeyError:
+                    self.movements[angle] = []
+                
+                tags = meter.get_metadata(stack_i)['Image ImageDescription'].values.split('"')
+                time = tags[tags.index('start_time') + 2]
+                self.movements[angle].append({'x': x, 'y':y, 'time': time})
         else:
             self.movements = {}
             
@@ -896,53 +897,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         #FIXME Not implemented
         return 0.010 # 10 ms -> 100 fps
-
-
-    def time_plot(self):
-        '''
-        Not sure anymore what this is but probably movement magnitude over time.
-
-        UPDATE
-        probably the magnitude of the movement as a function of ISI
-        '''
-
-        data = []
-        
-        for eye in ['left', 'right']:
-            for angle in self.movements[eye]:
-                data.extend(self.movements[eye][angle])
-
-        data.sort(key=lambda x: x['time'])
-        
-        for d in data:
-            print(d['time'])
-
-        X = [0]
-        #X.extend( [(datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S.%f')).total_seconds()
-        #    for i in range(1, len(data))] )
-        
-        for i in range(1, len(data)):
-            # We need these try blocks because sometimmes seconds are integer and we have no %f
-            try:
-                this_time = datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S.%f')
-            except ValueError:
-                this_time = datetime.datetime.strptime(data[i]['time'], '%Y-%m-%d %H:%M:%S') 
-            try:
-                previous_time = datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S.%f')
-            except ValueError:
-                previous_time = datetime.datetime.strptime(data[i-1]['time'], '%Y-%m-%d %H:%M:%S') 
-            
-            X.append((this_time-previous_time).total_seconds())
-
-        xx = [x['x'][-1]-x['x'][0] for x in data]
-        yy = [x['y'][-1]-x['y'][0] for x in data]
-        Z = [math.sqrt(x**2+y**2) for (x,y) in zip(xx, yy)]
-        
-        print(X)
-        print(Z)
-
-        plt.scatter(X, Z)
-        plt.show()
 
 
     def get_time_ordered(self):

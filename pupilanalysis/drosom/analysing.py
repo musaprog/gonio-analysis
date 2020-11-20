@@ -1138,11 +1138,13 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             angles = set().union(*angles)
             
             for angle in angles:
-                data = [alleye_magnitude_traces[eye].get(angle, None) for eye in eyes]
+
+                data = [alleye_magnitude_traces.get(eye, {}).get(angle, None) for eye in eyes]
                 data = [d for d in data if d is not None]
+
                 merge[angle] = np.mean(data, axis=0)
 
-            
+
             magnitude_traces = merge
 
         return magnitude_traces

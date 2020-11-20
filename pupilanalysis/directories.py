@@ -38,6 +38,11 @@ def cli_ask_creation(needed_directories):
     '''
     Short command line yes/no.
     '''
+
+    # Temporary fix; Launching GUI for the first time fails
+    # if directories not present so always make them
+    return True
+
     print("The following directories have to be created")
 
     for directory in needed_directories:

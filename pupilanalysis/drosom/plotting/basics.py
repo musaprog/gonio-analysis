@@ -2,11 +2,14 @@
 Most commonly needed functions to plot the data.
 '''
 
+import numpy as np
 import matplotlib.pyplot as plt
 
+EYE_COLORS = {'right': 'blue', 'left': 'red'}
 
 def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
         mean_repeats=False, mean_imagefolders=False, mean_eyes=False,
+        color_eyes=False, show_mean=False,
         label="EYE-ANGLE-IREPEAT", ax=None):
     '''
     Plots 1D displacement magnitude over time, separately for each eye.
@@ -72,10 +75,16 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
                     _label = label.replace('EYE', eyename).replace('ANGLE', str(angle)).replace('IREPEAT', str(_i_repeat))
                 else:
                     _label = ''
-
-                ax.plot(mag_rep_i, label=_label)
+                
+                if color_eyes:
+                    ax.plot(mag_rep_i, label=_label, color=EYE_COLORS.get(eye, 'green'))
+                else:
+                    ax.plot(mag_rep_i, label=_label)
                 
                 traces.append(mag_rep_i)
+
+    if show_mean:
+        ax.plot(np.mean(traces, axis=0), label='mean-of-all', color='black', lw=3)
 
     if label:
         ax.legend(fontsize='xx-small', labelspacing=0.1, ncol=int(len(traces)/10)+1, loc='upper left')    

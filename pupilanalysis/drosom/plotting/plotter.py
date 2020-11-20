@@ -16,62 +16,6 @@ from pupilanalysis.drosom.optic_flow import flow_direction
 from .common import make_animation_angles, vector_plot
 
 
-def plot_1d_magnitude(manalyser, image_folder=None,
-        mean_repeats=False, mean_imagefolders=False, mean_eyes=False,
-        ax=None):
-    '''
-    Plots 1D displacement magnitude over time, separately for each eye.
-    
-    Arguments
-    ---------
-    manalyser : object
-        MAnalyser object instance
-    image_folder : string or None
-        Image folder to plot the data from. If None (default), plot all image folders.
-    mean_repeats : bool
-        Wheter to take mean of the repeats or plot each repeat separately
-    mean_imagefolders : bool
-        If True and image_folder is None (plotting all image folders), takes the mean
-        of all image folders.
-    
-    Returns
-        ax
-    '''
-    if ax is None:
-        fig, ax = plt.subplots()
-
-    if mean_eyes:
-        eyes = [None]
-    else:
-        eyes = manalyser.eyes
-
-    traces = []
-
-    for eye in eyes:
-        magtraces = manalyser.get_magnitude_traces(eye, image_folder=image_folder,
-                mean_repeats=mean_repeats, mean_imagefolders=mean_imagefolders)
-        
-        for angle, repeat_mags in magtraces.items():
-            for mag_rep_i in repeat_mags:
-                ax.plot(mag_rep_i, label='{}_{}'.format(eye, angle))
-                
-                traces.append(mag_rep_i)
-
-
-    ax.legend(fontsize='xx-small', labelspacing=0.1, ncol=int(len(traces)/10)+1, loc='upper left')    
-    
-    ax.set_xlabel('Frame')
-    ax.set_ylabel('Displacement sqrt(x^2+y^2) (pixels)')
-
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-
-    ax.legend()
-
-    return ax, traces
-
-
-
 class MPlotter:
 
  

@@ -28,13 +28,21 @@ import itertools
 import numpy as np
 import tkinter as tk
 
-from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, ColorExplanation
+from tk_steroids.routines import inspect_booleans
+from tk_steroids.elements import (
+        Listbox,
+        Tabs,
+        ButtonsFrame,
+        ColorExplanation,
+        TickboxFrame
+        )
 from tk_steroids.matplotlib import CanvasPlotter
 
 from pupilanalysis import __version__
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PUPILDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
+from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
 from pupilanalysis.tkgui.core import Core
 from pupilanalysis.tkgui.plotting import RecordingPlotter
 from pupilanalysis.tkgui.repetition_selection import RepetitionSelector
@@ -216,7 +224,13 @@ class ExamineView(tk.Frame):
 
 
         self.canvases = self.tabs.get_elements()
-       
+        
+        # Controls for displacement plot (means etc)
+        displacementplot_options, displacementplot_defaults = inspect_booleans(
+                plot_1d_magnitude, exclude_keywords=['mean_imagefolders'])
+        self.displacement_ticks = TickboxFrame(self.canvases[1], displacementplot_options,
+                defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
+        self.displacement_ticks.grid()
 
         self.default_button_bg = self.button_rois.cget('bg')
 
@@ -478,7 +492,7 @@ class ExamineView(tk.Frame):
             self.plotter.ROI(ax)
         elif i_plot == 1:
             ax.clear()
-            self.plotter.magnitude(ax)
+            self.plotter.magnitude(ax, **self.displacement_ticks.states)
         elif i_plot == 2:  
             ax.clear()
             self.plotter.xy(ax) 

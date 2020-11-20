@@ -72,7 +72,7 @@ class RecordingPlotter:
         
 
 
-    def magnitude(self, ax):
+    def magnitude(self, ax, **kwargs):
         '''
         Plot a displacement over time of the current specimen/recording.
         '''
@@ -82,7 +82,8 @@ class RecordingPlotter:
                 self.selected_recording,
                 i_repeat=self.i_repeat,
                 label='EYE-repIREPEAT',
-                ax=ax)
+                ax=ax,
+                **kwargs)
 
  
     def xy(self, ax):

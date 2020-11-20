@@ -225,7 +225,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     where eye = "left" or "right"
                     angle = recording_name.lstrip('pos'), so for example angle="(0, 0)_uv"
         
-
+    
+    eyes : tuple of strings
+        By default, ("left", "right")
     
 
 
@@ -256,6 +258,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         # Ensure the directories where the crops and movements are saved exist
         os.makedirs(os.path.dirname(self.CROPS_SAVEFN), exist_ok=True)
         os.makedirs(os.path.dirname(self.MOVEMENTS_SAVEFN), exist_ok=True)
+
+        self.eyes = ("left", "right")
 
         if no_data_load:
             # no_data_load was speciefied, skip all data loading

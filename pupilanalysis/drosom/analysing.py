@@ -396,8 +396,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         absolute_path       If true, return filenames with absolute path instead of relative
 
         '''
-        fns = sorted([fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')])
-    
+        fns = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')]
+        
+        # Fixed sorting, no zero padding in image filenames.
+        fns.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        fns.sort(key=lambda x: int(x.split('_')[-2][3:]))
+
         if absolute_path:
             fns = [os.path.join(self.data_path, self.folder, image_folder, fn) for fn in fns]
 

@@ -29,20 +29,6 @@ class MPlotter:
 
 
 
-    def displacement_over_time(self, manalyser):
-        
-        displacement_traces = []
-
-        for eye in ['let', 'right']:
-            traces = manalyser.get_magnitude_traces(eye)
-            
-            for item in traces.items():
-                displacement_traces.append(item)
-
-        
-        plt.plot(np.mean(displacement_traces), axis=0)
-        plt.show()
-
     def plot_2d_trajectories(self, manalyser):
         '''
         Plot 2D movement trajectories of the pseudopupils, separetly for each imaged position.
@@ -145,42 +131,6 @@ class MPlotter:
        
    
 
-    def plot_1d_magnitude_from_folder(self, manalyser, image_folder):
-        '''
-        Plots 1D displacement magnitude over time.
-
-        manalyser
-        image_folde     If None, plot all image folders
-        '''
-        
-        # Check if axes exists already
-        if self.magnitude_1d_figax is None:
-            fig, ax = plt.subplots()
-            self.magnitude_1d_figax = (fig, ax)
-        else:
-            fig, ax = self.magnitude_1d_figax
-        
-        
-        if image_folder is not None:
-            movement_data = [manalyser.get_movements_from_folder(image_folder)]
-        else:
-            image_folders = manalyser.list_imagefolders() 
-            movement_data = [manalyser.get_movements_from_folder(imf) for imf in image_folders]
-
-        for movements_folder in movement_data:
-            for eye, movements in movement_folder.items():
-                for repetition in range(len(movements)):
-                    mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
-                    time = np.linspace(0, 200, len(mag))
-                    ax.plot(time, mag, label=str(repetition))
-        
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-
-        ax.set_xlabel('Time (ms)')
-        ax.set_ylabel('Displacement (pixels)')
-
-
     def plotMagnitude2D(self, manalyser):
         '''
 
@@ -241,45 +191,6 @@ class MPlotter:
         #ax.set_xlabel('Horizontal angle (degrees)')
         #ax.set_ylabel('Pitch angle (degrees)')
     
-
-    def plotTimeCourses(self, manalyser, exposure=0.010):
-        '''
-        Plotting time courses
-
-        FIXME This became dirty
-        '''
-        avg = []
-
-        for eye in ['left', 'right']:
-            traces = manalyser.get_magnitude_traces(eye)
-            
-            for angle in traces:
-                print(np.max(traces[angle]))
-                trace = traces[angle]
-                #trace /= np.max(traces[angle])
-                if np.isnan(trace).any():
-                    print('Nan')
-                    continue
-                avg.append(trace)
-        
-        for trace in avg:
-            time = np.linspace(0, exposure*len(trace)*1000, len(trace))
-            #plt.plot(time, trace)
-            break
-            #plt.show(block=False)
-            #plt.pause(0.1)
-            #plt.cla()
-        print(len(avg))
-
-        avg = np.mean(np.asarray(avg), axis=0)
-        print(avg)
-        plt.plot(time, avg)
-        plt.xlabel('Time (ms)')
-        plt.ylabel('Displacement (pixels)')
-        plt.suptitle('Displacement over time\n{}'.format(manalyser.get_specimen_name()))
-        plt.show()
-
-
 
     class Arrow3D(FancyArrowPatch):
         def __init__(self, x0, y0, z0, x1, y1, z1, *args, **kwargs):

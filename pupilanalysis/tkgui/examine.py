@@ -27,14 +27,23 @@ import itertools
 
 import numpy as np
 import tkinter as tk
+from tkinter import filedialog
 
-from tk_steroids.elements import Listbox, Tabs, ButtonsFrame, ColorExplanation
+from tk_steroids.routines import inspect_booleans
+from tk_steroids.elements import (
+        Listbox,
+        Tabs,
+        ButtonsFrame,
+        ColorExplanation,
+        TickboxFrame
+        )
 from tk_steroids.matplotlib import CanvasPlotter
 
 from pupilanalysis import __version__
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PUPILDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
+from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
 from pupilanalysis.tkgui.core import Core
 from pupilanalysis.tkgui.plotting import RecordingPlotter
 from pupilanalysis.tkgui.repetition_selection import RepetitionSelector
@@ -103,7 +112,9 @@ class ExamineView(tk.Frame):
     '''
     
     def __init__(self, parent):
-        
+
+        self.last_saveplotter_dir = PUPILDIR
+
         tk.Frame.__init__(self, parent)
         
         self.core = Core()
@@ -144,11 +155,11 @@ class ExamineView(tk.Frame):
        
         # The 2nd buttons frame, ROIs and movements
         self.buttons_frame_2 = ButtonsFrame(self.specimen_control_frame,
-                ['Select ROIs', 'Measure movement', 'Zero correct', 'Copy to clipboard'],
-                [self.menu.specimen_commands.select_ROIs, self.menu.specimen_commands.measure_movement, self.menu.specimen_commands.zero_correct, self.specimen_traces_to_clipboard])
+                ['Select ROIs', 'Measure movement'],
+                [self.menu.specimen_commands.select_ROIs, self.menu.specimen_commands.measure_movement])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
-        self.button_rois, self.button_measure, self.button_zero, self.copy_mean = self.buttons_frame_2.get_buttons()
-        self.copy_mean.grid(row=1, column=0, columnspan=3, sticky='W')
+        self.button_rois, self.button_measure = self.buttons_frame_2.get_buttons()
+        
         # Subframe for 2nd buttons frame
         #self.status_frame = tk.Frame(self.leftside_frame)
         #self.status_frame.grid(row=2)
@@ -157,7 +168,7 @@ class ExamineView(tk.Frame):
         self.status_rois.grid(row=2, column=0, sticky='W')
         
         self.status_antenna_level = tk.Label(self.specimen_control_frame, text='Zero correcter N/A', font=('system', 8))
-        self.status_antenna_level.grid(row=3, column=0, sticky='W')
+        #self.status_antenna_level.grid(row=3, column=0, sticky='W')
         
         
         
@@ -166,8 +177,8 @@ class ExamineView(tk.Frame):
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
        
         self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
-                ['Reselect ROI', 'Remeasure', 'Copy displacement'],
-                [self.menu.imagefolder_commands.select_ROIs, self.menu.imagefolder_commands.measure_movement, lambda: self.copy_plotter_to_clipboard(1)])
+                ['Reselect ROI', 'Remeasure'],
+                [self.menu.imagefolder_commands.select_ROIs, self.menu.imagefolder_commands.measure_movement])
         self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         
@@ -216,7 +227,13 @@ class ExamineView(tk.Frame):
 
 
         self.canvases = self.tabs.get_elements()
-       
+        
+        # Controls for displacement plot (means etc)
+        displacementplot_options, displacementplot_defaults = inspect_booleans(
+                plot_1d_magnitude, exclude_keywords=['mean_imagefolders'])
+        self.displacement_ticks = TickboxFrame(self.canvases[1], displacementplot_options,
+                defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
+        self.displacement_ticks.grid()
 
         self.default_button_bg = self.button_rois.cget('bg')
 
@@ -227,8 +244,12 @@ class ExamineView(tk.Frame):
                 update_command=lambda: self.on_recording_selection('current'))
         self.repetition_selector.grid(row=1, column=0)
         
-        tk.Button(self.repetition_selector, text='Copy to clipboard',
-                command=self.copy_plotter_to_clipboard).grid(row=0, column=4)
+
+        tk.Button(self.repetition_selector, text='Copy data',
+                command=self.copy_plotter_to_clipboard).grid(row=0, column=5)
+
+        tk.Button(self.repetition_selector, text='Save view...',
+                command=self.save_plotter_view).grid(row=0, column=6)
 
 
 
@@ -335,6 +356,32 @@ class ExamineView(tk.Frame):
         self.root.clipboard_append(formatted)
         self.copy_to_csv(formatted)
 
+
+    
+    def save_plotter_view(self):
+        '''
+        Launches a save dialog for the current plotter view.
+        '''
+        fig, ax = self.canvases[self.tabs.i_current].get_figax()
+        
+        dformats = fig.canvas.get_supported_filetypes()
+        formats = [(value, '*.'+key) for key, value in sorted(dformats.items())]
+        
+        # Make png first
+        if 'png' in dformats.keys():
+            i = formats.index((dformats['png'], '*.png'))
+            formats.insert(0, formats.pop(i))
+
+        fn = filedialog.asksaveasfilename(title='Save current view',
+                initialdir=self.last_saveplotter_dir,
+                filetypes=formats)
+
+        if fn:
+            self.last_saveplotter_dir = os.path.dirname(fn)
+
+            fig.savefig(fn)
+            
+        
 
 
     def _color_recordings(self, recordings):
@@ -478,13 +525,14 @@ class ExamineView(tk.Frame):
             self.plotter.ROI(ax)
         elif i_plot == 1:
             ax.clear()
-            self.plotter.magnitude(ax)
+            self.plotter.magnitude(ax, **self.displacement_ticks.states)
         elif i_plot == 2:  
             ax.clear()
             self.plotter.xy(ax) 
 
         self.canvases[i_plot].update()
-
+        
+        self.repetition_selector.update_text()
 
 
     def update_specimen(self, changed_specimens=False):

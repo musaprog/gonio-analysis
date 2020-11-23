@@ -10,6 +10,7 @@ import tifffile
 
 from tk_steroids.matplotlib import CanvasPlotter
 
+from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
 
 class RecordingPlotter:
     '''
@@ -49,7 +50,7 @@ class RecordingPlotter:
         self.i_repeat = None
 
 
-    def _check_recording(self):
+    def _check_recording(self, skip_datafetch=False):
         '''
         Check from core if the selected has changed.
         '''
@@ -59,41 +60,30 @@ class RecordingPlotter:
             self.i_repeat = None
         
         self.selected_recording = selected_recording
-        if self.core.analyser.is_measured():
-            self.movement_data = self.core.analyser.get_movements_from_folder(selected_recording)
-            self.N_repeats = len(next(iter(self.movement_data.values())))
-        else:
-            self.movement_data = {}
-            self.N_repeats = 0
-    
+
+        if not skip_datafetch:
+            if self.core.analyser.is_measured():
+                self.movement_data = self.core.analyser.get_movements_from_folder(selected_recording)
+                self.N_repeats = len(next(iter(self.movement_data.values())))
+                pass
+            else:
+                self.movement_data = {}
+                self.N_repeats = 0
+        
 
 
-    def magnitude(self, ax):
+    def magnitude(self, ax, **kwargs):
         '''
         Plot a displacement over time of the current specimen/recording.
         '''
-        self._check_recording()
+        self._check_recording(skip_datafetch=True)
         
-        self.magnitudes = []
-        
-        for eye, movements in self.movement_data.items():
-            for repetition in range(len(movements)):
-                
-                if (self.i_repeat is not None) and self.i_repeat != repetition:
-                    continue
-
-                mag = np.sqrt(np.array(movements[repetition]['x'])**2 + np.array(movements[repetition]['y'])**2)
-                ax.plot(mag, label=str(repetition))
-                
-                self.magnitudes.append(mag)
-        
-        
-        ax.legend(fontsize='xx-small', labelspacing=0.1, ncol=int(self.N_repeats/10)+1, loc='upper left')    
-        
-        ax.set_xlabel('Frame')
-        ax.set_ylabel('Displacement sqrt(x^2+y^2) (pixels)')
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
+        ax, self.magnitudes, self.N_repeats = plot_1d_magnitude(self.core.analyser,
+                self.selected_recording,
+                i_repeat=self.i_repeat,
+                label='EYE-repIREPEAT',
+                ax=ax,
+                **kwargs)
 
  
     def xy(self, ax):
@@ -150,13 +140,15 @@ class RecordingPlotter:
 
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
+        ax.set_aspect('equal', adjustable='box')
+
 
 
     def ROI(self, ax):
         '''
         Plot specimen/recording image, and the ROIs and imaging parameters on top of it.
         '''
-        self._check_recording()
+        self._check_recording(skip_datafetch=True)
         
         self.roi_ax = ax
         fig = ax.get_figure()
@@ -164,11 +156,22 @@ class RecordingPlotter:
         try:
             self.slider_ax
         except AttributeError:
-            self.slider_ax = fig.add_axes([0.2, 0, 0.6, 0.1])
+            self.slider_ax = fig.add_axes([0.2, 0.01, 0.6, 0.05])
+        
+        # Get a list of image filenames and how many
+        image_fns = self.core.analyser.list_images(self.selected_recording)
+        self.N_repeats = len(image_fns)
 
-        image_fn = os.path.join(self.core.analyser.get_specimen_directory(), self.selected_recording, self.core.analyser.list_images(self.selected_recording)[0])
+        if self.i_repeat:
+            i_frame = self.i_repeat
+        else:
+            i_frame = 0
+        
+        image_fn = os.path.join(self.core.analyser.get_specimen_directory(), self.selected_recording, image_fns[i_frame])
         self.image = tifffile.imread(image_fn)
         
+        print(image_fn)
+
         try:
             self.range_slider
         except AttributeError:

@@ -168,7 +168,7 @@ class ExamineView(tk.Frame):
         self.status_rois.grid(row=2, column=0, sticky='W')
         
         self.status_antenna_level = tk.Label(self.specimen_control_frame, text='Zero correcter N/A', font=('system', 8))
-        self.status_antenna_level.grid(row=3, column=0, sticky='W')
+        #self.status_antenna_level.grid(row=3, column=0, sticky='W')
         
         
         

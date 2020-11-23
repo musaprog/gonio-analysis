@@ -27,6 +27,7 @@ import itertools
 
 import numpy as np
 import tkinter as tk
+from tkinter import filedialog
 
 from tk_steroids.routines import inspect_booleans
 from tk_steroids.elements import (
@@ -111,7 +112,9 @@ class ExamineView(tk.Frame):
     '''
     
     def __init__(self, parent):
-        
+
+        self.last_saveplotter_dir = PUPILDIR
+
         tk.Frame.__init__(self, parent)
         
         self.core = Core()
@@ -241,8 +244,12 @@ class ExamineView(tk.Frame):
                 update_command=lambda: self.on_recording_selection('current'))
         self.repetition_selector.grid(row=1, column=0)
         
-        tk.Button(self.repetition_selector, text='Copy to clipboard',
-                command=self.copy_plotter_to_clipboard).grid(row=0, column=4)
+
+        tk.Button(self.repetition_selector, text='Copy data',
+                command=self.copy_plotter_to_clipboard).grid(row=0, column=5)
+
+        tk.Button(self.repetition_selector, text='Save view...',
+                command=self.save_plotter_view).grid(row=0, column=6)
 
 
 
@@ -349,6 +356,32 @@ class ExamineView(tk.Frame):
         self.root.clipboard_append(formatted)
         self.copy_to_csv(formatted)
 
+
+    
+    def save_plotter_view(self):
+        '''
+        Launches a save dialog for the current plotter view.
+        '''
+        fig, ax = self.canvases[self.tabs.i_current].get_figax()
+        
+        dformats = fig.canvas.get_supported_filetypes()
+        formats = [(value, '*.'+key) for key, value in sorted(dformats.items())]
+        
+        # Make png first
+        if 'png' in dformats.keys():
+            i = formats.index((dformats['png'], '*.png'))
+            formats.insert(0, formats.pop(i))
+
+        fn = filedialog.asksaveasfilename(title='Save current view',
+                initialdir=self.last_saveplotter_dir,
+                filetypes=formats)
+
+        if fn:
+            self.last_saveplotter_dir = os.path.dirname(fn)
+
+            fig.savefig(fn)
+            
+        
 
 
     def _color_recordings(self, recordings):

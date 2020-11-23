@@ -78,7 +78,7 @@ class RecordingPlotter:
         '''
         self._check_recording(skip_datafetch=True)
         
-        ax, self.magnitudes, N_repeats = plot_1d_magnitude(self.core.analyser,
+        ax, self.magnitudes, self.N_repeats = plot_1d_magnitude(self.core.analyser,
                 self.selected_recording,
                 i_repeat=self.i_repeat,
                 label='EYE-repIREPEAT',
@@ -148,7 +148,7 @@ class RecordingPlotter:
         '''
         Plot specimen/recording image, and the ROIs and imaging parameters on top of it.
         '''
-        self._check_recording()
+        self._check_recording(skip_datafetch=True)
         
         self.roi_ax = ax
         fig = ax.get_figure()
@@ -156,11 +156,22 @@ class RecordingPlotter:
         try:
             self.slider_ax
         except AttributeError:
-            self.slider_ax = fig.add_axes([0.2, 0, 0.6, 0.1])
+            self.slider_ax = fig.add_axes([0.2, 0.01, 0.6, 0.05])
+        
+        # Get a list of image filenames and how many
+        image_fns = self.core.analyser.list_images(self.selected_recording)
+        self.N_repeats = len(image_fns)
 
-        image_fn = os.path.join(self.core.analyser.get_specimen_directory(), self.selected_recording, self.core.analyser.list_images(self.selected_recording)[0])
+        if self.i_repeat:
+            i_frame = self.i_repeat
+        else:
+            i_frame = 0
+        
+        image_fn = os.path.join(self.core.analyser.get_specimen_directory(), self.selected_recording, image_fns[i_frame])
         self.image = tifffile.imread(image_fn)
         
+        print(image_fn)
+
         try:
             self.range_slider
         except AttributeError:

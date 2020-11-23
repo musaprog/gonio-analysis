@@ -140,6 +140,8 @@ class RecordingPlotter:
 
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
+        ax.set_aspect('equal', adjustable='box')
+
 
 
     def ROI(self, ax):

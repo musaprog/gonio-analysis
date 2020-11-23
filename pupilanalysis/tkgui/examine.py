@@ -531,7 +531,8 @@ class ExamineView(tk.Frame):
             self.plotter.xy(ax) 
 
         self.canvases[i_plot].update()
-
+        
+        self.repetition_selector.update_text()
 
 
     def update_specimen(self, changed_specimens=False):

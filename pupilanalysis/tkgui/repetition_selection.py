@@ -15,15 +15,19 @@ class RepetitionSelector(tk.Frame):
 
 
         self.plotter = RecordingPlotter
+            
+        self.text = tk.StringVar()
+        self.infotext = tk.Label(self, textvariable = self.text)
+        self.infotext.grid(row=0, column=0)
 
         self.all = tk.Button(self, text='Show all', command=lambda: self.move_selection(None))
-        self.all.grid(row=0, column=0)
+        self.all.grid(row=0, column=1)
 
         self.previous = tk.Button(self, text='Previous', command=lambda: self.move_selection(-1))
-        self.previous.grid(row=0, column=1)
+        self.previous.grid(row=0, column=2)
 
         self.next = tk.Button(self, text='Next', command=lambda: self.move_selection(1))
-        self.next.grid(row=0, column=2)
+        self.next.grid(row=0, column=3)
 
     def move_selection(self, direction):
         '''
@@ -43,8 +47,17 @@ class RepetitionSelector(tk.Frame):
                 self.plotter.i_repeat = 0
             elif self.plotter.i_repeat >= self.plotter.N_repeats:
                 self.plotter.i_repeat = self.plotter.N_repeats -1
-
+        
+        self.update_text()
+        
         print(self.plotter.i_repeat)
 
         if self.update_command:
             self.update_command()
+
+    def update_text(self):
+        if self.plotter.i_repeat is None:
+            isel = None
+        else:
+            isel = self.plotter.i_repeat + 1
+        self.text.set("{}/{}".format(isel, self.plotter.N_repeats))

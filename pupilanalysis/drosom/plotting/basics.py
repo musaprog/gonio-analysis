@@ -92,11 +92,11 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
             for _i_repeat, mag_rep_i in enumerate(repeat_mags):
                 
+                N_repeats += 1
+                
                 if i_repeat is not None and _i_repeat != i_repeat:
                     continue
                 
-               
-                N_repeats += 1
                 
                 if label:
                     if eye is None:

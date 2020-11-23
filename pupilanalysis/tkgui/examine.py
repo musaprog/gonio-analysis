@@ -152,11 +152,11 @@ class ExamineView(tk.Frame):
        
         # The 2nd buttons frame, ROIs and movements
         self.buttons_frame_2 = ButtonsFrame(self.specimen_control_frame,
-                ['Select ROIs', 'Measure movement', 'Zero correct', 'Copy to clipboard'],
-                [self.menu.specimen_commands.select_ROIs, self.menu.specimen_commands.measure_movement, self.menu.specimen_commands.zero_correct, self.specimen_traces_to_clipboard])
+                ['Select ROIs', 'Measure movement'],
+                [self.menu.specimen_commands.select_ROIs, self.menu.specimen_commands.measure_movement])
         self.buttons_frame_2.grid(row=1, column=0, sticky='NW', columnspan=2)
-        self.button_rois, self.button_measure, self.button_zero, self.copy_mean = self.buttons_frame_2.get_buttons()
-        self.copy_mean.grid(row=1, column=0, columnspan=3, sticky='W')
+        self.button_rois, self.button_measure = self.buttons_frame_2.get_buttons()
+        
         # Subframe for 2nd buttons frame
         #self.status_frame = tk.Frame(self.leftside_frame)
         #self.status_frame.grid(row=2)
@@ -174,8 +174,8 @@ class ExamineView(tk.Frame):
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
        
         self.buttons_frame_3 = ButtonsFrame(self.folder_control_frame,
-                ['Reselect ROI', 'Remeasure', 'Copy displacement'],
-                [self.menu.imagefolder_commands.select_ROIs, self.menu.imagefolder_commands.measure_movement, lambda: self.copy_plotter_to_clipboard(1)])
+                ['Reselect ROI', 'Remeasure'],
+                [self.menu.imagefolder_commands.select_ROIs, self.menu.imagefolder_commands.measure_movement])
         self.buttons_frame_3.grid(row=1, column=0, sticky='NW', columnspan=2)
         self.button_one_roi = self.buttons_frame_2.get_buttons()[0]
         

@@ -33,7 +33,7 @@ class OAnalyser(MAnalyser):
         super().__init__(*args, **kwargs)
 
 
-    def measure_movement(self, eye):
+    def measure_movement(self, eye, *args, **kwargs):
         '''
         The measure movement method overridden to meausure the (rhabdomere)
         orientation.
@@ -60,7 +60,7 @@ class OAnalyser(MAnalyser):
         marker = Marker(fig, ax, images[1:10], self.orientation_savefn.format(eye),
                 relative_fns_from=os.path.join(self.data_path, self.folder),
                 selection_type='arrow',
-                callback_on_exit=print)
+                callback_on_exit=load_analysed_movements)
 
         marker.run()
 
@@ -96,6 +96,7 @@ class OAnalyser(MAnalyser):
 
     
     def is_measured(self):
-        return os.path.exists(self.orientation_savefn) 
+        fns = [self.orientation_savefn.format(eye) for eye in self.eyes]
+        return all([os.path.exists(fn) for fn in fns])
 
 

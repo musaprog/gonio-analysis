@@ -14,7 +14,7 @@ import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 import tkinter.simpledialog as simpledialog
 
-from tk_steroids.dialogs import TickSelect
+from tk_steroids.dialogs import TickSelect, popup_tickselect
 from tk_steroids.menumaker import MenuMaker
 
 import pupilanalysis
@@ -400,6 +400,15 @@ class OtherCommands(ModifiedMenuMaker):
     '''
     All kinds of various commands and tools.
     '''
+
+    def change_Analyser_DASH_object(self):
+
+        popup_tickselect(self.tk_root,
+                [c.__name__ for c in self.core.analyser_classes],
+                lambda selections: self.core.set_analyser_class(selections[0]),
+                ticked=[self.core.analyser_class],
+                single_select=True)
+
 
     def about(self):
         message = 'Pupil analysis'

@@ -6,18 +6,28 @@ import platform
 
 from pupilanalysis.directories import CODE_ROOTDIR
 from pupilanalysis.drosom.analysing import MAnalyser
+from pupilanalysis.drosom.orientation_analysis import OAnalyser
 from pupilanalysis.directories import ANALYSES_SAVEDIR
+
 
 class Core:
     '''
     Tkinter independent functions, reusable for other GUI implementations.
     
-    self.data_directory
-    self.current_specimen           Name of the current specimen
-    self.analyser                   MAnalyser object of the current specimen
-    self.selected_recording         Selected recording name (image_folder)
-
-
+    Attributes
+    ----------
+    data_directory : string
+        Current data directory
+    current_specimen : string
+        Name of the current specimen
+    analyser : object
+        MAnalyser (or OAnalsyer) object of the current specimen
+    selected_recording : string
+        Selected recording name (image_folder)
+    analyser_class : class
+        Class of the new analysers to create (MAnalyser or OAnalyser)
+    analyser_classes: list of classes
+        List of available analyser classes for reference
     '''
 
     def __init__(self):
@@ -26,6 +36,9 @@ class Core:
         self.current_specimen = None
         self.analyser = None
         self.selected_recording = None
+        
+        self.analyser_class = MAnalyser
+        self.analyser_classes = [MAnalyser, OAnalyser]
         
 
     def set_data_directory(self, data_directory):
@@ -45,6 +58,11 @@ class Core:
     
     def set_selected_recording(self, selected_recording):
         self.selected_recording = selected_recording
+    
+
+    def set_analyser_class(self, class_name):
+        index = [i for i, ac in enumerate(self.analyser_classes) if ac.__name__ == class_name]
+        self.analyser_class = self.analyser_classes[index[0]]
 
 
     def list_specimens(self, with_rois=None, with_movements=None, with_correction=None):
@@ -82,7 +100,7 @@ class Core:
         '''
         Gets manalyser for the specimen specified by the given name.
         '''
-        analyser = MAnalyser(self.data_directory, specimen_name, **kwargs)
+        analyser = self.analyser_class(self.data_directory, specimen_name, **kwargs)
         return analyser
 
 

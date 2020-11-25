@@ -24,8 +24,8 @@ from pupilanalysis.drosom.special.paired import cli_group_and_compare
 import pupilanalysis.drosom.reports as reports
 
 
-if 'tk_waiting_window' in sys.argv:
-    from .gui.waiting_window import WaitingWindow
+if '--tk_waiting_window' in sys.argv:
+    from pupilanalysis.tkgui.waiting_window import WaitingWindow
 
 
 
@@ -133,7 +133,7 @@ def main(custom_args=None):
 
 
     if args.tk_waiting_window:
-        self.waiting_window = WaitingWindow('terminal.py', 'When ready, this window closes.')
+        waiting_window = WaitingWindow('terminal.py', 'When ready, this window closes.')
 
 
     # Getting the data directory
@@ -211,7 +211,7 @@ def main(custom_args=None):
         function(analyser)
 
     if args.tk_waiting_window:
-        self.waiting_window.close()
+        waiting_window.close()
 
     if not args.unittest:
         plt.show()

@@ -140,8 +140,11 @@ class Core:
         else:
             specimen_names = ','.join(specimens)
         
-
         arguments = '-D {} -S {} {}'.format(self.data_directory, specimen_names, terminal_args)
+        
+        # FIXME for general use
+        if self.analyser_class is not MAnalyser:
+            arguments = '--type orientation ' + arguments
 
         command = '{} {} {} &'.format(python, pyfile, arguments)
         

@@ -102,6 +102,9 @@ def main(custom_args=None):
     # Analyser settings
     parser.add_argument('-a', '--average', action='store_true',
             help='Average and interpolate the results over the specimens')
+    
+    parser.add_argument('--short-name', nargs=1,
+            help='Short name to set if --average is set')
 
     parser.add_argument('-t', '--type', default='motion', choices=['motion', 'orientation'],
             help='Analyser type, either "motion" or "orientation"')
@@ -198,9 +201,8 @@ def main(custom_args=None):
         avg_analyser = MAverager(analysers)
         avg_analyser.setInterpolationSteps(5,5)
         
-        short_name = [arg.split('=')[1] for arg in self.argv if 'short_name=' in arg]
-        if short_name:
-            avg_analyser.set_short_name(short_name[0])
+        if args.short_name:
+            avg_analyser.set_short_name(args.short_name[0])
        
         analysers = [avg_analyser]
     

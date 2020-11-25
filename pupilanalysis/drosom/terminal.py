@@ -166,6 +166,8 @@ def main(custom_args=None):
     # ---------------------
     analysers = []
     Analyser = Analysers[args.type]
+    
+    print('Using {}'.format(Analyser.__name__))
 
     for directory in directories: 
         

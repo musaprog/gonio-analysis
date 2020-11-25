@@ -44,11 +44,13 @@ from pupilanalysis.directories import PROCESSING_TEMPDIR, PUPILDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
 from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
+from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS
 from pupilanalysis.tkgui.core import Core
 from pupilanalysis.tkgui.plotting import RecordingPlotter
 from pupilanalysis.tkgui.repetition_selection import RepetitionSelector
 
 from pupilanalysis.tkgui.menu_commands import (
+        ModifiedMenuMaker,
         FileCommands,
         ImageFolderCommands,
         SpecimenCommands,
@@ -84,6 +86,12 @@ class ExamineMenubar(tk.Frame):
         # Specimen commands and menu
         self.specimen_commands = SpecimenCommands(self.parent, self.core, 'Specimen')
         self.specimen_commands._connect(self.menubar, tearoff=0)
+        
+        #    Submenu: Add terminal commands
+        self.terminal_commands = ModifiedMenuMaker(self.parent, self.core, 'Terminal interface commands')
+        for name in ANALYSER_CMDS:
+            setattr(self.terminal_commands, name, lambda name=name: self.core.adm_subprocess('current', name) )
+        self.terminal_commands._connect(self.specimen_commands.tkmenu)
 
         # Many specimen commands and menu
         self.many_specimen_commands = ManySpecimenCommands(self.parent, self.core, 'Many specimens')

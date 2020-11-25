@@ -297,7 +297,7 @@ class SpecimenCommands(ModifiedMenuMaker):
 
 
     def vectormap_DASH_rotating_video(self):
-        self.core.adm_subprocess('current', 'tk_waiting_window vectormap animation')
+        self.core.adm_subprocess('current', '--tk_waiting_window vectormap_video')
 
     
     def vectormap_DASH_export_npy(self):
@@ -376,20 +376,20 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
 
     def averaged_vectormap_DASH_interactive_plot(self):
-        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged'), with_movements=True, with_correction=True)
+        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average vectormap'), with_movements=True)
 
 
     
     def averaged_vectormap_DASH_rotating_video(self):
-        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation'), with_movements=True, with_correction=True) 
+        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average vectormap_video'), with_movements=True) 
 
         
     def averaged_vectormap_DASH_rotating_video_DASH_set_title(self):
-        ask_string('Set title', 'Give video title', lambda title: select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged vectormap animation short_name={}'.format(title)), with_movements=True, with_correction=True)) 
+        ask_string('Set title', 'Give video title', lambda title: select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average --short-name {} vectormap_video'.format(title)), with_movements=True)) 
         
         
     def comparision_to_optic_flow_DASH_video(self): 
-        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, 'tk_waiting_window averaged complete_flow_analysis'), with_movements=True, with_correction=True) 
+        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average flow_analysis_pitch'), with_movements=True) 
         
     
     def link_ERG_data_from_labbook(self):

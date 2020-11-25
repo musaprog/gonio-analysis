@@ -19,6 +19,7 @@ plotter = MPlotter()
 
 # Functions that take only one input argument that is the MAnalyser
 ANALYSER_CMDS = {}
+ANALYSER_CMDS['pass'] = print
 ANALYSER_CMDS['vectormap'] = plotter.plot_3d_vectormap
 ANALYSER_CMDS['vectormap_mayavi'] = plotter.plot_3d_vectormap_mayavi
 ANALYSER_CMDS['vectormap_video'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)

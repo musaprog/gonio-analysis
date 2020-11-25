@@ -255,10 +255,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
 
 
-        # Ensure the directories where the crops and movements are saved exist
-        os.makedirs(os.path.dirname(self.CROPS_SAVEFN), exist_ok=True)
-        os.makedirs(os.path.dirname(self.MOVEMENTS_SAVEFN), exist_ok=True)
-
         self.eyes = ("left", "right")
 
         if no_data_load:
@@ -285,6 +281,11 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
             self.load_linked_data()
+            
+            # Ensure the directories where the crops and movements are saved exist
+            os.makedirs(os.path.dirname(self.CROPS_SAVEFN), exist_ok=True)
+            os.makedirs(os.path.dirname(self.MOVEMENTS_SAVEFN), exist_ok=True)
+
 
         # For cahcing frequently used data
         self.cahced = {'3d_vectors': None}

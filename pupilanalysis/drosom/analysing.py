@@ -1324,7 +1324,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
 
 
     def get_specimen_name(self):
-        return 'averaged_'+'_'.join([manalyser.getFolderName() for manalyser in self.manalysers])
+        return 'averaged_'+'_'.join([manalyser.folder for manalyser in self.manalysers])
 
 
     def setInterpolationSteps(self, horizontal_step, vertical_step):

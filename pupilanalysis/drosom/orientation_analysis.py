@@ -53,8 +53,11 @@ class OAnalyser(MAnalyser):
             
             if roi is not None:
                 images.append(self.stacks[angle][0][0])
-                rois.append([roi[0]-10, roi[1]-10, roi[2]+20, roi[3]+20])
+                
 
+                extended_roi = [roi[0]-roi[2]/2, roi[1]-roi[3]/2, 2*roi[2], 2*roi[3]]
+
+                rois.append(extended_roi)
 
         fig, ax = plt.subplots(num='Draw arrows for the {} eye'.format(eye))
         marker = Marker(fig, ax, images, self.MOVEMENTS_SAVEFN.format(eye),

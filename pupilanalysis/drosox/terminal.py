@@ -3,7 +3,6 @@ import argparse
 
 import matplotlib.pyplot as plt
 
-from pupilanalysis.directories import DROSO_DATADIRS
 from pupilanalysis.droso import DrosoSelect, simple_select
 from pupilanalysis.drosox.analysing import XAnalyser
 from pupilanalysis.drosox.plotting import (

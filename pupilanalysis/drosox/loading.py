@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pupilanalysis.directories import PROCESSING_TEMPDIR, ANALYSES_SAVEDIR
-from pupilanalysis import to_degrees
+from pupilanalysis.rotary_encoders import to_degrees
 
 
 def load_angle_pairs(fn):

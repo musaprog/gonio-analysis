@@ -64,7 +64,8 @@ class Core:
         index = [i for i, ac in enumerate(self.analyser_classes) if ac.__name__ == class_name]
         self.analyser_class = self.analyser_classes[index[0]]
         
-        self.update_gui(changed_specimens=True)
+        if self.data_directory:
+            self.update_gui(changed_specimens=True)
 
 
     def list_specimens(self, with_rois=None, with_movements=None, with_correction=None):

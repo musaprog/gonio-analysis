@@ -4,8 +4,11 @@ import tkinter as tk
 import tifffile
 
 
-from pupilanalysis.antenna_level import load_drosom, save_antenna_level_correction
-from pupilanalysis.drosoalr import loadReferenceFly
+from pupilanalysis.antenna_level import (
+        load_drosom,
+        save_antenna_level_correction,
+        load_reference_fly
+        )
 from tk_steroids.matplotlib import CanvasPlotter
 
 class ZeroCorrect(tk.Frame):
@@ -29,7 +32,7 @@ class ZeroCorrect(tk.Frame):
         #self.reference_pitches, self.reference_images = {fn: pitch for pitch, fn in loadReferenceFly(alr_data_path).items()}
         
         self.reference_pitches, self.reference_images = [[],[]]
-        for pitch, fn in sorted(loadReferenceFly(alr_data_path).items(), key=lambda x: float(x[0])):
+        for pitch, fn in sorted(load_reference_fly(alr_data_path).items(), key=lambda x: float(x[0])):
             self.reference_pitches.append(pitch)
             self.reference_images.append(fn)
 

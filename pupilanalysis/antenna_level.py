@@ -1,10 +1,6 @@
 '''
-Finding where the pseudopupils align with the antenna (binary_search way).
-This pitch value can be later taken as a zero pitch.
-
-TODO  - architectual choice: merge drosox and drosom or separate
-        all drosom/drosox code to respective folders
-
+Code paths related to manually alinging the vertical angles for many
+specimens (aka. antenna level or zero correction)
 '''
 
 import os
@@ -13,13 +9,30 @@ import ast
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pupilanalysis.directories import ANALYSES_SAVEDIR
+from pupilanalysis.directories import ANALYSES_SAVEDIR, CODE_ROOTDIR
 from pupilanalysis.droso import DrosoSelect
 from pupilanalysis.drosom.loading import load_data
 from pupilanalysis.image_tools import ImageShower
 from pupilanalysis.binary_search import binary_search_middle
-from pupilanalysis.drosoalr import loadReferenceFly
 from pupilanalysis.rotary_encoders import to_degrees
+
+
+def load_reference_fly(folder):
+    '''
+    Returns the reference fly data, dictionary with pitch angles as keys and
+    image filenames as items.
+    '''
+    pitches = []
+    root_dir = os.path.dirname
+    with open(os.path.join(CODE_ROOTDIR, folder, 'pitch_angles.txt'), 'r') as fp:
+        for line in fp:
+            pitches.append(line)
+
+    images = [os.path.join(CODE_ROOTDIR, folder, fn) for fn in os.listdir(os.path.join(CODE_ROOTDIR, folder)) if fn.endswith('.tif') or fn.endswith('.tiff')]
+    images.sort() 
+    return {pitch: fn for pitch,fn in zip(pitches, images)}
+
+
 
 
 #OLD def _drosom_load(self, folder):
@@ -114,7 +127,7 @@ class AntennaLevelFinder:
             
             
             # Load reference fly data
-            reference_pitches = {fn: pitch for pitch, fn in loadReferenceFly('alr_data').items()}
+            reference_pitches = {fn: pitch for pitch, fn in load_reference_fly('alr_data').items()}
             #print(reference_pitches)
             reference_images = list(reference_pitches.keys())
             reference_images.sort()

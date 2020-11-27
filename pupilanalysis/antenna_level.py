@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from pupilanalysis.directories import ANALYSES_SAVEDIR
 from pupilanalysis.droso import DrosoSelect
 from pupilanalysis.drosom.loading import load_data
-from pupilanalysis.imageshower import ImageShower
+from pupilanalysis.image_tools import ImageShower
 from pupilanalysis.binary_search import binary_search_middle
 from pupilanalysis.drosoalr import loadReferenceFly
 from pupilanalysis.rotary_encoders import to_degrees

@@ -428,6 +428,52 @@ def rotate_vectors(points, vectors, yaw, pitch, roll):
     return points, vectors
 
 
+def distance(a, b):
+    '''
+    Calculates distance between two points in 3D cartesian space.
+    a,b      (x,y,z)
+    '''
+
+    return sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2)
+
+
+def optimal_sampling(horizontals, verticals):
+    '''
+    Determine optimal way to sample using two orthogonal goniometers.
+    '''
+    
+    steps = ((horizontals[1]-horizontals[0]), (verticals[1]-verticals[0]))
+
+    min_distance = 0.75 * distance(camera2Fly(steps[0], steps[1]), camera2Fly(0,0))
+
+  
+    goniometer_vals = {}
+    
+    points = []
+
+    for vertical in verticals:
+        goniometer_vals[vertical] = []
+        for horizontal in horizontals:
+            point = camera2Fly(horizontal, vertical)
+            
+            append = True
+            
+            for previous_point in points:
+                if distance(previous_point, point) < min_distance:
+                    append = False
+                    break
+
+            if append:
+                points.append(point)
+                goniometer_vals[vertical].append(horizontal)
+
+    #for hor, vers in sorted(goniometer_vals.items(), key=lambda x: int(x[0])):
+    #    print('{}: {}'.format(hor, vers))
+    
+    return np.array(points)
+
+
+
 
 def test_rotate_vectors():
     '''

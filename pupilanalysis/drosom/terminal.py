@@ -71,7 +71,7 @@ def export_optic_flow():
     Exports the optic flow vectors.
     '''
     import json
-    from pupilanalysis.optimal_sampling import optimal as optimal_sampling
+    from pupilanalysis.coordinates import optimal_sampling
     from pupilanalysis.drosom.optic_flow import flow_vectors
     points = optimal_sampling(np.arange(-90, 90, 5), np.arange(-180, 180, 5))
     vectors = flow_vectors(points)

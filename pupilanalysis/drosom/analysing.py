@@ -28,9 +28,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pupilanalysis.drosom.loading import load_data, angles_from_fn
-from pupilanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector
+from pupilanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector, optimal_sampling
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
-from pupilanalysis.optimal_sampling import optimal
 from pupilanalysis.drosom.optic_flow import flow_vectors
 from pupilanalysis.rotary_encoders import to_degrees, step2degree
 
@@ -1364,7 +1363,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
 
                 vectors_3d.append(vec)
             
-            intp_points = optimal(np.arange(-90, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
+            intp_points = optimal_sampling(np.arange(-90, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
             
 
             for intp_point in intp_points:

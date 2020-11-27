@@ -95,9 +95,8 @@ def complete_flow_analysis(manalyser, rotations, rotation_axis,
     '''
     from scipy.ndimage import rotate
     import matplotlib.image as mpli 
-    from pupil.coordinates import rotate_vectors
+    from pupil.coordinates import rotate_vectors, optimal_sampling
     from pupil.drosom.optic_flow import flow_vectors, field_error
-    from pupil.optimal_sampling import optimal as optimal_sampling
 
     # Parse keywork aguments
     # -----------------------

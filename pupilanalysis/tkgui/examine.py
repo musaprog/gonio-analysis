@@ -178,7 +178,8 @@ class ExamineView(tk.Frame):
         self.status_antenna_level = tk.Label(self.specimen_control_frame, text='Zero correcter N/A', font=('system', 8))
         #self.status_antenna_level.grid(row=3, column=0, sticky='W')
         
-        
+        self.status_active_analysis = tk.Label(self.specimen_control_frame, text='Active analysis: default', font=('system', 8), justify=tk.LEFT)
+        self.status_active_analysis.grid(row=4, column=0, sticky='W')
         
         # Image folder manipulations
         self.folder_control_frame = tk.LabelFrame(self.leftside_frame, text='Image folder')
@@ -489,6 +490,12 @@ class ExamineView(tk.Frame):
             self.status_antenna_level.config(text='Zero corrected, {:.2f} degrees'.format(self.correction))
         else:
             self.status_antenna_level.config(text='Zero corrected FALSE')
+
+        self.status_active_analysis.config(text='Active analysis: {}\nAvailable analyses: {}'.format(
+            self.core.analyser.active_analysis,
+            ', '.join(self.core.analyser.list_analyses())
+            ))
+
 
         self.button_rois.config(state=tk.NORMAL)
 

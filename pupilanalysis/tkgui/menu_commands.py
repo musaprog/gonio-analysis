@@ -218,12 +218,22 @@ class SpecimenCommands(ModifiedMenuMaker):
     '''
 
     def _force_order(self):
-        return ['select_ROIs', 'measure_movement', 'zero_correct',
+        return ['set_active_analysis',
+                '.',
+                'select_ROIs', 'measure_movement', 'zero_correct',
                 '.',
                 'measure_movement_DASH_in_absolute_coordinates',
                 '.',
                 'mean_displacement_over_time',
                 '.']
+
+    def set_active_analysis(self):
+
+        name = ask_string('Active analysis', 'Give new or existing analysis name (empty for default)', self.tk_root)
+        
+        self.core.analyser.active_analysis = name
+
+
 
     def select_ROIs(self):
         '''

@@ -28,9 +28,8 @@ class OAnalyser(MAnalyser):
 
         super().__init__(*args, **kwargs)
         
-        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', args[1], 'orientation_{}_{}.json'.format(args[1], '{}'))
-        #os.makedirs(os.path.dirname(self.orientation_savefn), exist_ok=True)
-
+        self._movements_skelefn = self._movements_skelefn.replace('movements_', 'orientation_')
+        self.active_analysis = ''
 
 
     def measure_movement(self, eye, *args, **kwargs):

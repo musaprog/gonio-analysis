@@ -228,6 +228,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
     eyes : tuple of strings
         By default, ("left", "right")
     
+    active_analysis : string
+        Name of the active analysis. Sets MOVEMENTS_SAVEFN
 
 
     '''
@@ -247,14 +249,17 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         
         self.data_path = data_path
         self.folder = folder
+    
+        self.eyes = ("left", "right")
+        self._movements_skelefn = 'movements_{}_{}{}.json' # specimen_name, eye, active_analysis
         
         self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'rois_{}.json'.format(folder))
-        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'movements_{}_{}.json'.format(folder, '{}'))
+        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._movements_skelefn.format(folder, '{}', ''))
 
         self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
+        
+        self.active_analysis = ''
 
-
-        self.eyes = ("left", "right")
 
         if no_data_load:
             # no_data_load was speciefied, skip all data loading
@@ -298,8 +303,66 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         # movement directions instead of deep pseudopupil movement directions
         self.receptive_fields = False
 
+
+
+    @property
+    def active_analysis(self):
+        if self.__active_analysis == '':
+            return 'default'
+        else:
+            return self.__active_analysis
+
+
+    @active_analysis.setter
+    def active_analysis(self, name):
+        '''
+        Setting active analysis sets self.MOVEMENTS_SAVEFN.
         
-       
+        name : string
+            The default is "default"
+        '''
+        
+        if name == 'default':
+            name = ''
+
+        if name == '':
+            self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', ''))
+        else:
+            self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', '_'+name))
+        
+        self.__active_analysis = name
+    
+
+    def list_analyses(self):
+        '''
+        Returns a list of analysis names that exist.
+        '''
+        
+        manalyser_dir = os.path.dirname(self.MOVEMENTS_SAVEFN)
+
+        if os.path.isdir(manalyser_dir):
+            fns = [fn for fn in os.listdir(manalyser_dir) if
+                    self._movements_skelefn.split('{')[0] in fn and
+                    self.eyes[0] in ''.join(fn.split('_')[-2:])]
+        else:
+            fns = []
+
+
+        names = []
+
+        for fn in fns:
+            secondlast, last = fn.split('.')[0].split('_')[-2:]
+            
+            if secondlast in self.eyes and last not in self.eyes:
+                names.append(last)
+            elif secondlast not in self.eyes and last in self.eyes:
+                names.append('default')
+            else:
+                RuntimeWarning('Fixme list_analyses in MAnalyser')
+
+        return names
+
+
     def __fileOpen(self, fn):
         with open(fn, 'r') as fp:
             data = json.load(fp)

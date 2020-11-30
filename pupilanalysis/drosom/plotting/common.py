@@ -3,6 +3,9 @@ Common helper functions likely needed in many different plots.
 '''
 
 import os
+import math
+import copy
+import multiprocessing
 
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
@@ -370,24 +373,39 @@ def histogram_heatmap(all_errors, nbins=20, horizontal=True, drange=None):
 
 
 
-def save_3d_animation(manalyser, ax=None, plot_function=None, interframe_callback=print,
+def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback=print,
+        i_worker=None, N_workers=None,
         *args, **kwargs):
     '''
     interframe_callback
     '''
-
-    if plot_function:
-        po = plot_function(manalyser)
-        ax = po[0]
-
+    
     animation = make_animation_angles()
     
-    savedir = os.path.join(ANALYSES_SAVEDIR, 'videos')
+    if i_worker is None:
+        partname = ''
+    else:
+        partname = '_' + str(i_worker)
+        
+        worksize = math.floor(len(animation) / N_workers)
+
+        if i_worker == N_workers-1:
+            animation = animation[i_worker*worksize:]
+        else:
+            animation = animation[i_worker*worksize:(i_worker+1)*worksize]
+
+
+    if plot_function:
+        po = plot_function(manalyser, *args, **kwargs)
+        ax = po[0]
+
+   
+    savedir = os.path.join(ANALYSES_SAVEDIR, 'videos', manalyser.get_specimen_name())
     os.makedirs(savedir, exist_ok=True)
 
     try:
         video_writer = matplotlib.animation.writers['ffmpeg'](fps=20, metadata={'title':manalyser.get_specimen_name()})
-        video_writer.setup(ax.figure, os.path.join(savedir,'{}.mp4'.format(manalyser.get_specimen_name())))
+        video_writer.setup(ax.figure, os.path.join(savedir,'{}{}.mp4'.format(manalyser.get_specimen_name(),partname)))
     except RuntimeError:
         print('Install ffmpeg by "pip install ffmpeg" to get the video')
         video_writer = False

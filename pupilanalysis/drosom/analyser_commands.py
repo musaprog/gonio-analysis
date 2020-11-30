@@ -14,6 +14,8 @@ from pupilanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
 from pupilanalysis.drosom.special.paired import cli_group_and_compare
 import pupilanalysis.drosom.reports as reports
 
+I_WORKER = None
+N_WORKERS = None
 
 plotter = MPlotter()
 
@@ -23,7 +25,7 @@ ANALYSER_CMDS = {}
 ANALYSER_CMDS['pass'] = print
 ANALYSER_CMDS['vectormap'] = basics.plot_3d_vectormap
 ANALYSER_CMDS['vectormap_mayavi'] = plotter.plot_3d_vectormap_mayavi
-ANALYSER_CMDS['vectormap_video'] = lambda analyser: save_3d_animation(analyser, plot_function=basics.plot_3d_vectormap) 
+ANALYSER_CMDS['vectormap_video'] = lambda analyser: save_3d_animation(analyser, plot_function=basics.plot_3d_vectormap, i_worker=I_WORKER, N_workers=N_WORKERS) 
 ANALYSER_CMDS['vectormap_oldvideo'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)
 ANALYSER_CMDS['magtrace'] = basics.plot_1d_magnitude
 ANALYSER_CMDS['2d_vectormap'] =  plotter.plotDirection2D

@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
+from pupilanalysis.drosom import analyser_commands
 from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS as analyses
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupilanalysis.droso import DrosoSelect
@@ -123,6 +124,8 @@ def main(custom_args=None):
             help='(internal) Launches a tkinter waiting window')
     parser.add_argument('--unittest', action='store_true',
             help='Skips showing the plots')
+    parser.add_argument('--worker-info', nargs=2,
+            help='Worker id and total number of parallel workers. Only 3D video plotting now')
 
     # Different analyses for separate specimens
 
@@ -138,6 +141,9 @@ def main(custom_args=None):
     if args.tk_waiting_window:
         waiting_window = WaitingWindow('terminal.py', 'When ready, this window closes.')
 
+    if args.worker_info:
+        analyser_commands.I_WORKER = int(args.worker_info[0])
+        analyser_commands.N_WORKERS = int(args.worker_info[1])
 
     # Getting the data directory
     # --------------------------

@@ -414,8 +414,23 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     
     def averaged_vectormap_DASH_rotating_video(self):
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average vectormap_video'), with_movements=True) 
-
+    
+    def averaged_vectormap_DASH_rotating_video_multiprocessing(self):
         
+        def run_workers(specimens):
+            if len(specimens) > 0:
+                N_workers = os.cpu_count()
+                for i_worker in range(N_workers):
+                    if i_worker != 0:
+                        additional = '--dont-show'
+                    else:
+                        additional = ''
+                    self.core.adm_subprocess(specimens, '--tk_waiting_window --worker-info {} {} --average vectormap_video'.format(i_worker, N_workers)) 
+
+
+        select_specimens(self.core, run_workers, with_movements=True) 
+        
+
     def averaged_vectormap_DASH_rotating_video_DASH_set_title(self):
         ask_string('Set title', 'Give video title', lambda title: select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average --short-name {} vectormap_video'.format(title)), with_movements=True)) 
         

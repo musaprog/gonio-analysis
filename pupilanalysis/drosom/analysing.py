@@ -333,9 +333,19 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', ''))
         else:
             self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', '_'+name))
-        
+    
+        if self.is_measured():
+            self.load_analysed_movements()
+        else:
+            try:
+                del self.movements
+            except AttributeError:
+                pass
+
         self.__active_analysis = name
     
+
+
 
     def list_analyses(self):
         '''

@@ -152,7 +152,7 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
 
 
-def plot_3d_vectormap(manalyser, arrow_rotations = [0, 29],
+def plot_3d_vectormap(manalyser, arrow_rotations = [0],
         guidance=False, draw_sphere=False, hide_behind=True,
         elev=0, azim=90, color=None, repeats_separately=False, vertical_hardborder=True,
         ax=None):
@@ -160,7 +160,10 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0, 29],
     Plot an interactive 3D vectormap, where the arrows point the movement or
     feature directions.
     '''
- 
+    
+    if manalyser.__class__.__name__ == 'OAnalyser' and arrow_rotations == [0]:
+        arrow_rotations.append(29)
+
     if ax is None:
         fig = plt.figure(figsize=(10,10))
         ax = fig.add_subplot(111, projection='3d')

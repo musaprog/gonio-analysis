@@ -4,11 +4,13 @@ Most commonly needed functions to plot the data.
 
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import proj3d
+import mpl_toolkits.axes_grid1
+
+from .common import vector_plot
 
 EYE_COLORS = {'right': 'blue', 'left': 'red'}
-
-
-
+REPEAT_COLORS = ['green', 'orange', 'pink']
 
 def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
         mean_repeats=False, mean_imagefolders=False, mean_eyes=False,
@@ -145,5 +147,60 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
     ax.spines['top'].set_visible(False)
 
     return ax, traces, N_repeats
+
+
+
+
+
+def plot_3d_vectormap(manalyser, arrow_rotations = [0, 29],
+        elev=0, azim=90, color=None, repeats_separately=False,
+        ax=None):
+    '''
+    Plot an interactive 3D vectormap, where the arrows point the movement or
+    feature directions.
+    '''
+ 
+    if ax is None:
+        fig = plt.figure(figsize=(10,10))
+        ax = fig.add_subplot(111, projection='3d')
+    
+    vectors = {}
+
+    original_rotation = manalyser.vector_rotation
+
+    for i_rotation, rotation in enumerate(arrow_rotations):
+
+        for eye in manalyser.eyes:
+            if len(arrow_rotations) == 1:
+                colr = EYE_COLORS[eye]
+            else:
+                colr = REPEAT_COLORS[i_rotation]
+            
+            if rotation is None or rotation == 0:
+                pass
+            else:
+                if eye == 'left':
+                    manalyser.vector_rotation = rotation
+                else:
+                    manalyser.vector_rotation = -rotation
+            vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True, repeats_separately=repeats_separately, strict=True)
+            vector_plot(ax, *vectors_3d, color=colr, mutation_scale=10)
+            
+            vectors[eye] = vectors_3d
+           
+    manalyser.vector_rotation = original_rotation
+
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1,1)
+    ax.set_zlim(-1, 1)
+    
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+
+    ax.view_init(elev=elev, azim=azim)
+    
+
+    return ax, vectors
 
 

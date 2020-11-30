@@ -2,12 +2,16 @@
 Common helper functions likely needed in many different plots.
 '''
 
+import os
+
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 import matplotlib.pyplot as plt
+import matplotlib.animation
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
+from pupilanalysis.directories import ANALYSES_SAVEDIR
 
 CURRENT_ARROW_LENGTH = 1
 
@@ -364,4 +368,64 @@ def histogram_heatmap(all_errors, nbins=20, horizontal=True, drange=None):
 
     return image
 
+
+
+def save_3d_animation(manalyser, ax=None, plot_function=None, interframe_callback=print,
+        *args, **kwargs):
+    '''
+    interframe_callback
+    '''
+
+    if plot_function:
+        po = plot_function(manalyser)
+        ax = po[0]
+
+    animation = make_animation_angles()
+    
+    savedir = os.path.join(ANALYSES_SAVEDIR, 'videos')
+    os.makedirs(savedir, exist_ok=True)
+
+    try:
+        video_writer = matplotlib.animation.writers['ffmpeg'](fps=20, metadata={'title':manalyser.get_specimen_name()})
+        video_writer.setup(ax.figure, os.path.join(savedir,'{}.mp4'.format(manalyser.get_specimen_name())))
+    except RuntimeError:
+        print('Install ffmpeg by "pip install ffmpeg" to get the video')
+        video_writer = False
+
+    
+    doublegrab_next = False
+
+    for i, (elevation, azimuth) in enumerate(animation):
+        try:
+        
+            #if arrow_animation:
+            #    axes[0].clear()
+            #    for color, eye in zip(['red', 'blue'], ['left', 'right']):
+            #        vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True)
+            #        vector_plot(axes[0], *vectors_3d, color=color, mutation_scale=15,
+            #                animate=arrow_animation, guidance=True, camerapos=(elevation, azimuth))
+            #    make_animation_timestep(**VECTORMAP_PULSATION_PARAMETERS)
+            
+                
+            print('{} {}'.format(elevation, azimuth)) 
+            
+            ax.view_init(elev=elevation, azim=azimuth)
+            
+            ax.figure.canvas.draw_idle()
+            interframe_callback()
+
+            if video_writer:
+                 video_writer.grab_frame()
+                 if doublegrab_next:
+                    video_writer.grab_frame()
+                    doublegrab_next = False
+
+
+        except Exception as e:
+            print('Could not make a frame, error message on the next line')
+            print(e)
+            doublegrab_next = True
+
+    if video_writer:
+        video_writer.finish()
 

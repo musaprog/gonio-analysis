@@ -416,13 +416,12 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
     for i, (elevation, azimuth) in enumerate(animation):
         try:
         
-            #if arrow_animation:
-            #    axes[0].clear()
-            #    for color, eye in zip(['red', 'blue'], ['left', 'right']):
-            #        vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True)
-            #        vector_plot(axes[0], *vectors_3d, color=color, mutation_scale=15,
-            #                animate=arrow_animation, guidance=True, camerapos=(elevation, azimuth))
-            #    make_animation_timestep(**VECTORMAP_PULSATION_PARAMETERS)
+            if callable(plot_function):
+                ax.clear()
+                kwargs['elev'] = elevation
+                kwargs['azim'] = azimuth
+
+                plot_function(manalyser, ax=ax, *args, **kwargs)
             
                 
             print('{} {}'.format(elevation, azimuth)) 

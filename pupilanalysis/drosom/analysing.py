@@ -230,7 +230,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
     
     active_analysis : string
         Name of the active analysis. Sets MOVEMENTS_SAVEFN
-
+    
+    vector_rotation : float or None
+        Rotation of 2D vectors (affects 3D)
 
     '''
 
@@ -249,8 +251,10 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         
         self.data_path = data_path
         self.folder = folder
-    
+        
+
         self.eyes = ("left", "right")
+        self.vector_rotation = None
         self._movements_skelefn = 'movements_{}_{}{}.json' # specimen_name, eye, active_analysis
         
         self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'rois_{}.json'.format(folder))
@@ -1117,6 +1121,21 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         #X = [0.1 for x in values]
         #Y = [0. for x in values]
 
+        if self.vector_rotation:
+            r = math.radians(self.vector_rotation)
+            for i in range(len(X)):
+                x = X[i]
+                y = Y[i]
+                
+                if angles[i][1] > 0:
+                    sr = -1 * r
+                else:
+                    sr = 1 * r
+
+                X[i] = x * math.cos(sr) - y * math.sin(sr)
+                Y[i] = x * math.sin(sr) + y * math.cos(sr)
+
+
         return angles, X, Y
 
 
@@ -1379,7 +1398,9 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         self.va_limits = [None, None]
         self.ha_limits = [None, None]
         self.alimits_reverse = False
-
+        
+        self.eyes = manalysers[0].eyes
+        self.vector_rotation = None
 
     def get_N_specimens(self):
         return len(self.manalysers)

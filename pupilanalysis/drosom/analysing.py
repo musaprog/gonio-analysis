@@ -1074,7 +1074,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return angles, movement_dict
     
 
-    def get_2d_vectors(self, eye, mirror_horizontal=True, mirror_pitch=True, correct_level=True):
+    def get_2d_vectors(self, eye, mirror_horizontal=True, mirror_pitch=True, correct_level=True, repeats_separately=False):
         '''
         Creates 2D vectors from the movements analysis data.
             Vector start point: Pupils position at the firts frame
@@ -1117,9 +1117,26 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         # Vector X and Y components
         # Fix here if repetitions are needed to be averaged
         # (don't take only x[0] but average)
-        X = [xdirchange*(x[0]['x'][-1]-x[0]['x'][0]) for x in values]
-        Y = [x[0]['y'][-1]-x[0]['y'][0] for x in values]
+        if repeats_separately:
+            tmp_angles = []            
+            X = []
+            Y = []
+            
+            for angle, val in zip(angles, values):
+                for repeat in val:
+                    tmp_angles.append(angle)
+                    X.append( xdirchange*(repeat['x'][-1]-repeat['x'][0]) )
+                    Y.append( repeat['y'][-1]-repeat['y'][0] )
+
+            angles = tmp_angles
+
+        else:
+
+            X = [xdirchange*(x[0]['x'][-1]-x[0]['x'][0]) for x in values]
+            Y = [x[0]['y'][-1]-x[0]['y'][0] for x in values]
         
+
+
         #i_frame = int(len(values[0][0]['x'])/3)
         #X = [xdirchange*(x[0]['x'][i_frame]-x[0]['x'][0]) for x in values]
         #Y = [x[0]['y'][i_frame]-x[0]['y'][0] for x in values]
@@ -1268,7 +1285,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return moving_ROI
         
     
-    def _get_3d_vectors(self, eye, return_angles=False, correct_level=True, normalize_length=0.1):
+    def _get_3d_vectors(self, eye, return_angles=False, correct_level=True, repeats_separately=False, normalize_length=0.1, strict=None):
         '''
         Returns 3D vectors and their starting points.
     
@@ -1277,7 +1294,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         va_limits       Vertical angle limits in degrees, (None, None) for no limits
         '''
         angles, X, Y = self.get_2d_vectors(eye, mirror_pitch=False, mirror_horizontal=True,
-                correct_level=False)
+                correct_level=False, repeats_separately=repeats_separately)
         
         
         N = len(angles)

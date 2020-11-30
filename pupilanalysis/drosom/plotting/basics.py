@@ -153,7 +153,8 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
 
 def plot_3d_vectormap(manalyser, arrow_rotations = [0, 29],
-        elev=0, azim=90, color=None, repeats_separately=False,
+        guidance=False, draw_sphere=False, hide_behind=True,
+        elev=0, azim=90, color=None, repeats_separately=False, vertical_hardborder=True,
         ax=None):
     '''
     Plot an interactive 3D vectormap, where the arrows point the movement or
@@ -167,6 +168,11 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0, 29],
     vectors = {}
 
     original_rotation = manalyser.vector_rotation
+
+    if hide_behind:
+        camerapos = (elev, azim)
+    else:
+        camerapos = False
 
     for i_rotation, rotation in enumerate(arrow_rotations):
 
@@ -183,12 +189,22 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0, 29],
                     manalyser.vector_rotation = rotation
                 else:
                     manalyser.vector_rotation = -rotation
-            vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True, repeats_separately=repeats_separately, strict=True)
-            vector_plot(ax, *vectors_3d, color=colr, mutation_scale=10)
+            
+            vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True,
+                    repeats_separately=repeats_separately,
+                    strict=True, vertical_hardborder=vertical_hardborder)
+
+            vector_plot(ax, *vectors_3d, color=colr, mutation_scale=10,
+                    guidance=guidance,
+                    draw_sphere=draw_sphere,
+                    camerapos=camerapos,
+                    )
             
             vectors[eye] = vectors_3d
            
     manalyser.vector_rotation = original_rotation
+
+    plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
 
     ax.set_xlim(-1, 1)
     ax.set_ylim(-1,1)

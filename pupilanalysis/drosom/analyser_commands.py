@@ -6,6 +6,7 @@ the Analyser object as their only argument.
 import numpy as np
 
 from pupilanalysis.drosom import plotting
+from pupilanalysis.drosom.plotting.common import save_3d_animation
 from pupilanalysis.drosom.plotting import basics
 from pupilanalysis.drosom.plotting.plotter import MPlotter
 from pupilanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
@@ -20,9 +21,10 @@ plotter = MPlotter()
 # Functions that take only one input argument that is the MAnalyser
 ANALYSER_CMDS = {}
 ANALYSER_CMDS['pass'] = print
-ANALYSER_CMDS['vectormap'] = plotter.plot_3d_vectormap
+ANALYSER_CMDS['vectormap'] = basics.plot_3d_vectormap
 ANALYSER_CMDS['vectormap_mayavi'] = plotter.plot_3d_vectormap_mayavi
-ANALYSER_CMDS['vectormap_video'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)
+ANALYSER_CMDS['vectormap_video'] = lambda analyser: save_3d_animation(analyser, plot_function=basics.plot_3d_vectormap) 
+ANALYSER_CMDS['vectormap_oldvideo'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)
 ANALYSER_CMDS['magtrace'] = basics.plot_1d_magnitude
 ANALYSER_CMDS['2d_vectormap'] =  plotter.plotDirection2D
 ANALYSER_CMDS['trajectories'] = plotter.plot_2d_trajectories

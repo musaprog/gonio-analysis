@@ -122,7 +122,7 @@ def main(custom_args=None):
     # Other settings
     parser.add_argument('--tk_waiting_window', action='store_true',
             help='(internal) Launches a tkinter waiting window')
-    parser.add_argument('--unittest', action='store_true',
+    parser.add_argument('--dont-show', action='store_true',
             help='Skips showing the plots')
     parser.add_argument('--worker-info', nargs=2,
             help='Worker id and total number of parallel workers. Only 3D video plotting now')
@@ -221,7 +221,7 @@ def main(custom_args=None):
     if args.tk_waiting_window:
         waiting_window.close()
 
-    if not args.unittest:
+    if not args.dont_show:
         plt.show()
 
 

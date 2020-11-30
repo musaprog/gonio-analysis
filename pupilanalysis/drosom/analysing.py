@@ -1452,7 +1452,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         self.intp_step = (horizontal_step, vertical_step)
 
 
-    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=False):
+    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=True, strict=False, **kwargs):
         '''
         Equivalent to MAnalysers get_3d_vectors but interpolates with N-nearest
         neughbours.
@@ -1468,14 +1468,20 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
             vectors_3d = []
 
             for analyser in self.manalysers:
+                analyser.vector_rotation = self.vector_rotation
                 vec = analyser.get_3d_vectors(eye, correct_level=True,
-                        normalize_length=normalize_length)
+                        normalize_length=normalize_length, **kwargs)
                 
 
                 vectors_3d.append(vec)
             
-            intp_points = optimal_sampling(np.arange(-90, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
-            
+            if not strict:
+                intp_points = optimal_sampling(np.arange(-90, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
+            else:
+                if eye == 'left':
+                    intp_points = optimal_sampling(np.arange(-90, 0.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
+                else:
+                    intp_points = optimal_sampling(np.arange(0, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
 
             for intp_point in intp_points:
                 

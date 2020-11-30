@@ -273,8 +273,13 @@ class SpecimenCommands(ModifiedMenuMaker):
         
         func = lambda: self.core.analyser.measure_both_eyes(absolute_coordinates=absolute_coordinates)
         
-        MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
-    
+        if self.core.analyser.__class__.__name__ == 'MAnalyser':
+            MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
+        else:
+            # OAnalyser; Threading in MeasurementWindow would cause problems for plotting
+            func()
+            self.core.update_gui(changed_specimens=True)
+
 
     def measure_movement_DASH_in_absolute_coordinates(self):
         self.measure_movement(absolute_coordinates=True)
@@ -359,9 +364,16 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         # Here lambda requires specimen=specimen keyword argument; Otherwise only
         # the last specimen gets analysed N_specimens times
         targets = [lambda specimen=specimen: self.core.get_manalyser(specimen).measure_both_eyes(absolute_coordinates=absolute_coordinates) for specimen in specimens]
+    
 
-        MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement',
-                callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
+        if self.core.analyser.__class__.__name__ == 'MAnalyser':
+            MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement',
+                    callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
+        else:
+            # For OAnalyser; Threading in MeasurementWindow causes problems for plotting
+            for target in tagets:
+                target()
+            self.core.update_gui(changed_specimens=True)
 
 
     def measure_movements_DASH_list_all(self):

@@ -1285,7 +1285,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return moving_ROI
         
     
-    def _get_3d_vectors(self, eye, return_angles=False, correct_level=True, repeats_separately=False, normalize_length=0.1, strict=None):
+    def _get_3d_vectors(self, eye, return_angles=False, correct_level=True, repeats_separately=False, normalize_length=0.1, strict=None, vertical_hardborder=None):
         '''
         Returns 3D vectors and their starting points.
     
@@ -1452,7 +1452,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         self.intp_step = (horizontal_step, vertical_step)
 
 
-    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=True, strict=False, **kwargs):
+    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=False, strict=False, vertical_hardborder=False, **kwargs):
         '''
         Equivalent to MAnalysers get_3d_vectors but interpolates with N-nearest
         neughbours.
@@ -1488,7 +1488,16 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
                 nearest_vectors = []
                 for vectors in vectors_3d:
                     i_nearest = nearest_neighbour(intp_point, vectors[0], max_distance=intp_dist)
+                    
                     if not i_nearest is False:
+                        
+                        if vertical_hardborder:
+                            print('jto')
+                            print(intp_point[2])
+                            print(vectors[1][i_nearest][2])
+                            if np.sign(intp_point[2]) != np.sign(vectors[0][i_nearest][2]):
+                                continue
+
                         nearest_vectors.append(vectors[1][i_nearest])
 
                 if len(nearest_vectors) > len(vectors_3d)/2:

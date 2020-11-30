@@ -43,7 +43,8 @@ from pupilanalysis import __version__
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PUPILDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
-from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
+from pupilanalysis.drosom.plotting.common import save_3d_animation
+from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude, plot_3d_vectormap
 from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS
 from pupilanalysis.tkgui.core import Core
 from pupilanalysis.tkgui.plotting import RecordingPlotter
@@ -226,9 +227,10 @@ class ExamineView(tk.Frame):
         self.rightside_frame.grid(row=0, column=1, sticky='NWES')
         
         
-        canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
-        tab_names = ['ROI', 'Displacement', 'XY']
-        self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))],
+        tab_kwargs = [{}, {}, {}, {'projection': '3d'}]
+        tab_names = ['ROI', 'Displacement', 'XY', '3D']
+        canvas_constructors = [lambda parent, kwargs=kwargs: CanvasPlotter(parent, visibility_button=False, **kwargs) for kwargs in tab_kwargs]
+        self.tabs = Tabs(self.rightside_frame, tab_names, canvas_constructors,
                 on_select_callback=self.update_plot)
         
         self.tabs.grid(row=0, column=0, sticky='NWES')
@@ -247,6 +249,17 @@ class ExamineView(tk.Frame):
         self.displacement_ticks = TickboxFrame(self.canvases[1], displacementplot_options,
                 defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
         self.displacement_ticks.grid()
+
+        # Controls for the vector plot
+        # Controls for displacement plot (means etc)
+        vectorplot_options, vectorplot_defaults = inspect_booleans(
+                plot_3d_vectormap, exclude_keywords=[])
+        self.vectorplot_ticks = TickboxFrame(self.canvases[3], vectorplot_options,
+                defaults=vectorplot_defaults, callback=lambda:self.update_plot(3))
+        self.vectorplot_ticks.grid()
+        
+        tk.Button(self.canvases[3], text='Save animation', command=self.save_3d_animation).grid()
+
 
         self.default_button_bg = self.button_rois.cget('bg')
 
@@ -282,6 +295,15 @@ class ExamineView(tk.Frame):
             
             colors.append(color)
         return colors
+
+
+    def save_3d_animation(self):
+        
+        def callback():
+            self.canvases[3].update()
+        
+        fig, ax = self.canvases[3].get_figax()
+        save_3d_animation(self.core.analyser, ax=ax, interframe_callback=callback)
 
 
     def copy_to_csv(self, formatted): 
@@ -360,7 +382,8 @@ class ExamineView(tk.Frame):
         elif i_tab == 2:
             data = self.plotter.xys
             data = list(itertools.chain(*data))
-            
+        elif i_tab == 3:
+            raise NotImplementedError('Cannot yet cliboard vectormap data')
 
         # Format the data for tkinter clipboard copy
         for i_frame in range(len(data[0])):
@@ -539,21 +562,38 @@ class ExamineView(tk.Frame):
 
     def update_plot(self, i_plot):
         '''
-        i_plot      Index of the plot (from 0 to N-1 tabs)
+        i_plot : int or None
+            Index of the plot (from 0 to N-1 tabs) or None just to update
         '''
         if self.core.selected_recording is None:
             return None
+        
+        if i_plot is None:
+            i_plot = self.tabs.i_current
 
         fig, ax = self.canvases[i_plot].get_figax()
 
         if i_plot == 0:
             self.plotter.ROI(ax)
-        elif i_plot == 1:
+        else:
+            
             ax.clear()
-            self.plotter.magnitude(ax, **self.displacement_ticks.states)
-        elif i_plot == 2:  
-            ax.clear()
-            self.plotter.xy(ax) 
+
+            remember_analysis = self.core.analyser.active_analysis
+
+            for analysis in [name for name, state in self.tickbox_analyses.states.items() if state == True]:
+                
+                self.core.analyser.active_analysis = analysis
+
+                if i_plot == 1:
+                    self.plotter.magnitude(ax, **self.displacement_ticks.states)
+                elif i_plot == 2:  
+                    self.plotter.xy(ax) 
+                elif i_plot == 3:
+                    self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
+            
+            self.core.active_analysis = remember_analysis
+
 
         self.canvases[i_plot].update()
         

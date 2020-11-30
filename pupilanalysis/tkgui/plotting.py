@@ -10,7 +10,10 @@ import tifffile
 
 from tk_steroids.matplotlib import CanvasPlotter
 
-from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
+from pupilanalysis.drosom.plotting.basics import (
+        plot_1d_magnitude,
+        plot_3d_vectormap
+        )
 
 class RecordingPlotter:
     '''
@@ -85,7 +88,17 @@ class RecordingPlotter:
                 ax=ax,
                 **kwargs)
 
- 
+
+    def vectormap(self, ax, **kwargs):
+
+        self.N_repeats = 0
+        
+        ax, self.vectors = plot_3d_vectormap(self.core.analyser,
+                ax=ax,
+                **kwargs)
+
+
+
     def xy(self, ax):
         '''
         Plot (x, y) where time is encoded by color.

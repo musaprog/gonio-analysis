@@ -180,7 +180,11 @@ class ExamineView(tk.Frame):
         
         self.status_active_analysis = tk.Label(self.specimen_control_frame, text='Active analysis: default', font=('system', 8), justify=tk.LEFT)
         self.status_active_analysis.grid(row=4, column=0, sticky='W')
-        
+       
+        self.tickbox_analyses = TickboxFrame(self.specimen_control_frame, [], ncols=4)
+        self.tickbox_analyses.grid(row=5, column=0, sticky='W')
+
+
         # Image folder manipulations
         self.folder_control_frame = tk.LabelFrame(self.leftside_frame, text='Image folder')
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
@@ -491,11 +495,17 @@ class ExamineView(tk.Frame):
         else:
             self.status_antenna_level.config(text='Zero corrected FALSE')
 
-        self.status_active_analysis.config(text='Active analysis: {}\nAvailable analyses: {}'.format(
-            self.core.analyser.active_analysis,
-            ', '.join(self.core.analyser.list_analyses())
-            ))
+        self.status_active_analysis.config(text='Active analysis: {}'.format(self.core.analyser.active_analysis))
 
+        
+        # FIXME Instead of destroyign tickbox, make changes to tk_steroids
+        # so that the selections can be reset
+        self.tickbox_analyses.grid_forget()
+        self.tickbox_analyses.destroy()
+        self.tickbox_analyses = TickboxFrame(self.specimen_control_frame, self.core.analyser.list_analyses(),
+                defaults=[self.core.analyser.active_analysis == an for an in self.core.analyser.list_analyses()],
+                ncols=4, callback=lambda: self.update_plot(None))
+        self.tickbox_analyses.grid(row=5, column=0, sticky='W')
 
         self.button_rois.config(state=tk.NORMAL)
 

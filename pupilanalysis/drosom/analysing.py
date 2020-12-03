@@ -30,7 +30,6 @@ import matplotlib.pyplot as plt
 from pupilanalysis.drosom.loading import load_data, angles_from_fn
 from pupilanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector, optimal_sampling
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
-from pupilanalysis.drosom.optic_flow import flow_vectors
 from pupilanalysis.rotary_encoders import to_degrees, step2degree
 
 from roimarker import Marker
@@ -1523,7 +1522,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         return points, vectors
 
 
-    def export_3d_vectors(self, *args, optic_flow=False, **kwargs):
+    def export_3d_vectors(self, *args, **kwargs):
         '''
         Exports the 3D vectors in json format.
 
@@ -1542,9 +1541,6 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         for eye in ['left', 'right']:
             points, vectors = self.get_3d_vectors(eye, *args, *kwargs)
             
-            if optic_flow:
-                vectors = flow_vectors(points, xrot=0)
-
             data[eye] = {'points': points.tolist(), 'vectors': vectors.tolist()}
         
         with open(os.path.join(folder, fn), 'w') as fp:

@@ -280,20 +280,21 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
         List of keywords arguments to pass to `plot_3d_differencemap`
     '''
 
+
     if axes is None:
         fig = plt.figure()
         axes = []
-        axes.append(fig.add_subplot(311, projection='3d'))
-        axes.append(fig.add_subplot(312, projection='3d'))
-        axes.append(fig.add_subplot(313, projection='3d'))
+        axes.append(fig.add_subplot(131, projection='3d'))
+        axes.append(fig.add_subplot(132, projection='3d'))
+        axes.append(fig.add_subplot(133, projection='3d'))
     else:
         if len(axes) < 3:
             raise ValueError('axes has to be length 3 for compare_3d_vectormaps')
     
 
-    plot_3d_vectormap(manalyser1, ax=ax[0], **kwargs1)
-    plot_3d_vectormap(manalyser2, ax=ax[1], **kwargs2)
-    plot_3d_differencemap(manalyser1, manalyser2, ax=ax[2], **kwargsD)
+    plot_3d_vectormap(manalyser1, ax=axes[0], **kwargs1)
+    plot_3d_vectormap(manalyser2, ax=axes[1], **kwargs2)
+    plot_3d_differencemap(manalyser1, manalyser2, ax=axes[2], **kwargsD)
     
 
 

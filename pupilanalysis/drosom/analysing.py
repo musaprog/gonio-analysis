@@ -1320,7 +1320,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             #vectors.append( (tuple(angle), (x0,x1), (y0,y1), (z0, z1)) )
             points[i] = np.array(point0)            
             vectors[i] = np.array(point1) - points[i] 
-            print(vectors[i])
 
         # Vertical/horizontal angle limiting
         booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],
@@ -1495,9 +1494,6 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
                     if not i_nearest is False:
                         
                         if vertical_hardborder:
-                            print('jto')
-                            print(intp_point[2])
-                            print(vectors[1][i_nearest][2])
                             if np.sign(intp_point[2]) != np.sign(vectors[0][i_nearest][2]):
                                 continue
 

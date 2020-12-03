@@ -264,7 +264,7 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
     uimy = np.array([0, -sin(radians(vertical)), cos(radians(vertical))])
 
     #print('vertical {}'.format(vertical))
-    print('imx is {}'.format(imx))
+    #print('imx is {}'.format(imx))
     #fx, fy, fz = np.array([x,y,z]) + uimx*cimx + uimy*cimy
     vector = uimx*imx + uimy*imy
 

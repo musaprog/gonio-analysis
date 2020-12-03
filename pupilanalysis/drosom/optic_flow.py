@@ -44,7 +44,7 @@ def flow_vectors(points, xrot=0):
     return np.array([flow_direction(P0, xrot=xrot) for P0 in points])
 
 
-def field_error(points_A, vectors_A, points_B, vectors_B, direction=False):
+def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colinear=False):
     '''
     Relieved version where points dont have to overlap
     
@@ -54,6 +54,8 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False):
     vector      (x,y,z)
 
     direction   Try to get the direction also (neg/pos)
+
+    colinear : bool
     '''
     
     N_vectors = len(vectors_A)
@@ -84,4 +86,10 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False):
             error = -error
 
         errors[i] = error
+
+    if colinear:
+        errors = 2 * np.abs(errors - 0.5)
+    else:
+        errors = 1 - errors
+
     return errors

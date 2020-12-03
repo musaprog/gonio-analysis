@@ -61,8 +61,10 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False):
     errors = np.empty(N_vectors)
 
     kdtree = KDTree(points_B)
-    distances, indices = kdtree.query(points_A, k=10, n_jobs=2)
-    compare_vectors = [np.average([vectors_B[i] for i in indx], axis=0, weights=(1/(np.array(disx)**2)) ) for indx, disx in zip(indices, distances)]
+    distances, indices = kdtree.query(points_A, k=1, n_jobs=2)
+    compare_vectors = [vectors_B[indx] for indx in indices]
+    #distances, indices = kdtree.query(points_A, k=10, n_jobs=2)
+    #compare_vectors = [np.average([vectors_B[i] for i in indx], axis=0, weights=(1/(np.array(disx)**2)) ) for indx, disx in zip(indices, distances)]
     #compare_points = [points_B[i] for i in indices]
 
     for i, (vecA, vecB) in enumerate(zip(vectors_A, compare_vectors)):

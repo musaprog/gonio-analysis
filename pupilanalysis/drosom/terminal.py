@@ -108,8 +108,8 @@ def main(custom_args=None):
     parser.add_argument('--short-name', nargs=1,
             help='Short name to set if --average is set')
 
-    parser.add_argument('-t', '--type', default='motion', choices=['motion', 'orientation'],
-            help='Analyser type, either "motion" or "orientation"')
+    parser.add_argument('-t', '--type', nargs='+',
+            help='Analyser type, either "motion" or "orientation". Space separate gor groups')
     
     parser.add_argument('-r', '--reselect-rois', action='store_true',
             help='Reselect ROIs')
@@ -179,12 +179,15 @@ def main(custom_args=None):
     # Setting up analysers
     # ---------------------
     
+    if not args.type:
+        args.type = ['motion' for i in directory_groups]
+
     analyser_groups = []
     
-    for directories in directory_groups:
+    for i_group, directories in enumerate(directory_groups):
 
         analysers = []
-        Analyser = Analysers[args.type]
+        Analyser = Analysers[args.type[i_group]]
         
         print('Using {}'.format(Analyser.__name__))
 

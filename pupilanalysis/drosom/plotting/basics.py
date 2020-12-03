@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import proj3d
 import mpl_toolkits.axes_grid1
 
-from .common import vector_plot
+from .common import vector_plot, surface_plot
+from pupilanalysis.drosom.optic_flow import field_error
 
 EYE_COLORS = {'right': 'blue', 'left': 'red'}
 REPEAT_COLORS = ['green', 'orange', 'pink']
@@ -155,14 +156,18 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 def plot_3d_vectormap(manalyser, arrow_rotations = [0],
         guidance=False, draw_sphere=False, hide_behind=True,
         elev=0, azim=90, color=None, repeats_separately=False, vertical_hardborder=True,
+        i_frame=0,
         ax=None):
     '''
     Plot an interactive 3D vectormap, where the arrows point the movement or
     feature directions.
     '''
     
-    if manalyser.__class__.__name__ == 'OAnalyser' and arrow_rotations == [0]:
+    if manalyser.__class__.__name__ == 'OAnalyser' and len(arrow_rotations) == 1 and arrow_rotations[0] == 0:
+        # OAnalyser specific for Drosophila; Assuming that R3-R6 line is
+        # analysed, let's also draw the line from R3 to R1.
         arrow_rotations.append(29)
+        i_frame = 0
 
     if ax is None:
         fig = plt.figure(figsize=(10,10))
@@ -201,6 +206,7 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
                     guidance=guidance,
                     draw_sphere=draw_sphere,
                     camerapos=camerapos,
+                    i_pulsframe=i_frame
                     )
             
             vectors[eye] = vectors_3d
@@ -221,5 +227,66 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
     
 
     return ax, vectors
+
+
+def plot_3d_differencemap(manalyser1, manalyser2, ax=None):
+    '''
+    Calls get_3d_vectors for both analysers. 
+    
+    Errors (differences) are calculated at manalyser1's points.
+    '''
+    
+    if ax is None:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+ 
+   
+    vectors = []
+    points = []
+
+    for manalyser in [manalyser1, manalyser2]:
+        lp, lvecs = manalyser.get_3d_vectors('left')
+        rp, rvecs = manalyser.get_3d_vectors('right')
+
+        points.append( np.concatenate((lp, rp)) )
+        vectors.append( np.concatenate((lvecs, rvecs)) )
+
+    errors = field_error(points[0], vectors[0], points[1], vectors[1])
+
+    surface_plot(ax, points[0], errors)
+
+
+
+def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
+        kwargs1={}, kwargs2={}, kwargsD={}):
+    '''
+    Calls get 3d vectors for both analysers
+    
+    manalyser1,manalyser2 : objects
+        Analyser objects
+    axes : list of objects
+        List of length 3, holding 3 matplotlib axes
+        0 is malyser 1 vectorplot, 1 for manalyser 2, and 2 is the difference.
+    kwargs1,kwargs2 : dict
+        List of keyword arguments to pass to `plot_3d_vectormap`
+    kwargsD : dict
+        List of keywords arguments to pass to `plot_3d_differencemap`
+    '''
+
+    if axes is None:
+        fig = plt.figure()
+        axes = []
+        axes.append(fig.add_subplot(311, projection='3d'))
+        axes.append(fig.add_subplot(312, projection='3d'))
+        axes.append(fig.add_subplot(313, projection='3d'))
+    else:
+        if len(axes) < 3:
+            raise ValueError('axes has to be length 3 for compare_3d_vectormaps')
+    
+
+    plot_3d_vectormap(manalyser1, ax=ax[0], **kwargs1)
+    plot_3d_vectormap(manalyser2, ax=ax[1], **kwargs2)
+    plot_3d_differencemap(manalyser1, manalyser2, ax=ax[2], **kwargsD)
+    
 
 

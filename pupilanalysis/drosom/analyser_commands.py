@@ -57,4 +57,6 @@ IMAGEFOLDER_CMDS = {}
 IMAGEFOLDER_CMDS['magtrace'] = basics.plot_1d_magnitude
 
 
-
+# Functions that take two manalyser as input arguments
+DUALANALYSER_CMDS = {}
+DUALANALYSER_CMDS['difference'] = basics.plot_3d_differencemap

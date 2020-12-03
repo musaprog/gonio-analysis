@@ -11,9 +11,12 @@ import numpy as np
 from scipy.spatial import cKDTree as KDTree
 import matplotlib.pyplot as plt
 import matplotlib.animation
+import matplotlib.colors
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
-
+from matplotlib import cm
+ 
+from pupilanalysis.coordinates import nearest_neighbour
 from pupilanalysis.directories import ANALYSES_SAVEDIR
 
 CURRENT_ARROW_LENGTH = 1
@@ -115,7 +118,7 @@ def is_behind_sphere(elev, azim, point):
 
 
 def vector_plot(ax, points, vectors, color='black', mutation_scale=3,
-        animate=False, guidance=False, camerapos=None, draw_sphere=True):
+        i_pulsframe=False, guidance=False, camerapos=None, draw_sphere=True):
     '''
     Plot vectors on ax.
 
@@ -124,8 +127,7 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=3,
     vectors
     color           Color of the arrows
     mutation_scale  Size of the arrow head basically
-    animate         Set the size of the arrows to the current size in the animation
-                    Call make_animation_timestep to go to the next step
+    i_pulsframe    Index of the pulsation animation frame, sets the length of the arrows
     guidance    Add help elements to point left,right,front,back etc. and hide axe
     camerapos       (elev, axzim). Supply so vectors bending the visible himspehere can be hidden 
     draw_sphere     If true draw a gray sphere
@@ -181,7 +183,7 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=3,
             Z = r * np.cos(theta)
             ax.plot_surface(X, Y, Z, color='lightgray')
 
-    if animate:
+    if i_pulsframe:
         global CURRENT_ARROW_LENGTH
         scaler = CURRENT_ARROW_LENGTH
     else:
@@ -258,9 +260,7 @@ def surface_plot(ax, points, values, cb=False):
     values
     '''
     
-    from coordinates import nearest_neighbour
-    from matplotlib import cm
-    import matplotlib.colors
+   
     # Points where the error is "evaluated" (actually interpolated)
     
     N = 100
@@ -414,6 +414,12 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
     doublegrab_next = False
 
     for i, (elevation, azimuth) in enumerate(animation):
+        
+        if i_worker is None:
+            i_frame = i
+        else:
+            i_frame = i + i_worker * worksize
+
         try:
         
             if callable(plot_function):
@@ -421,7 +427,8 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
                 kwargs['elev'] = elevation
                 kwargs['azim'] = azimuth
 
-                plot_function(manalyser, ax=ax, *args, **kwargs)
+                make_animation_timestep()
+                plot_function(manalyser, i_frame=i_frame, ax=ax, *args, **kwargs)
             
                 
             print('{} {}'.format(elevation, azimuth)) 

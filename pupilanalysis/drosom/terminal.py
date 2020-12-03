@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pupilanalysis.drosom import analyser_commands
-from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS as analyses
+from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS, DUALANALYSER_CMDS
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupilanalysis.droso import DrosoSelect
 from pupilanalysis.antenna_level import AntennaLevelFinder
@@ -32,6 +32,7 @@ if '--tk_waiting_window' in sys.argv:
 
 Analysers = {'orientation': OAnalyser, 'motion': MAnalyser}
 
+analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS}
 
 
 def roimovement_video(analyser):
@@ -95,8 +96,8 @@ def main(custom_args=None):
     parser.add_argument('-D', '--data_directory', nargs=1,
             help='Data directory')
 
-    parser.add_argument('-S', '--specimens', nargs=1,
-            help='Comma separeted list of specimen names')
+    parser.add_argument('-S', '--specimens', nargs='+',
+            help='Comma separeted list of specimen names. Separate groups by space when averaging is on.')
 
     
 
@@ -129,7 +130,7 @@ def main(custom_args=None):
 
     # Different analyses for separate specimens
 
-    parser.add_argument('analysis', metavar='analysis',
+    parser.add_argument('-A', '--analysis', nargs=1,
             choices=analyses.keys(),
             help='Analysis method or action. Allowed analyses are '+', '.join(analyses.keys()))
 
@@ -161,11 +162,15 @@ def main(custom_args=None):
 
     # Getting the specimens
     # ---------------------
+    directory_groups = []
     if args.specimens:
-        print('Using specimens {}'.format(args.specimens))
+        
+        for group in args.specimens:
+            print('Using specimens {}'.format(group))
 
-        selector = DrosoSelect(datadir=data_directory)
-        directories = selector.parse_specimens(args.specimens[0])
+            selector = DrosoSelect(datadir=data_directory)
+            directories = selector.parse_specimens(group)
+            directory_groups.append(directories)
     else:
         selector = DrosoSelect(datadir=data_directory)
         directories = selector.ask_user()
@@ -173,50 +178,63 @@ def main(custom_args=None):
             
     # Setting up analysers
     # ---------------------
-    analysers = []
-    Analyser = Analysers[args.type]
     
-    print('Using {}'.format(Analyser.__name__))
+    analyser_groups = []
+    
+    for directories in directory_groups:
 
-    for directory in directories: 
+        analysers = []
+        Analyser = Analysers[args.type]
         
-        path, folder_name = os.path.split(directory)
-        analyser = Analyser(path, folder_name) 
-        analysers.append(analyser)
+        print('Using {}'.format(Analyser.__name__))
 
-    # Ask ROIs if not selected
-    for analyser in analysers:
-        if analyser.are_rois_selected() == False or args.reselect_rois:
-            analyser.select_ROIs()
+        for directory in directories: 
+            
+            path, folder_name = os.path.split(directory)
+            analyser = Analyser(path, folder_name) 
+            analysers.append(analyser)
 
-    # Analyse movements if not analysed, othewise load these
-    for analyser in analysers:
-        if analyser.is_measured() == False or args.recalculate_movements:
-            analyser.measure_movement(eye='left')
-            analyser.measure_movement(eye='right')
-        analyser.load_analysed_movements()
-    
-    
-    if args.reverse_directions:
+        # Ask ROIs if not selected
         for analyser in analysers:
-            analyser.receptive_fields = True
+            if analyser.are_rois_selected() == False or args.reselect_rois:
+                analyser.select_ROIs()
+
+        # Analyse movements if not analysed, othewise load these
+        for analyser in analysers:
+            if analyser.is_measured() == False or args.recalculate_movements:
+                analyser.measure_movement(eye='left')
+                analyser.measure_movement(eye='right')
+            analyser.load_analysed_movements()
+        
+        
+        if args.reverse_directions:
+            for analyser in analysers:
+                analyser.receptive_fields = True
+        
+        
+
+        if args.average:
+            avg_analyser = MAverager(analysers)
+            avg_analyser.setInterpolationSteps(5,5)
+            
+            if args.short_name:
+                avg_analyser.set_short_name(args.short_name[0])
+           
+            analysers = avg_analyser
+        
+        analyser_groups.append(analysers)
     
+
+    function = analyses[args.analysis[0]]
     
+    print(analyser_groups)
 
     if args.average:
-        avg_analyser = MAverager(analysers)
-        avg_analyser.setInterpolationSteps(5,5)
-        
-        if args.short_name:
-            avg_analyser.set_short_name(args.short_name[0])
-       
-        analysers = [avg_analyser]
-    
-    
-    function = analyses[args.analysis]
-    
-    for analyser in analysers:
-        function(analyser)
+        function(*analyser_groups)
+    else:
+        for analysers in analyser_groups:
+            for analyser in analysers:
+                function(analyser)
 
     if args.tk_waiting_window:
         waiting_window.close()

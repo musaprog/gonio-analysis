@@ -13,6 +13,11 @@ from pupilanalysis.drosom.optic_flow import field_error
 EYE_COLORS = {'right': 'blue', 'left': 'red'}
 REPEAT_COLORS = ['green', 'orange', 'pink']
 
+
+DEFAULT_ELEV = 10
+DEFAULT_AZIM = 70
+
+
 def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
         mean_repeats=False, mean_imagefolders=False, mean_eyes=False,
         color_eyes=False, gray_repeats=False, show_mean=False, show_std=False,
@@ -155,7 +160,7 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
 def plot_3d_vectormap(manalyser, arrow_rotations = [0],
         guidance=False, draw_sphere=False, hide_behind=True,
-        elev=0, azim=90, color=None, repeats_separately=False, vertical_hardborder=True,
+        elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, color=None, repeats_separately=False, vertical_hardborder=True,
         i_frame=0,
         ax=None):
     '''
@@ -229,7 +234,8 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
     return ax, vectors
 
 
-def plot_3d_differencemap(manalyser1, manalyser2, ax=None):
+def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
+        elev=DEFAULT_ELEV, azim=DEFAULT_AZIM):
     '''
     Calls get_3d_vectors for both analysers. 
     
@@ -255,6 +261,7 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None):
 
     surface_plot(ax, points[0], errors)
 
+    ax.view_init(elev=elev, azim=azim)
 
 
 def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,

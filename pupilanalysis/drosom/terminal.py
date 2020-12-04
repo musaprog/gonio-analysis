@@ -17,6 +17,7 @@ from pupilanalysis.droso import DrosoSelect
 from pupilanalysis.antenna_level import AntennaLevelFinder
 from pupilanalysis.drosom.analysing import MAnalyser, MAverager
 from pupilanalysis.drosom.orientation_analysis import OAnalyser
+from pupilanalysis.drosom.optic_flow import FAnalyser
 from pupilanalysis.drosom import plotting
 from pupilanalysis.drosom.plotting.plotter import MPlotter
 from pupilanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
@@ -30,7 +31,7 @@ if '--tk_waiting_window' in sys.argv:
 
 
 
-Analysers = {'orientation': OAnalyser, 'motion': MAnalyser}
+Analysers = {'orientation': OAnalyser, 'motion': MAnalyser, 'flow': FAnalyser}
 
 analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS}
 
@@ -167,6 +168,10 @@ def main(custom_args=None):
         
         for group in args.specimens:
             print('Using specimens {}'.format(group))
+            
+            if group == 'none':
+                directory_groups.append(None)
+                continue
 
             selector = DrosoSelect(datadir=data_directory)
             directories = selector.parse_specimens(group)
@@ -190,12 +195,16 @@ def main(custom_args=None):
         Analyser = Analysers[args.type[i_group]]
         
         print('Using {}'.format(Analyser.__name__))
+        
+        if directories is None:
+            analysers.append(Analyser(None, None))
+        else:
 
-        for directory in directories: 
-            
-            path, folder_name = os.path.split(directory)
-            analyser = Analyser(path, folder_name) 
-            analysers.append(analyser)
+            for directory in directories: 
+                
+                path, folder_name = os.path.split(directory)
+                analyser = Analyser(path, folder_name) 
+                analysers.append(analyser)
 
         # Ask ROIs if not selected
         for analyser in analysers:
@@ -217,14 +226,19 @@ def main(custom_args=None):
         
 
         if args.average:
-            avg_analyser = MAverager(analysers)
-            avg_analyser.setInterpolationSteps(5,5)
             
-            if args.short_name:
-                avg_analyser.set_short_name(args.short_name[0])
-           
-            analysers = avg_analyser
-        
+            if len(analysers) >= 2:
+
+                avg_analyser = MAverager(analysers)
+                avg_analyser.setInterpolationSteps(5,5)
+                
+                if args.short_name:
+                    avg_analyser.set_short_name(args.short_name[0])
+                           
+                analysers = avg_analyser
+            else:
+                analysers = analysers[0]
+
         analyser_groups.append(analysers)
     
 

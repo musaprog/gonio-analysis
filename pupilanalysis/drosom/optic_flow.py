@@ -7,7 +7,9 @@ from math import cos, sin, radians
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 
-from pupilanalysis.coordinates import force_to_tplane, normalize
+from pupilanalysis.coordinates import force_to_tplane, normalize, optimal_sampling
+from pupilanalysis.drosom.analysing import MAnalyser
+
 
 def flow_direction(point, xrot=0):
     '''
@@ -93,3 +95,39 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colin
         errors = 1 - errors
 
     return errors
+
+
+class FAnalyser(MAnalyser):
+    '''
+    Sham analyser to just output optic flow vectors with the same
+    api as MAnalyer does.
+    '''
+    
+    def __init__(self, *args, **kwargs):
+            
+        print('inited')
+
+        self.eyes = ['left', 'right']
+        self.vector_rotation = 0
+
+        # FAnalyser specific
+        self.xrot = 0
+        self.points = {'left': optimal_sampling(np.arange(0, 50, 5), np.arange(-100, 100, 5)),
+                'right': optimal_sampling(np.arange(-50, 0, 5), np.arange(-100, 100, 5))}
+
+
+    def get_3d_vectors(self, eye, *args, **kwargs):
+        
+        vectors = flow_vectors(self.points[eye], xrot=self.xrot)
+        return self.points[eye], vectors
+
+    
+    def is_measured(self, *args, **kwargs):
+        return True
+
+    def are_rois_selected(self, *args, **kwargs):
+        return True
+
+    def load_analysed_movements(self, *args, **kwargs):
+        return None
+

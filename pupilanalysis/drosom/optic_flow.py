@@ -58,6 +58,8 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colin
     direction   Try to get the direction also (neg/pos)
 
     colinear : bool
+    
+    Returns the errors at points_A
     '''
     
     N_vectors = len(vectors_A)
@@ -65,29 +67,42 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colin
     errors = np.empty(N_vectors)
 
     kdtree = KDTree(points_B)
-    distances, indices = kdtree.query(points_A, k=1, n_jobs=2)
-    compare_vectors = [vectors_B[indx] for indx in indices]
-    #distances, indices = kdtree.query(points_A, k=10, n_jobs=2)
-    #compare_vectors = [np.average([vectors_B[i] for i in indx], axis=0, weights=(1/(np.array(disx)**2)) ) for indx, disx in zip(indices, distances)]
-    #compare_points = [points_B[i] for i in indices]
-
-    for i, (vecA, vecB) in enumerate(zip(vectors_A, compare_vectors)):
     
-        angle = np.arccos(np.inner(vecA, vecB)/(np.linalg.norm(vecA) * np.linalg.norm(vecB)))
-        error = angle / np.pi
-        if not 0<=error<=1:
-            # Error is nan if either of the vectors is zero because this leads to division
-            # by zero because np.linalg.norm(vec0) = 0
-            # -> set error to 1 if vecA != vecB or 0 otherwise
-            if np.array_equal(vecA, vecB):
-                error = 0
-            else:
-                error = 1
-        
-        if direction and vecB[2] > vecA[2]:
-            error = -error
 
-        errors[i] = error
+    distances, indices = kdtree.query(points_A, k=10, n_jobs=2)
+    weights = 1/(np.array(distances)**2)
+    
+    # Check for any inf
+    for i_weights in range(weights.shape[0]):
+        if any(np.isinf(weights[i_weights])):
+            weights[i_weights] = np.isinf(weights[i_weights]).astype('int')
+
+    #if any(np.isinf(weights):
+    compare_vectors = [[vectors_B[i] for i in indx] for indx in indices]
+
+    for i, (vecA, vecBs, vecB_weights) in enumerate(zip(vectors_A, compare_vectors, weights)):
+        
+        vec_errors = []
+        
+        for vecB in vecBs:
+
+            angle = np.arccos(np.inner(vecA, vecB)/(np.linalg.norm(vecA) * np.linalg.norm(vecB)))
+            error = angle / np.pi
+            if not 0<=error<=1:
+                # Error is nan if either of the vectors is zero because this leads to division
+                # by zero because np.linalg.norm(vec0) = 0
+                # -> set error to 1 if vecA != vecB or 0 otherwise
+                if np.array_equal(vecA, vecB):
+                    error = 0
+                else:
+                    error = 1
+            
+            if direction and vecB[2] > vecA[2]:
+                error = -error
+
+            vec_errors.append(error)
+
+        errors[i] = np.average(vec_errors, weights=vecB_weights)
 
     if colinear:
         errors = 2 * np.abs(errors - 0.5)

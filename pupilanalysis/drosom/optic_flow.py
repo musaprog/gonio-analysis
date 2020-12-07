@@ -121,7 +121,8 @@ class FAnalyser(MAnalyser):
     def __init__(self, *args, **kwargs):
             
         print('inited')
-
+        
+        self.folder = 'optic_flow'
         self.eyes = ['left', 'right']
         self.vector_rotation = 0
 

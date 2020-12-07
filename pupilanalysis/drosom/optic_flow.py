@@ -33,7 +33,7 @@ def flow_direction(point, xrot=0):
 
     P1 = force_to_tplane(point, ov)
     
-    P1 = normalize(point, P1, scale=0.15)
+    P1 = normalize(point, P1, scale=0.10)
 
     return P1-np.array(point)
 

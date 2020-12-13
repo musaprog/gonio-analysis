@@ -251,7 +251,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         self.data_path = data_path
         self.folder = folder
         
-
+        self.manalysers = [self]
         self.eyes = ("left", "right")
         self.vector_rotation = None
         self._movements_skelefn = 'movements_{}_{}{}.json' # specimen_name, eye, active_analysis

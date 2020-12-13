@@ -1158,6 +1158,11 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 else:
                     sr = 1 * r
 
+                if eye == 'left':
+                    sr = sr
+                elif eye == 'right':
+                    sr = -sr
+
                 X[i] = x * math.cos(sr) - y * math.sin(sr)
                 Y[i] = x * math.sin(sr) + y * math.cos(sr)
 

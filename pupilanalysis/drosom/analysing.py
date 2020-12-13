@@ -1461,10 +1461,10 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         neughbours.
         '''
 
-        cachename = ';'.join([str(item) for item in [eye, self.vector_rotation, correct_level, normalize_length, strict, vertical_hardborder]])
+        cachename = ';'.join([str(item) for item in [self.vector_rotation, correct_level, normalize_length, strict, vertical_hardborder]])
 
 
-        if self.interpolation.get(cachename) is None or recalculate:
+        if self.interpolation.get(eye, {}).get(cachename) is None or recalculate:
 
             interpolated = [[],[]]
             
@@ -1508,14 +1508,14 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
                     interpolated[0].append(np.array(intp_point))
                     interpolated[1].append(avec)
             
-
-            self.interpolation[cachename] = np.array(interpolated[0]), np.array(interpolated[1])
+            self.interpolation[eye] = {}
+            self.interpolation[eye][cachename] = np.array(interpolated[0]), np.array(interpolated[1])
             
         else:
             pass
         
         
-        points, vectors = self.interpolation[cachename]
+        points, vectors = self.interpolation[eye][cachename]
 
         # Vertical/horizontal angle limiting
         booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],

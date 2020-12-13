@@ -7,7 +7,7 @@ from math import cos, sin, radians
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 
-from pupilanalysis.coordinates import force_to_tplane, normalize, optimal_sampling
+import pupilanalysis.coordinates as coordinates
 from pupilanalysis.drosom.analysing import MAnalyser
 
 
@@ -31,9 +31,9 @@ def flow_direction(point, xrot=0):
     rxrot = radians(xrot)
     ov = 2*np.array(point) + np.array([0,-1*cos(rxrot),sin(rxrot)])
 
-    P1 = force_to_tplane(point, ov)
+    P1 = coordinates.force_to_tplane(point, ov)
     
-    P1 = normalize(point, P1, scale=0.10)
+    P1 = coordinates.normalize(point, P1, scale=0.10)
 
     return P1-np.array(point)
 
@@ -127,16 +127,50 @@ class FAnalyser(MAnalyser):
         self.eyes = ['left', 'right']
         self.vector_rotation = 0
 
+
         # FAnalyser specific
-        self.xrot = 0
-        self.points = {'left': optimal_sampling(np.arange(0, 50, 5), np.arange(-100, 100, 5)),
-                'right': optimal_sampling(np.arange(-50, 0, 5), np.arange(-100, 100, 5))}
+        self.pitch_rot = 0
+        self.roll_rot = 0
+        self.yaw_rot = 0
+        self.points = {'right': coordinates.optimal_sampling(np.arange(0, 60, 5), np.arange(-100, 100, 5)),
+                'left': coordinates.optimal_sampling(np.arange(-60, 0, 5), np.arange(-100, 100, 5))}
 
 
-    def get_3d_vectors(self, eye, *args, **kwargs):
+    def get_3d_vectors(self, eye, constant_points=False, *args, **kwargs):
+        '''
         
-        vectors = flow_vectors(self.points[eye], xrot=self.xrot)
-        return self.points[eye], vectors
+        constant_points : bool
+            If true, points stay the same and only vectors get rotated.
+            If false, smooth rotation of the whole optic flow sphere.
+        '''
+        if constant_points:
+            # Rotate points, calculate vectors, rotate back
+            points = coordinates.rotate_points(self.points[eye],
+                    radians(self.yaw_rot),
+                    radians(self.pitch_rot),
+                    radians(self.roll_rot))
+            
+            points, vectors = coordinates.rotate_vectors(points, flow_vectors(points, xrot=0),
+                    -radians(self.yaw_rot),
+                    -radians(self.pitch_rot),
+                    -radians(self.roll_rot))
+        else:
+            points = coordinates.optimal_sampling(np.arange(-90,90,5), np.arange(-180,180,5))
+            points, vectors = coordinates.rotate_vectors(points, flow_vectors(points, xrot=0),
+                    -radians(self.yaw_rot),
+                    -radians(self.pitch_rot),
+                    -radians(self.roll_rot))
+            
+            # Fixme. Make me with numpy, not list comprehension
+            if eye == 'left':
+                indices = [i for i, point in enumerate(points) if point[0] <= 0]
+            elif eye == 'right':
+                indices = [i for i, point in enumerate(points) if point[0] >= 0]
+
+            points = [points[i] for i in indices]
+            vectors = [vectors[i] for i in indices]
+        
+        return points, vectors
 
     
     def is_measured(self, *args, **kwargs):

@@ -372,6 +372,8 @@ def rotate_along_arbitrary(P1, points, rot):
     Rotate along arbitrary axis.
 
     P0 is at origin.
+    
+    P0 and P1 specify the rotation axis
 
     Implemented from here:
     http://paulbourke.net/geometry/rotate/
@@ -393,6 +395,25 @@ def rotate_along_arbitrary(P1, points, rot):
     Rz = get_rotation_matrix('z', rot)
 
     return (Rxr @ Ryr @ Rz @ Ry @ Rx @ points.T).T
+
+
+def rotate_points(points, yaw, pitch, roll):
+    '''
+    Just as rotate_vectors but only for points.
+    '''
+    yaw_ax = (0,0,1)
+    pitch_ax = (1,0,0)
+    roll_ax = (0,1,0)
+
+    axes = np.array([yaw_ax, pitch_ax, roll_ax])
+
+    rotations = [yaw, pitch, roll]
+    
+    for i in range(3):
+        points = rotate_along_arbitrary(axes[i], points, rotations[i])
+    
+    return points
+
 
 
 def rotate_vectors(points, vectors, yaw, pitch, roll):

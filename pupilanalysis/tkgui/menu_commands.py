@@ -21,7 +21,8 @@ import pupilanalysis
 from pupilanalysis.directories import USER_HOMEDIR
 from pupilanalysis.droso import SpecimenGroups
 from pupilanalysis.drosom import linked_data
-from pupilanalysis.drosom.kinematics import mean_max_response
+from pupilanalysis.drosom import kinematics
+from pupilanalysis.drosom import sinesweep
 from pupilanalysis.tkgui import settings
 from pupilanalysis.tkgui.run_measurement import MeasurementWindow
 from pupilanalysis.tkgui.zero_correct import ZeroCorrect
@@ -192,10 +193,14 @@ class ImageFolderCommands(ModifiedMenuMaker):
 
     def max_of_the_mean_response(self):
         
-        result = mean_max_response(self.core.analyser, self.core.selected_recording)
+        result = kinematics.mean_max_response(self.core.analyser, self.core.selected_recording)
         prompt_result(self.tk_root, result)
+    
+    def latency_by_sigmoidal_fit(self):
 
-
+        result = kinematics.sigmoidal_fit(self.core.analyser, self.core.selected_recording)[2]
+        prompt_result(self.tk_root, str(np.mean(result)))
+    
     def select_ROIs(self):
         self.core.analyser.select_ROIs(callback_on_exit=self.core.update_gui,
                 reselect_fns=[self.core.selected_recording], old_markings=True)
@@ -338,7 +343,14 @@ class SpecimenCommands(ModifiedMenuMaker):
     def mean_displacement_over_time(self):
         self.core.adm_subprocess('current', 'magtrace')
 
+    def mean_latency_by_sigmoidal_fit(self):
+        results_string = ''
+        for image_folder in self.core.analyser.list_imagefolders():
+            result = kinematics.sigmoidal_fit(self.core.analyser, image_folder)[2]
+            results_string += '{}   {}'.format(image_folder, np.mean(result))
+        
 
+        prompt_result(self.tk_root, results_string)
 
 
 class ManySpecimenCommands(ModifiedMenuMaker):
@@ -388,7 +400,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     
     def measure_movements_DASH_in_absolute_coordinates(self):
         func = lambda specimens: self._batch_measure(specimens, absolute_coordinates=True)
-        select_specimens(self.core, func, with_rois=True, with_movements=False)
+        select_specimens(self.core, func, with_rois=True)
 
 
 
@@ -441,7 +453,33 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     
     def link_ERG_data_from_labbook(self):
         select_specimens(self.core, linked_data.link_erg_labbook, command_args=[lambda: filedialog.askopenfilename(title='Select ERG'), lambda: filedialog.askdirectory(title='Select data folder')], return_manalysers=True )
-        
+
+
+    def save_kinematics_analysis_CSV(self):
+
+        def callback(specimens):
+            
+            fn = tk.filedialog.asksaveasfilename(title='Save kinematics analysis', initialfile='latencies.csv')
+            
+            if fn:
+                analysers = [self.core.get_manalyser(specimen) for specimen in specimens]
+                kinematics.save_sigmoidal_fit_CSV(analysers, fn)
+ 
+
+        select_specimens(self.core, callback, with_movements=True) 
+
+    def save_sinesweep_analysis_CSV(self):
+        def callback(specimens):
+            
+            
+            analysers = [self.core.get_manalyser(specimen) for specimen in specimens]                
+            sinesweep.save_sinesweep_analysis_CSV(analysers)
+ 
+
+        select_specimens(self.core, callback, with_movements=True) 
+
+
+
 
 class OtherCommands(ModifiedMenuMaker):
     '''

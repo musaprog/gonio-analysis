@@ -250,18 +250,26 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         
         self.data_path = data_path
         self.folder = folder
+
         
+        # Skip image_folders. i_repeat
+        self.imagefolder_skiplist = {}
+        
+
         self.manalysers = [self]
         self.eyes = ("left", "right")
         self.vector_rotation = None
         self._movements_skelefn = 'movements_{}_{}{}.json' # specimen_name, eye, active_analysis
         
+        self.skiplist_savefn = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'imagefolder_skiplist.json')
         self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'rois_{}.json'.format(folder))
         self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._movements_skelefn.format(folder, '{}', ''))
 
         self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
         
+
         self.active_analysis = ''
+
 
 
         if no_data_load:
@@ -274,7 +282,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         else:
             self.stacks = load_data(os.path.join(self.data_path, self.folder))
+
+            if os.path.isfile(self.skiplist_savefn):
+                with open(self.skiplist_savefn, 'r') as fp:
+                    self.imagefolder_skiplist = json.load(fp)
             
+
             # Load movements and ROIs if they exists
             if self.are_rois_selected():
                 self.load_ROIs()
@@ -385,6 +398,23 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
     def __fileSave(self, fn, data):
         with open(fn, 'w') as fp:
             json.dump(data, fp)
+
+
+    def mark_bad(self, image_folder, i_repeat):
+        '''
+        Marks image folder and repeat to be bad and excluded
+        when loading movements.
+
+        i_repeat : int or 'all'
+        '''
+        
+        if self.imagefolder_skiplist.get(image_folder, None) is None:
+            self.imagefolder_skiplist[image_folder] = []
+
+        self.imagefolder_skiplist[image_folder].append(i_repeat)
+        
+        with open(self.skiplist_savefn, 'w') as fp:
+            json.dump(self.imagefolder_skiplist, fp)
 
     
     def list_imagefolders(self, list_special=True,
@@ -842,6 +872,20 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         with open(self.MOVEMENTS_SAVEFN.format('left'), 'r') as fp:
             self.movements['left'] = json.load(fp)
         
+        if self.imagefolder_skiplist:
+            
+            for image_folder, skip_repeats in self.imagefolder_skiplist.items():
+                for eye in self.eyes:
+
+                    if self.movements[eye].get(image_folder[3:], None) is None:
+                        continue
+                    
+                    # Iterate repeats reversed so we can just pop things
+                    for i_repeat in sorted(skip_repeats)[::-1]:
+                        self.movements[eye][image_folder[3:]].pop(i_repeat)
+
+                    
+
 
     def measure_both_eyes(self, **kwargs):
         '''

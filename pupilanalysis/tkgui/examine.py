@@ -266,7 +266,7 @@ class ExamineView(tk.Frame):
         self.plotter = RecordingPlotter(self.core)
                 
         # Add buttons for selecting single repeats from a recording
-        self.repetition_selector = RepetitionSelector(self.rightside_frame, self.plotter,
+        self.repetition_selector = RepetitionSelector(self.rightside_frame, self.plotter, self.core,
                 update_command=lambda: self.on_recording_selection('current'))
         self.repetition_selector.grid(row=1, column=0)
         

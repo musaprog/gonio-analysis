@@ -134,15 +134,20 @@ class FAnalyser(MAnalyser):
         self.yaw_rot = 0
         self.points = {'right': coordinates.optimal_sampling(np.arange(0, 60, 5), np.arange(-100, 100, 5)),
                 'left': coordinates.optimal_sampling(np.arange(-60, 0, 5), np.arange(-100, 100, 5))}
+        
+        self.constant_points = False
 
-
-    def get_3d_vectors(self, eye, constant_points=False, *args, **kwargs):
+    def get_3d_vectors(self, eye, constant_points=None, *args, **kwargs):
         '''
         
         constant_points : bool
             If true, points stay the same and only vectors get rotated.
             If false, smooth rotation of the whole optic flow sphere.
         '''
+
+        if constant_points is None:
+            constant_points = self.constant_points
+
         if constant_points:
             # Rotate points, calculate vectors, rotate back
             points = coordinates.rotate_points(self.points[eye],

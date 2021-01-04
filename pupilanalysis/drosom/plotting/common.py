@@ -471,7 +471,7 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
         errs = np.empty_like(x)
         positions = [[x.flat[i], y.flat[i], z.flat[i]] for i in range(x.size)]
 
-        distances, i_points = kdtree.query( positions, n_jobs=2 )
+        distances, i_points = kdtree.query( positions, n_jobs=-1 )
         
         for i in range(errs.size):
             if distances[i] < intp_dist:

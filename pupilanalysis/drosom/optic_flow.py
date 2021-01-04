@@ -69,7 +69,7 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colin
     kdtree = KDTree(points_B)
     
 
-    distances, indices = kdtree.query(points_A, k=10, n_jobs=2)
+    distances, indices = kdtree.query(points_A, k=10, n_jobs=-1)
     weights = 1/(np.array(distances)**2)
     
     # Check for any inf

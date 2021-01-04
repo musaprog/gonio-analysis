@@ -225,9 +225,9 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
             manalyser_type = 'OAnalyser'
     elif manalyser.__class__.__name__ == 'FAnalyser':
         colors = ['darkviolet']*5
-        manalyser.xrot = 10
-        i_frame = 0
-
+        if animation_type != 'rotate_arrows':
+            i_frame = 0
+        
     _set_analyser_attributes({'pitch_rot': pitch_rot,
         'roll_rot': roll_rot, 'yaw_rot': yaw_rot})
 
@@ -335,7 +335,7 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True,
         colorbar=True, colorbar_text=True, colorbar_ax=None, reverse_errors=False,
         colorbar_text_positions=[[1.1,0.95,'left', 'top'],[1.1,0.5,'left', 'center'],[1.1,0.05,'left', 'bottom']],
-        i_frame=0, arrow_rotations=[0], pitch_rot=0, yaw_rot=0, roll_rot=0):
+        i_frame=0, arrow_rotations=[0], pitch_rot=None, yaw_rot=None, roll_rot=None):
     '''
     Plots 3d heatmap presenting the diffrerence in the vector orientations
     for two analyser objects, by putting the get_3d_vectors of both analysers
@@ -410,7 +410,7 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         for phi_points in all_phi_points:
             m = surface_plot(ax, points[0], errors, phi_points=phi_points)
     
-    errors = all_errors[0]
+    errors = np.concatenate(all_errors)
 
     ax.view_init(elev=elev, azim=azim)
 
@@ -536,6 +536,10 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
         kwargsD['colorbar_text_positions'] = [[0.5,1.03,'center', 'bottom'],
                 [1.1,0.5,'left', 'center'],
                 [0.5,-0.03,'center', 'top']]
+        
+        if manalyser1.__class__.__name__ == 'FAnalyser':
+            manalyser1.constant_points = True
+
     elif animation_type in ['pitch_rot', 'roll_rot', 'yaw_rot']:
         kwargs2[animation_type] = animation_variable
         kwargsD['colinear'] = False
@@ -545,22 +549,34 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
         kwargs2['elev'] = animation_variable[0]
         kwargs2['azim'] = animation_variable[1]
 
+    # set 10 deg pitch for flow
+    for manalyser in [manalyser1, manalyser2]:
+        if manalyser.manalysers[0].__class__.__name__ == 'FAnalyser' and animation_type != 'pitch_rot':
+            if manalyser == manalyser1:
+                kwargs1['pitch_rot'] = 10
+            if manalyser == manalyser2:
+                kwargs2['pitch_rot'] = 10
+            
+            manalyser.pitch_rot = 10
+
     if manalyser2.__class__.__name__ == 'MAverage' and manalyser2.manalysers[0].__class__.__name__ == 'OAnalyser':
         kwargs2['arrows'] = False
     
     iax = 0
-    plot_3d_vectormap(manalyser1, ax=axes[iax], **kwargs1)
+    plot_3d_vectormap(manalyser1, animation_type=animation_type, ax=axes[iax], **kwargs1)
     
     if not compact:
         iax += 1
-    plot_3d_vectormap(manalyser2, ax=axes[iax], **kwargs2)
+    plot_3d_vectormap(manalyser2, animation_type=animation_type, ax=axes[iax], **kwargs2)
     
 
     if biphasic:
         # Difference with the slow phase
         iax += 1
+        kwargsDr = kwargsD.copy()
+        kwargsDr['colorbar'] = False
         daxr, reverse_errors = plot_3d_differencemap(manalyser1, manalyser2,
-                ax=axes[iax], reverse_errors=True, **kwargsD, **kwargs2)
+                ax=axes[iax], reverse_errors=True, **kwargsDr, **kwargs2)
     
     
     iax += 1
@@ -610,9 +626,9 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
                 sx = int(upscale * (orp1[0]) * (pulsation_length-0.8) / 10)
                 sy = int(upscale * (orp1[1]) * (pulsation_length-0.8) / 10)
                 
-                if not optimal:
-                    sx = 0
-                    sy = 0
+                #if not optimal:
+                #    sx = 0
+                #    sy = 0
 
                 print('Animation pulsataion sx {} sy {}, imshape {}'.format(sx,sy, image.shape))
         
@@ -658,7 +674,7 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
                             color='yellow', linewidth=8)
                     
                     ax.add_patch(rect)
-                    ax.text(0.5, 0.9, optimal_range[2], ha='center', va='top', color='yellow', transform=ax.transAxes, fontsize=12)
+                    ax.text(0.5, 0.9, optimal_range[2], ha='center', va='top', color='gold', transform=ax.transAxes, fontsize=12)
                     optimal=True
                     continue
    
@@ -707,7 +723,8 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
         ax.pupil_compare_errors.append(np.mean(errors))
         ax.pupil_compare_rotations.append( animation_variable )
 
-        ax.plot( ax.pupil_compare_rotations, 1-np.array(ax.pupil_compare_errors), color='black' )
+        ax.plot( ax.pupil_compare_rotations, 1-np.array(ax.pupil_compare_errors), color='black',
+                label='Fast phase')
         ax.scatter( ax.pupil_compare_rotations[-1], 1-ax.pupil_compare_errors[-1], color='black' )
        
 
@@ -733,14 +750,14 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
 
         if animation_type == 'rotate_arrows':
             text = 'Rotation from R3-R6 line\n{} degrees'
-        elif animation_type == 'rotate_pitch':
-            text = 'Head tilt\n{} degrees'
+        elif animation_type in ['pitch_rot', 'yaw_rot', 'roll_rot']:
+            text = 'Head tilt {} degrees'
         else:
             text = 'Animation variable {}'
         
         if animation_variable is not None:
             text = text.format(formatting).format(float(animation_variable))
-            ax.text(0.1, 0.85, text, transform=ax.transAxes, va='bottom', ha='left',fontsize=12)
+            ax.text(0.1, 1, text, transform=ax.transAxes, va='bottom', ha='left',fontsize=12)
         
         if np.min(animation) < -100 and np.max(animation) > 100:
             ax.set_xticks([-90,0,90])
@@ -750,15 +767,17 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
             ax.set_xticklabels(['-45$^\circ$', '0$^\circ$','45$^\circ$'])   
         
         if biphasic:
-            ax = axes[iax]
             if getattr(ax, 'pupil_compare_reverse_errors', None) is None:
                 ax.pupil_compare_reverse_errors = []
 
             ax.pupil_compare_reverse_errors.append(np.mean(reverse_errors))
 
-            ax.plot( ax.pupil_compare_rotations, 1-np.array(ax.pupil_compare_reverse_errors), color='gray' )
+            ax.plot( ax.pupil_compare_rotations, 1-np.array(ax.pupil_compare_reverse_errors), color='gray',
+                    label='Slower phase')
             ax.scatter( ax.pupil_compare_rotations[-1], 1-ax.pupil_compare_reverse_errors[-1], color='gray' )
     
+            ax.legend(loc=(0.39,1.2))
+
 
     return [axes]
 
@@ -775,7 +794,7 @@ def compare_3d_vectormaps_compact(*args, **kwargs):
 
 def compare_3d_vectormaps_manyviews(*args, axes=None,
         column_titles=['Microsaccades', 'Rhabdomere orientation', 'Difference', 'Mean microsaccade'],
-        row_titles=['Dorsal\nview', 'Anterior\nview', 'Ventral\nview'], biphasic=True,
+        row_titles=['Dorsal\nview', 'Anterior\nview', 'Ventral\nview'],
         **kwargs):
     '''
     Just with different views rendered
@@ -788,7 +807,9 @@ def compare_3d_vectormaps_manyviews(*args, axes=None,
     rows = len(views)
     cols = 4
     
-    if biphasic:
+    biphasic = False
+    if kwargs.get('animation_type', None) in ['pitch_rot', 'yaw_rot', 'roll_rot']:
+        biphasic = True
         cols += 1
         column_titles.insert(3, 'Difference2')
     
@@ -820,6 +841,15 @@ def compare_3d_vectormaps_manyviews(*args, axes=None,
             cbox.x0 -= w/8
             cbox.x1 += w / 3.3 +w/8
             cbox.y1 += h / 3.3
+            
+            if kwargs.get('animation_type', None) == 'pitch_rot':
+                w = abs(cbox.x1 - cbox.x0)
+                h = abs(cbox.y1 - cbox.y0)
+                cbox.x0 -= w/5
+                cbox.x1 += w/5
+                cbox.y0 -= w/5
+                cbox.y1 += w/5
+
             axes[0].illustrate_ax.set_position(cbox)
             axes[0].illustrate_ax.cbox = cbox
 
@@ -848,12 +878,20 @@ def compare_3d_vectormaps_manyviews(*args, axes=None,
         axes[0].error_ax.clear()
     
     # Set custom column titles
-    for i_manalyser in range(1):
+    for i_manalyser in range(2):
         manalyser = args[i_manalyser]
-        if manalyser.manalysers[i_manalyser].__class__.__name__ == 'FAnalyser':
-            column_titles[i_manalyser] = 'Optic flow'
+        if manalyser.manalysers[0].__class__.__name__ == 'FAnalyser' or manalyser.__class__.__name__ == 'FAnalyser':
+            if '\n' in ''.join(column_titles):
+                column_titles[i_manalyser] = 'Optic flow\n'
+            else:
+                column_titles[i_manalyser] = 'Optic flow'
+
+        if manalyser.manalysers[0].__class__.__name__ == 'MAnalyser' and manalyser.manalysers[0].receptive_fields == True:
+            column_titles[i_manalyser] = 'Biphasic receptive field\nmovement directions'
+
+
     if args[0].manalysers[0].__class__.__name__ == 'FAnalyser':
-        column_titles[cols] = 'Mean optic flow axis'
+        column_titles[cols-1] = 'Mean optic flow axis'
 
     if getattr(axes[0], 'illustrate_ax', None) is not None:
         axes[0].illustrate_ax.clear()
@@ -873,23 +911,27 @@ def compare_3d_vectormaps_manyviews(*args, axes=None,
         else:
             ax.text2D(-0.375, 0.5, title, transform=ax.transAxes, va='center')
 
-
     for ax in axes:
         ax.set_axis_off()
-    print('DEBUG')
-    print(len(axes))
-    #naxes = int( len(axes) / cols-1 )
+    
     naxes = cols -1
-    print(naxes)
-    kwargsD = {'colorbar': True, 'colorbar_ax': axes[0].colorbar_ax}
 
     for i in range(3):
         viewargs = copy.deepcopy(kwargs)
         viewargs['elev'] = views[i][0]
         viewargs['azim'] = views[i][1]
-
-        compare_3d_vectormaps(axes=axes[i*naxes:(i+1)*naxes]+[axes[0].illustrate_ax, axes[0].error_ax], biphasic=biphasic, kwargsD=kwargsD, *args, **viewargs)
-        kwargsD = {'colorbar': False}
+        
+        if i == 0:
+            compare_3d_vectormaps(axes=axes[i*naxes:(i+1)*naxes]+[axes[0].illustrate_ax, axes[0].error_ax],
+                    biphasic=biphasic,
+                    kwargsD={'colorbar': True, 'colorbar_ax': axes[0].colorbar_ax},
+                    illustrate=True, total_error=True,
+                    *args, **viewargs)
+        else:
+            compare_3d_vectormaps(axes=axes[i*naxes:(i+1)*naxes]+[axes[0].illustrate_ax, axes[0].error_ax],
+                    biphasic=biphasic, illustrate=False, total_error=False,
+                    kwargsD={'colorbar': False},
+                    *args, **viewargs)
     
     for ax in axes:
         ax.dist = 6

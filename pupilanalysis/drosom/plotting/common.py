@@ -242,7 +242,7 @@ def plot_2d_opticflow(ax, direction):
         for i in range(10):
             for j in range(10):
                 x.append((0.5+i)*height/10)
-                y.append((0.5+j)*width[1]/10)
+                y.append((0.5+j)*width/10)
         ax.scatter(x,y, marker='x', color='darkviolet')
 
 
@@ -557,7 +557,7 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
     if len(manalysers) > 1:
         
         if manalysers[0].manalysers[0].__class__.__name__ == 'MAnalyser':
-            optimal_ranges = [[29-3, 29+3, 'Typical photoreceptor\nmovement axis']]
+            optimal_ranges = [[24.3-3, 24.3+3, 'Typical photoreceptor\nmovement axis']]
         elif manalysers[0].__class__.__name__ == 'FAnalyser':
             optimal_ranges = [[-80-3, -80+3, 'Typical ommatidial\nrhabdomere aligment']]
             
@@ -573,9 +573,13 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
                
     elif animation_type in ['pitch_rot', 'yaw_rot', 'roll_rot']:
         biphasic = True
-        animation = np.linspace(-180, 180, 12*fps)
-        optimal_ranges = [[-10, 10, 'Typical head tilt\nrange']]
-
+        animation = np.linspace(-180, 180, 16*fps)
+        
+        if animation_type == 'pitch_rot':
+            optimal_ranges = [[0, 20, 'Typical head tilt\nrange']]
+        else:
+            optimal_ranges = [[-10, 10, 'Typical head tilt\nrange']]
+    
     if len(optimal_ranges) > 0:
         A = optimal_ranges[0][0]
         B = optimal_ranges[-1][1]
@@ -600,7 +604,10 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
             animation = animation[i_worker*worksize:]
         else:
             animation = animation[i_worker*worksize:(i_worker+1)*worksize]
-
+        
+        # Fast forward to right animation timestep
+        for i_frame_before in range(i_worker*worksize):
+            make_animation_timestep(step_size=0.05*(20/fps), twoway=biphasic)
 
     if plot_function:
         
@@ -682,7 +689,7 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
                 video_writer.grab_frame()
                 doublegrab_next = False
         
-        axes[0].figure.savefig(os.path.join(savedir, 'frame_{0:07d}.png'.format(i)))
+        axes[0].figure.savefig(os.path.join(savedir, 'frame_{0:07d}.png'.format(i_frame)))
 
         #except Exception as e:
         #    print('Could not make a frame, error message on the next line')

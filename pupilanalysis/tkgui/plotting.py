@@ -228,7 +228,7 @@ class RecordingPlotter:
         
         imaging_params = self.core.analyser.get_imaging_parameters(self.selected_recording)
         if imaging_params:
-            text = '\n'.join
+            text = '\n'.join(['{}: {}'.format(setting, value) for setting, value in imaging_params.items()])
         else:
             text = 'Unable to fetch imaging parameters'
 

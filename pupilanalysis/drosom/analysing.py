@@ -565,98 +565,41 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return self._getAntennaLevelCorrection(self.folder)
 
 
-    def _load_descriptions_file(self):
-        '''
-        Finds and loads the descriptions file that contains imaging parameters,
-        fly sex, age, name, and (in current versions) image_folders for each setting
-        '''
-
-        descriptions = []
-
-        # The descriptions file can be in 2 locations depending version of the
-        # pupil_imsoft.
-        # The old version contains only one set of imaging_parameters, common
-        # to all of the image_folders (and thus inaccurate if settings changed)
-        current_version_loc = os.path.join(self.data_path, self.folder, self.folder+'.txt')
-        old_version_loc = os.path.join(self.data_path, self.folder+'.txt')
-        
-        #print(current_version_loc)
-        #print(old_version_loc)
-        
-        
-        if os.path.exists(current_version_loc):
-            
-            with open(current_version_loc, 'r') as fp:
-                for line in fp:
-                    descriptions.append(line)
-            return descriptions
-
-        if os.path.exists(old_version_loc):
-
-            with open(old_version_loc, 'r') as fp:
-                for line in fp:
-                    descriptions.append(line)
-            return descriptions
-
-        return descriptions
-
-
     def get_imaging_parameters(self, image_folder):
         '''
-        Returns the imaging parameters for the image_folder byt reading the newest
-        matching entry in the destriptions file (pupil_imsoft).
+        Returns a dictionary of the Pupil Imsoft imaging parameters.
+        The dictionary is empty if the descriptions file is missing.
 
-        The descriptions file made by pupil_imsoft contains imaging_parameters
-        and imaged image_folders beneath. New entries are appended to this file.
+        image_folder : string
         '''
+        
+        parameters = {}
 
-        parameters = []
-        
-        try:
-            self.descriptions_file
-        except AttributeError:
-            self.descriptions_file = self._load_descriptions_file()
-        
-        # Find from the bottom, where the image_folder shows up the first time
-        location = 0
-        for location, line in enumerate(reversed(self.descriptions_file)):
-            #print(line)
-            if image_folder in line.strip('\n'):
-                break
-        
 
-        # If not found
-        if location == len(self.descriptions_file)-1:
-            return ''
+        fn = os.path.join(self.data_path, self.folder, image_folder, 'description.txt')
         
-        # If found, get the parameters
-        parameters = []
-        at_parameters = False
-        for line in reversed(self.descriptions_file[0:len(self.descriptions_file)-location-2]):
-            
-            line = line.strip('\n')
-            if not line:
-                continue
-            
-            #print(line)
-            
-            if self.folder+'\\' in line:
-                # If foldername entry    
-                if at_parameters == True:
-                    break
-
+        if not os.path.isfile(fn):
+            # Fallback for older Imsoft data where only
+            # one descriptions file for each imaging
+            old_fn = os.path.join(self.data_path, self.folder, self.folder+'.txt')
+            if os.path.isfile(old_fn):
+                fn = old_fn
             else:
-                # If parameter name+value entry
-                parameters.append(line)
-                at_parameters = True
+                return {}
+
+
+        with open(fn, 'r') as fp:
+            for line in fp:
+                if line.startswith('#') or line in ['\n', '\r\n']:
+                    continue
+                split= line.strip('\n\r').split(' ')
+
+                if len(split) >= 1:
+                    parameters[split[0]] = split[1]
+                else:
+                    parameters[split[0]] = ''
         
-        return reversed(parameters)
-
-
-    def get_imaging_parameters(self, image_folder):
-
-        pass
-
+        return parameters
 
     def get_specimen_age(self):
         '''
@@ -694,6 +637,21 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 return line.lstrip('sex ').strip(' ').strip('\n')
 
         return None
+
+    
+    def get_imaging_frequency(self, image_folder):
+        '''
+        Return imaging frequency (how many images per second) for an image folder
+        by searching for frame_length field in the descriptions file.
+
+        Returns None if the imaging frequency could not be determined.
+        '''
+        fs = self.get_imaging_parameters(image_folder).get('frame_length', None)
+        
+        if fs is None:
+            return fs
+        else:
+            return 1/float(fs)
 
 
     def get_snap_fn(self, i_snap=0, absolute_path=True):
@@ -1016,15 +974,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         #    plt.plot(data['y'])
         #    plt.show()
     
-
-    def get_image_interval(image_folder=None):
-        '''
-        Returns the time interval between sequetive frames, in seconds.
-        
-        FIXME Not implemented
-        '''
-        #FIXME Not implemented
-        return 0.010 # 10 ms -> 100 fps
 
 
     def get_time_ordered(self):
@@ -1406,6 +1355,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 return None
         
         return None
+
 
 
     def stop(self):

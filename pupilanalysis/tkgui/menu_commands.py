@@ -206,14 +206,16 @@ class ImageFolderCommands(ModifiedMenuMaker):
                 reselect_fns=[self.core.selected_recording], old_markings=True)
 
 
-    def measure_movement(self):
+    def measure_movement(self, absolute_coordinates=False):
         '''
         Run Movemeter (cross-correlation) on the selected image folder.
         '''
-        func = lambda: self.core.analyser.measure_both_eyes(only_folders=str(self.core.selected_recording))
+        func = lambda: self.core.analyser.measure_both_eyes(only_folders=str(self.core.selected_recording), absolute_coordinates=absolute_coordinates)
         
         MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
- 
+
+    def measure_movement_DASH_in_absolute_coordinates(self):
+        self.measure_movement(absolute_coordinates=True)
 
 
 

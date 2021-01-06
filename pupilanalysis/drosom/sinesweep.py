@@ -42,9 +42,14 @@ def _get_stimulus(flash_type, t, fs):
     stimulus_frequency = f0 * (f1/f0) ** (timepoints/t)
     stimulus_amplitude = scipy.signal.chirp(timepoints, f0=f0, t1=t, f1=f1,
             phi=-90, method='logarithmic')
-    if flash_type == 'squarelog':
-        stimulus[stimulus>=0] = 1
-        stimulus[stimulus<0] = -1
+    if flash_type == 'squarelogsweep':
+        stimulus_amplitude[stimulus_amplitude>=0] = 1
+        stimulus_amplitude[stimulus_amplitude<0] = -1
+    elif flash_type == '3steplogsweep':
+        cstep = np.sin(np.pi/4)
+        stimulus_amplitude[np.abs(stimulus_amplitude) <= cstep] = 0
+        stimulus_amplitude[stimulus_amplitude > cstep] = 1
+        stimulus_amplitude[stimulus_amplitude < -cstep] = -1
     else:
         pass
 
@@ -175,9 +180,9 @@ def save_sinesweep_analysis_CSV(analysers, debug=False):
                 im_fs = analyser.get_imaging_frequency(image_folder)
 
                 im_params = analyser.get_imaging_parameters(image_folder)
-                flash_type = im_params['flash_type']
+                flash_type = im_params.get('flash_type', '')
                
-                if flash_type.split(',')[0] not in ['squarelogsweep', 'sinelogsweep']:
+                if flash_type.split(',')[0] not in ['squarelogsweep', 'sinelogsweep', '3steplogsweep']:
                     print('Unkown flash_type {}, skipping'.format(flash_type))
                     continue
 

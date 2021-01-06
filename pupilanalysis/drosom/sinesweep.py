@@ -155,6 +155,8 @@ def save_sinesweep_analysis_CSV(analysers, debug=False):
         i_camframe time stimulus_fs mean_response response_rep1, response_rep2...
     '''
 
+    stimuli = {}
+
     savedir = os.path.join(ANALYSES_SAVEDIR, 'sineweep_analysis')
     os.makedirs(savedir, exist_ok=True)
    
@@ -217,6 +219,13 @@ def save_sinesweep_analysis_CSV(analysers, debug=False):
 
                 timepoints, stimulus_frequency, stimulus_amplitude = _get_stimulus(flash_type, len(Xs[0])/im_fs, im_fs)
                 
+                if flash_type not in stimuli:
+                    # FIXME 1kHz output in Imsoft but information not saved
+                    stim_fs = 1000
+                    dense = _get_stimulus(flash_type, len(Xs[0])/im_fs, stim_fs)
+                    
+                    stimuli[flash_type] = dense
+
                 # "Frequency response"
                 fr_freqs, fr = _sham_frequency_response(timepoints, stimulus_frequency,
                         stimulus_amplitude, mean_displacement, interpolate=True)
@@ -336,8 +345,12 @@ def save_sinesweep_analysis_CSV(analysers, debug=False):
 
                 writer.writerow(row)
     
+    for stimulus in stimuli:
 
-
-
-
+        with open(os.path.join(savedir, 'stimulus_{}.csv'.format(stimulus)), 'w') as fp:
+            writer = csv.writer(fp)
+            writer.writerow(['Time (ms)', 'Frequency (Hz)', 'Amplitude (V)'])
+            for i in range(len(stimuli[stimulus][0])):
+                writer.writerow([data[i] for data in stimuli[stimulus]])
+                
 

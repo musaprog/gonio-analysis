@@ -27,7 +27,7 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pupilanalysis.drosom.loading import load_data, angles_from_fn
+from pupilanalysis.drosom.loading import load_data, angles_from_fn, arange_fns
 from pupilanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector, optimal_sampling
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
 from pupilanalysis.rotary_encoders import to_degrees, step2degree
@@ -504,9 +504,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         fns = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')]
         
-        # Fixed sorting, no zero padding in image filenames.
-        fns.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
-        fns.sort(key=lambda x: int(x.split('_')[-2][3:]))
+        fns = arange_fns(fns)
 
         if absolute_path:
             fns = [os.path.join(self.data_path, self.folder, image_folder, fn) for fn in fns]
@@ -854,7 +852,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
     def measure_movement(self, eye, only_folders=None,
-            max_movement=30, absolute_coordinates=False):
+            max_movement=30, absolute_coordinates=False, join_repeats=False):
         '''
         Performs cross-correlation analysis for the selected pseudopupils (ROIs, regions of interest)
         using Movemeter package.
@@ -867,6 +865,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         only_folders            Analyse only image folders in the given list (that is only_folders).
         max_movement            Maximum total displacement in x or y expected. Lower values faster.
         absolute_coordinates    Return movement values in absolute image coordinates
+        join_repeats            Join repeats together as if they were one long recording.
 
         Cross-correlation analysis is the slowest part of the DrosoM pipeline.
         '''
@@ -899,12 +898,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 if only_folders and not 'pos'+angle in only_folders:
                     continue
 
-                # Fuse if only one frame per repetition
-                if len(self.stacks[angle][0]) == 1:
-                    fuse = True
-                else:
-                    fuse = False
-                if fuse:
+                if join_repeats:
                     fused = []
                     for i_repetition in range(len(self.stacks[angle])):
                         fused += self.stacks[angle][i_repetition]

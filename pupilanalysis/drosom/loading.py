@@ -10,6 +10,31 @@ import ast
 
 from pupilanalysis.rotary_encoders import to_degrees
 
+REPETITION_INDICATOR  = 'rep'
+POSITION_INDICATOR = 'pos'
+
+
+def arange_fns(fns):
+    '''
+    Arange filenames based on REPETITION_INDICATOR and POSITION_INDICATOR
+    in the time order (repeat 1, image1,2,3,4, repeat 2, image1,2,3,4, ...).
+    
+    If no indicators are found in the filenames then the ordering is
+    at least alphabetical.
+    '''
+    
+    # Sort by i_frame
+    try:
+        fns.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    except ValueError:
+        # Here if image fn not enging with _somenumber.tif(f)
+        pass
+    
+    # Sort by i_repeat
+    fns.sort(key=lambda x: int(x.split('_')[-2][3:]))
+    
+    return fns
+
 
 def angleFromFn(fn):
     '''
@@ -70,9 +95,6 @@ def load_data(drosom_folder):
     Horizontal and pitch are given in rotatry encoder steps, not degrees.
 
     '''
-    repetition_indicator = 'rep'
-    position_indicator = 'pos' 
-        
     
     stacks_dictionary = {}
 
@@ -81,10 +103,10 @@ def load_data(drosom_folder):
     # Import all tif images
     for folder in pos_folders:
         
-        if not folder.startswith(position_indicator):
+        if not folder.startswith(POSITION_INDICATOR):
             continue
         
-        str_angles = folder[len(position_indicator):]     # Should go from "pos(0, 0)" to "(0, 0)"
+        str_angles = folder[len(POSITION_INDICATOR):]     # Should go from "pos(0, 0)" to "(0, 0)"
      
         files = os.listdir(os.path.join(drosom_folder, folder))
         tiff_files = [f for f in files if f.endswith('.tiff') or f.endswith('.tif')]
@@ -93,15 +115,14 @@ def load_data(drosom_folder):
             # Skip if no images in the folder
             continue
 
-        # FIXED sorting does not work becauce imsfot lasyness in indexing, no zero padding!!! :DDDDD
-        tiff_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
-            
+        tiff_files = arange_fns(tiff_files)
+
         stacks_dictionary[str_angles] = []
 
         # Subdivide into repetitions
         for tiff in tiff_files:
             try:
-                i_repetition = int(tiff[tiff.index(repetition_indicator)+len(repetition_indicator):].split('_')[0])
+                i_repetition = int(tiff[tiff.index(REPETITION_INDICATOR)+len(REPETITION_INDICATOR):].split('_')[0])
             except ValueError:
                 print('Warning: Cannot determine i_repetition for {}'.format(tiff))
             while i_repetition >= len(stacks_dictionary[str_angles]):

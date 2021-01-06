@@ -183,7 +183,9 @@ class RecordingPlotter:
         image_fn = os.path.join(self.core.analyser.get_specimen_directory(), self.selected_recording, image_fns[i_frame])
         self.image = tifffile.imread(image_fn)
         
-        print(image_fn)
+        # Fast fix for opening stacks
+        if len(self.image.shape) == 3:
+            self.image = self.image[0,:,:]
 
         try:
             self.range_slider

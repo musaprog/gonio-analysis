@@ -380,12 +380,12 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         targets = [lambda specimen=specimen: self.core.get_manalyser(specimen).measure_both_eyes(absolute_coordinates=absolute_coordinates) for specimen in specimens]
     
 
-        if self.core.analyser.__class__.__name__ == 'MAnalyser':
+        if self.core.analyser_class.__name__ == 'MAnalyser':
             MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement',
                     callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
         else:
             # For OAnalyser; Threading in MeasurementWindow causes problems for plotting
-            for target in tagets:
+            for target in targets:
                 target()
             self.core.update_gui(changed_specimens=True)
 

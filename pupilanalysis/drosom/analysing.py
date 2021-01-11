@@ -650,6 +650,16 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             return fs
         else:
             return 1/float(fs)
+    
+    def get_pixel_size(self, image_folder):
+        '''
+        Return the pixel size of the imaging.
+        Currently always returns the same static value of 1.22375. 
+        '''
+        # Based on the stage micrometer;
+        # 0.8 µm in the images 979 pixels 
+        return 1/1.22376
+
 
 
     def get_snap_fn(self, i_snap=0, absolute_path=True):

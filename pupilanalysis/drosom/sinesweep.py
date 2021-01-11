@@ -190,7 +190,7 @@ def save_sinesweep_analysis_CSV(analysers, debug=False):
 
 
                 # Get movement data
-                pixel_size = 0.816
+                pixel_size = analyser.get_pixel_size(image_folder)
                 print('N_repeats {}'.format(N_repeats))
                 Xs = [np.array(analyser.movements[eye][imagefolder_key][i_repeat]['x'])*pixel_size for i_repeat in range(N_repeats)]
                 Ys = [np.array(analyser.movements[eye][imagefolder_key][i_repeat]['y'])*pixel_size for i_repeat in range(N_repeats)]

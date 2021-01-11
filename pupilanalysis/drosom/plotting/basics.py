@@ -73,8 +73,8 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
     
     def get_x_yscaler(mag_rep_i):    
         # FIXME Pixel size and fs should be read from the data
-        pixel_size = 0.816
-        fs = 100
+        pixel_size = manalyser.get_pixel_size(image_folder)
+        fs = manalyser.get_imaging_frequency(image_folder)
         N = len(mag_rep_i)
 
         if milliseconds:

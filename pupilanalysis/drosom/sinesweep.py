@@ -242,12 +242,13 @@ def save_sinesweep_analysis_CSV(analysers, debug=False):
 
                 if final_cols.get(flash_type, None) is None:
                     final_cols[flash_type] = {'time (s)': [], 'f_stimulus (Hz)': [],
-                            'displacement': [], 'frequency_response': []}
+                            'displacement': [], 'frequency_response': [], 'specimen_name': []}
                 
 
                 final_cols[flash_type]['time (s)'].append(timepoints)
                 final_cols[flash_type]['f_stimulus (Hz)'].append(stimulus_frequency)
                 final_cols[flash_type]['displacement'].append(mean_displacement)
+                final_cols[flash_type]['specimen_name'].append(analyser.folder)
                 final_cols[flash_type]['frequency_response'].append(fr)
                 
 
@@ -309,7 +310,7 @@ def save_sinesweep_analysis_CSV(analysers, debug=False):
             N = len(final_cols[flash_type]['displacement'])
             
             for k in range(N):
-                row.append('response (µm)')
+                row.append('{} response (µm)'.format(final_cols[flash_type]['specimen_name'][k]))
             
             row.append('mean response (µm)')
 

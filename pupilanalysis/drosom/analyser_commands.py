@@ -38,6 +38,7 @@ ANALYSER_CMDS['2dmagnitude'] = plotter.plotMagnitude2D
 ANALYSER_CMDS['illustrate_experiments_video'] = plotting.illustrate_experiments
 ANALYSER_CMDS['norpa_rescue_manyrepeats'] = norpa_rescue_manyrepeats
 ANALYSER_CMDS['compare_paired'] = cli_group_and_compare
+ANALYSER_CMDS['lr_displacements'] = lambda analyser: reports.left_right_displacements(analyser, 'test')
 ANALYSER_CMDS['left_right_summary'] = reports.left_right_summary
 ANALYSER_CMDS['pdf_summary'] = reports.pdf_summary
 

@@ -23,6 +23,7 @@ from pupilanalysis.droso import SpecimenGroups
 from pupilanalysis.drosom import linked_data
 from pupilanalysis.drosom import kinematics
 from pupilanalysis.drosom import sinesweep
+from pupilanalysis.drosom.reports.left_right import left_right_displacements
 from pupilanalysis.tkgui import settings
 from pupilanalysis.tkgui.run_measurement import MeasurementWindow
 from pupilanalysis.tkgui.zero_correct import ZeroCorrect
@@ -370,9 +371,15 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 '.',
                 'comparision_to_optic_flow_DASH_video',
                 '.',
+                'export_displacement_CSV',
+                'export_LR_displacement_CSV',
+                'save_kinematics_analysis_CSV',
+                'save_sinesweep_analysis_CSV',
+                '.',
                 'create_specimens_group',
                 'link_ERG_data_from_labbook']
-    
+
+
     def _batch_measure(self, specimens, absolute_coordinates=False):
         
         # Here lambda requires specimen=specimen keyword argument; Otherwise only
@@ -455,6 +462,27 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     
     def link_ERG_data_from_labbook(self):
         select_specimens(self.core, linked_data.link_erg_labbook, command_args=[lambda: filedialog.askopenfilename(title='Select ERG'), lambda: filedialog.askdirectory(title='Select data folder')], return_manalysers=True )
+    
+
+    # EXPORTING DATA
+
+    def export_displacement_CSV(self):
+        '''
+        Save displacement value data for the selected flies.
+        '''
+        pass
+
+
+    def export_LR_displacement_CSV(self):
+        '''
+        Grouped to left right
+        '''
+        def callback(specimens):
+            group_name = ask_string('Group name', 'Name the selected group of specimens', self.tk_root)
+            analysers = [self.core.get_manalyser(specimen) for specimen in specimens]
+            left_right_displacements(analysers, group_name)
+
+        select_specimens(self.core, callback, with_movements=True) 
 
 
     def save_kinematics_analysis_CSV(self):
@@ -470,10 +498,9 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
         select_specimens(self.core, callback, with_movements=True) 
 
+
     def save_sinesweep_analysis_CSV(self):
         def callback(specimens):
-            
-            
             analysers = [self.core.get_manalyser(specimen) for specimen in specimens]                
             sinesweep.save_sinesweep_analysis_CSV(analysers)
  

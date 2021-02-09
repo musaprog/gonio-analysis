@@ -319,6 +319,14 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         # movement directions instead of deep pseudopupil movement directions
         self.receptive_fields = False
 
+    
+    @property
+    def name(self):
+        return self.folder
+    
+    @name.setter
+    def name(self, name):
+        self.folder=name
 
 
     @property

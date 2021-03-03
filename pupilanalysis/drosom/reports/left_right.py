@@ -11,6 +11,7 @@ from pupilanalysis.directories import ANALYSES_SAVEDIR
 
 LR_SAVEDIR = os.path.join(ANALYSES_SAVEDIR, 'LR_exports')
 
+
 def write_CSV_cols(fn, columns):
     '''
     Note
@@ -28,7 +29,14 @@ def write_CSV_cols(fn, columns):
     with open(fn, 'w') as fp:
         writer = csv.writer(fp, delimiter=',')
         for i in range(len(columns[0])):
-            writer.writerow([sublist[i] for sublist in columns])
+            row = []
+            for sublist in columns:
+                try:
+                    row.append(sublist[i])
+                except:
+                    row.append('')
+            writer.writerow(row)
+            #writer.writerow([sublist[i] for sublist in columns])
 
 
 
@@ -37,7 +45,11 @@ def left_right_displacements(manalysers, group_name,
         savedir=LR_SAVEDIR,
         stimuli={'uv': 'uv', 'green': 'green'}):
     '''
+    Saves CSV files of left and right eye movements and ERGs.
     
+    If many recordings for an eye/stimulus/specimen combination exist,
+    then takes the mean of these (so that each eye appears only once).
+
 
     Arguments
     ----------
@@ -57,11 +69,15 @@ def left_right_displacements(manalysers, group_name,
     csv_files = {stim: [] for stim in stimuli.keys()}
     
     fs = None
-    
+    efs = None
+
     for manalyser in manalysers:
         
         # Left eye
-        for eye, condition in zip(['left', 'right'], [lambda h: h>20, lambda h: h<-20]):
+        for eye, condition in zip(['left', 'right'], [lambda h: h>10, lambda h: h<-10]):
+
+            eyedata = {stim: [] for stim in stimuli.keys()}
+
             for image_folder in manalyser.list_imagefolders(horizontal_condition=condition): 
                 
                 for stim in stimuli.keys():
@@ -84,19 +100,67 @@ def left_right_displacements(manalysers, group_name,
                             elif fs != nfs:
                                 raise ValueError('Analysers with multiple fs!')
 
-                            column_name = '{}_mean_{}'.format(manalyser.name, eye)
-                            
-                            trace = trace[0][0].tolist()
-                            trace.insert(0, column_name)
-                            csv_files[stim].append(trace)
+                            trace = trace[0][0]
+                            eyedata[stim].append(trace)
+           
+
+            for stim in stimuli.keys():
+                if eyedata[stim]:
+                    column_name = '{}_mean_{}'.format(manalyser.name, eye)
+
+                    csv_files[stim].append( np.mean(eyedata[stim], axis=0).tolist() )
+                    csv_files[stim][-1].insert(0, column_name)
+
+
+        if "ERGs" in manalyser.linked_data:
+            data = manalyser.linked_data['ERGs']
+            
+            repeatdata = {}
+
+            erg_columns = {}
+            
+            for recording in data:
+                name = 'ERGs_' + recording['Stimulus'] +'!;!'+ recording['eye']
+                try:
+                    N_repeats = int(recording['N_repeats'])
+                except ValueError:
+                    N_repeats = 1
+
+                if repeatdata.get(name, 0) < N_repeats: 
+                    erg_columns[name] = (np.array(recording['data'])-recording['data'][0]).tolist()
+                    erg_columns[name].insert(0, '{}_{} (mV)'.format(manalyser.name, recording['eye']))
+            
+                    if efs is None:
+                        efs = recording['fs']
+                    elif efs != recording['fs']:
+                        raise ValueError('ERGs with multiple sampling frequencies!')
+
+            for name in erg_columns:
+                uname = name.split('!;!')[0]
+                try:
+                    csv_files[uname]
+                except:
+                    csv_files[uname] = []
+
+                csv_files[uname].append(erg_columns[name])
+
 
     os.makedirs(savedir, exist_ok=True)
 
     for csv_file in csv_files:
         
+        # Mean in the end
+        csv_files[csv_file].append(np.mean([csv_files[csv_file][i][1:] for i in range(len(csv_files[csv_file]))], axis=0).tolist())
+        csv_files[csv_file][-1].insert(0, 'mean')
+
+        if csv_file.startswith('ERGs_'):
+            ufs = efs
+        else:
+            ufs = fs
+
         # Add xaxis (time) in all files
         data = csv_files[csv_file][0][1:]
-        xaxis = np.linspace(0, (len(data)-1)/fs, len(data)).tolist()
+        xaxis = np.linspace(0, (len(data)-1)/ufs, len(data)).tolist()
         xaxis.insert(0, 'time (s)')
         print(xaxis)
         csv_files[csv_file].insert(0, xaxis)
@@ -106,11 +170,6 @@ def left_right_displacements(manalysers, group_name,
         write_CSV_cols(fn, csv_files[csv_file])
 
 
-def left_right_ergs(manalysers):
-    '''
-    
-    '''
-    pass
 
 def left_right_summary(manalysers):
     '''

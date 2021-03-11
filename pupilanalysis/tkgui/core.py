@@ -4,6 +4,7 @@ import subprocess
 import sys
 import platform
 
+from pupilanalysis.droso import SpecimenGroups
 from pupilanalysis.directories import CODE_ROOTDIR
 from pupilanalysis.drosom.analysing import MAnalyser
 from pupilanalysis.drosom.orientation_analysis import OAnalyser
@@ -41,6 +42,9 @@ class Core:
         self.analyser_classes = [MAnalyser, OAnalyser]
         
         self._folders = {}
+
+        self.groups = SpecimenGroups()
+
 
     def set_data_directory(self, data_directory):
         '''
@@ -121,6 +125,31 @@ class Core:
 
         analyser = self.analyser_class(directory, specimen_name, **kwargs)
         return analyser
+    
+
+    def get_manalysers(self, specimen_names, **kwargs):
+        '''
+        Like get_manalyser but returns a list of analyser objects and also
+        checks for specimen groups if a specimen cannot be found.
+        '''
+        analysers = []
+        for name in specimen_names:
+            try:
+                ans = [self.get_manalyser(name, **kwargs)]
+            except FileNotFoundError:
+                ans = [self.get_manalyser(n, **kwargs) for n in self.groups.groups.get(name, [])]
+                
+                # Try again and load
+                if ans is []:
+                    self.groups.load_groups()
+                    ans = [self.get_manalyser(n, **kwargs) for n in self.groups.groups.get(name, [])]
+            
+            if ans is []:
+                raise FileNotFoundError('Cannot find specimen {}'.format(name))
+            
+            analysers.extend(ans)
+
+        return analysers
 
 
     def adm_subprocess(self, specimens, terminal_args, open_terminal=False):

@@ -16,6 +16,7 @@ import tkinter.simpledialog as simpledialog
 
 from tk_steroids.dialogs import TickSelect, popup_tickselect
 from tk_steroids.menumaker import MenuMaker
+from tk_steroids.elements import Tabs
 
 import pupilanalysis
 from pupilanalysis.directories import USER_HOMEDIR
@@ -81,7 +82,7 @@ def select_specimens(core, command, with_rois=None, with_movements=None, with_co
 
     top = tk.Toplevel()
     top.title('Select specimens')
-    top.grid_columnconfigure(0, weight=1)
+    top.grid_columnconfigure(1, weight=1)
     top.grid_rowconfigure(1, weight=1)
 
 
@@ -89,23 +90,29 @@ def select_specimens(core, command, with_rois=None, with_movements=None, with_co
         notify_string = 'Listing specimens with '
         notify_string += ' and '.join([string for onoff, string in zip([with_rois, with_movements, with_correction],
             ['ROIs', 'movements', 'correction']) if onoff ])
-        tk.Label(top, text=notify_string).grid()
+        tk.Label(top, text=notify_string).grid(row=0, column=1)
 
     specimens = core.list_specimens(with_rois=with_rois, with_movements=with_movements, with_correction=with_correction) 
     
+    groups = list(SpecimenGroups().groups.keys())
+
     if return_manalysers:
         # This is quite wierd what is going on here
         def commandx(specimens, *args, **kwargs):
-            manalysers = [core.get_manalyser(specimen) for specimen in specimens]
+            manalysers = core.get_manalysers(specimens)
             return command(manalysers, *args, **kwargs)
     else:
         commandx = command
 
-    selector = TickSelect(top, specimens, commandx, callback_args=parsed_args)
+    tabs = Tabs(top, ['Specimens', 'Groups'])
 
-    selector.grid(sticky='NSEW')
+    for tab, selectable in zip(tabs.tabs, [specimens, groups]):
+        selector = TickSelect(tab, selectable, commandx, callback_args=parsed_args)
+        selector.grid(sticky='NSEW', row=1, column=1)
     
-    tk.Button(selector, text='Close', command=top.destroy).grid(row=1, column=1)
+        tk.Button(selector, text='Close', command=top.destroy).grid(row=2, column=1)
+    
+    tabs.grid(row=1, column=1,sticky='NSEW')
 
 
 
@@ -491,7 +498,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         '''
         def callback(specimens):
             group_name = ask_string('Group name', 'Name the selected group of specimens', self.tk_root)
-            analysers = [self.core.get_manalyser(specimen) for specimen in specimens]
+            analysers = self.core.get_manalysers(specimens)
             left_right_displacements(analysers, group_name)
 
         select_specimens(self.core, callback, with_movements=True) 
@@ -504,7 +511,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
             fn = tk.filedialog.asksaveasfilename(title='Save kinematics analysis', initialfile='latencies.csv')
             
             if fn:
-                analysers = [self.core.get_manalyser(specimen) for specimen in specimens]
+                analysers = self.core.get_manalysers(specimens)
                 kinematics.save_sigmoidal_fit_CSV(analysers, fn)
  
 

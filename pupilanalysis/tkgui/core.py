@@ -16,8 +16,8 @@ class Core:
     
     Attributes
     ----------
-    data_directory : string
-        Current data directory
+    data_directory : list of strings
+        Current data directories
     current_specimen : string
         Name of the current specimen
     analyser : object
@@ -32,7 +32,7 @@ class Core:
 
     def __init__(self):
         
-        self.data_directory = None
+        self.data_directory = []
         self.current_specimen = None
         self.analyser = None
         self.selected_recording = None
@@ -40,12 +40,22 @@ class Core:
         self.analyser_class = MAnalyser
         self.analyser_classes = [MAnalyser, OAnalyser]
         
+        self._folders = {}
 
     def set_data_directory(self, data_directory):
         '''
         Update Core's knowledge about the currently selected data_directory.
+
+        Arguments
+        ---------
+        data_directory : list of strings
+            List of paths to the data
         '''
         self.data_directory = data_directory
+        
+        self._folders = {}
+        for data_directory in self.data_directory:
+            self._folders[data_directory] = os.listdir(data_directory)
 
 
     def set_current_specimen(self, specimen_name):
@@ -85,7 +95,9 @@ class Core:
             with_rois=None, with_movements=True, with_correction=False
 
         '''
-        specimens = [fn for fn in os.listdir(self.data_directory) if os.path.isdir(os.path.join(self.data_directory, fn))]
+        specimens = []
+        for data_directory in self.data_directory:
+            specimens.extend( [fn for fn in os.listdir(data_directory) if os.path.isdir(os.path.join(data_directory, fn))] )
         
         if with_rois is not None:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).are_rois_selected() == with_rois]
@@ -103,7 +115,11 @@ class Core:
         '''
         Gets manalyser for the specimen specified by the given name.
         '''
-        analyser = self.analyser_class(self.data_directory, specimen_name, **kwargs)
+        for directory in self.data_directory:
+            if specimen_name in self._folders[directory]:
+                break
+
+        analyser = self.analyser_class(directory, specimen_name, **kwargs)
         return analyser
 
 
@@ -141,7 +157,7 @@ class Core:
         else:
             specimen_names = ','.join(specimens)
         
-        arguments = '-D {} -S {} {}'.format(self.data_directory, specimen_names, terminal_args)
+        arguments = '-D {} -S {} {}'.format(self.data_directory[0], specimen_names, terminal_args)
         
         # FIXME for general use
         if self.analyser_class is not MAnalyser:

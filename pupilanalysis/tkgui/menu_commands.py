@@ -140,15 +140,16 @@ class FileCommands(ModifiedMenuMaker):
         menu maker.
         '''
         menu = ['set_data_directory',
+                'add_data_directory',
                 'settings',
                 '.',
                 'exit']
         return menu
 
 
-    def set_data_directory(self):
+    def set_data_directory(self, append=False):
         '''
-        Asks user for the data directory.
+        Asks user for the data directory and sets it active in Core.
         '''
         previousdir = settings.get('last_datadir', default=USER_HOMEDIR)
         
@@ -165,11 +166,22 @@ class FileCommands(ModifiedMenuMaker):
 
         if not directory:
             return None
-    
-        self.core.set_data_directory(directory)
+        
+        if append == False:
+            self.core.set_data_directory([directory])
+        else:
+            self.core.set_data_directory(self.core.data_directory + [directory])
         self.core.update_gui(changed_specimens=True)
         
         settings.set('last_datadir', directory)
+
+
+    def add_data_directory(self):
+        '''
+        Like set_data_directory, but instead of changing the data directory,
+        comdines the entries from previous and the new data directories.
+        '''
+        self.set_data_directory(append=True)
 
     
     def settings(self):

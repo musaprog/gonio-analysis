@@ -20,15 +20,17 @@ from tk_steroids.datamanager import ListManager
 from tk_steroids.elements import Tabs
 
 import pupilanalysis
-from pupilanalysis.directories import USER_HOMEDIR
+from pupilanalysis.directories import USER_HOMEDIR, ANALYSES_SAVEDIR
 from pupilanalysis.droso import SpecimenGroups
 from pupilanalysis.drosom import linked_data
 from pupilanalysis.drosom import kinematics
 from pupilanalysis.drosom import sinesweep
-from pupilanalysis.drosom.reports.left_right import left_right_displacements
+from pupilanalysis.drosom.reports.left_right import left_right_displacements, lrfiles_summarise
+from pupilanalysis.drosom.reports.stats import response_magnitudes
 from pupilanalysis.tkgui import settings
 from pupilanalysis.tkgui.run_measurement import MeasurementWindow
 from pupilanalysis.tkgui.zero_correct import ZeroCorrect
+
 
 
 def ask_string(title, prompt, tk_parent):
@@ -115,6 +117,34 @@ def select_specimens(core, command, with_rois=None, with_movements=None, with_co
     
     tabs.grid(row=1, column=1,sticky='NSEW')
 
+
+
+def select_specimen_groups(core, command):
+    '''
+    command gets the following dictionary
+        {'group1_name': [manalyser1_object, ...], ...}
+    '''
+    top = tk.Toplevel()
+    top.title('Select specimen groups')
+    top.grid_columnconfigure(0, weight=1)
+    top.grid_rowconfigure(1, weight=1)
+
+    
+    gm = SpecimenGroups()
+    gm.load_groups()
+
+    def commandx(group_names):
+        grouped = {}
+        for group_name in group_names:
+            print(gm.groups[group_name])
+            manalysers = [core.get_manalyser(specimen) for specimen in gm.groups[group_name]]
+            grouped[group_name] = manalysers
+        command(grouped)
+
+    selector = TickSelect(top, list(gm.groups.keys()), commandx)
+    selector.grid(sticky='NSEW')
+
+    tk.Button(selector, text='Close', command=top.destroy).grid(row=2, column=1)
 
 
 
@@ -217,11 +247,13 @@ class ImageFolderCommands(ModifiedMenuMaker):
         result = kinematics.mean_max_response(self.core.analyser, self.core.selected_recording)
         prompt_result(self.tk_root, result)
     
+
     def latency_by_sigmoidal_fit(self):
 
         result = kinematics.sigmoidal_fit(self.core.analyser, self.core.selected_recording)[2]
         prompt_result(self.tk_root, str(np.mean(result)))
     
+
     def select_ROIs(self):
         self.core.analyser.select_ROIs(callback_on_exit=self.core.update_gui,
                 reselect_fns=[self.core.selected_recording], old_markings=True)
@@ -234,6 +266,7 @@ class ImageFolderCommands(ModifiedMenuMaker):
         func = lambda: self.core.analyser.measure_both_eyes(only_folders=str(self.core.selected_recording), absolute_coordinates=absolute_coordinates)
         
         MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
+
 
     def measure_movement_DASH_in_absolute_coordinates(self):
         self.measure_movement(absolute_coordinates=True)
@@ -255,6 +288,7 @@ class SpecimenCommands(ModifiedMenuMaker):
                 'mean_displacement_over_time',
                 '.']
 
+
     def set_active_analysis(self):
 
         name = ask_string('Active analysis', 'Give new or existing analysis name (empty for default)', self.tk_root)
@@ -262,6 +296,7 @@ class SpecimenCommands(ModifiedMenuMaker):
         self.core.analyser.active_analysis = name
         self.tk_root.status_active_analysis.config(text='Active analysis: {}'.format(self.core.analyser.active_analysis))
     
+
     def set_vector_rotation(self):
 
         rotation = ask_string('Active analysis', 'Give new or existing analysis name (empty for default)', self.tk_root)
@@ -344,7 +379,6 @@ class SpecimenCommands(ModifiedMenuMaker):
         self.correct_frame.grid(sticky='NSEW')
 
 
-
     def vectormap_DASH_interactive_plot(self):
         self.core.adm_subprocess('current', 'vectormap')
 
@@ -365,6 +399,7 @@ class SpecimenCommands(ModifiedMenuMaker):
     
     def mean_displacement_over_time(self):
         self.core.adm_subprocess('current', 'magtrace')
+
 
     def mean_latency_by_sigmoidal_fit(self):
         results_string = ''
@@ -391,7 +426,6 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 '.',
                 'comparision_to_optic_flow_DASH_video',
                 '.',
-                'export_displacement_CSV',
                 'export_LR_displacement_CSV',
                 'save_kinematics_analysis_CSV',
                 'save_sinesweep_analysis_CSV']
@@ -437,7 +471,8 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     
     def averaged_vectormap_DASH_rotating_video(self):
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average vectormap_video'), with_movements=True) 
-    
+
+
     def averaged_vectormap_DASH_rotating_video_multiprocessing(self):
         
         def run_workers(specimens):
@@ -462,17 +497,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average flow_analysis_pitch'), with_movements=True) 
         
     
-   
-
-    # EXPORTING DATA
-
-    def export_displacement_CSV(self):
-        '''
-        Save displacement value data for the selected flies.
-        '''
-        pass
-
-
+    
     def export_LR_displacement_CSV(self):
         '''
         Grouped to left right

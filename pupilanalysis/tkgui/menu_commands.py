@@ -16,6 +16,7 @@ import tkinter.simpledialog as simpledialog
 
 from tk_steroids.dialogs import TickSelect, popup_tickselect
 from tk_steroids.menumaker import MenuMaker
+from tk_steroids.datamanager import ListManager
 from tk_steroids.elements import Tabs
 
 import pupilanalysis
@@ -393,10 +394,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 'export_displacement_CSV',
                 'export_LR_displacement_CSV',
                 'save_kinematics_analysis_CSV',
-                'save_sinesweep_analysis_CSV',
-                '.',
-                'create_specimens_group',
-                'link_ERG_data_from_labbook']
+                'save_sinesweep_analysis_CSV']
 
 
     def _batch_measure(self, specimens, absolute_coordinates=False):
@@ -432,21 +430,6 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
 
 
-    def create_specimens_group(self):
-        '''
-        Group specimens for fast, repeated selection
-        '''
-
-        group_name = ask_string('Group name', 'Name the new group')
-       
-        def _create_group(specimens):
-            groups = SpecimenGroups()
-            groups.new_group(group_name, *specimens)
-            groups.save_groups()
-
-        select_specimens(self.core, _create_group)
-
-
     def averaged_vectormap_DASH_interactive_plot(self):
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average vectormap'), with_movements=True)
 
@@ -479,9 +462,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average flow_analysis_pitch'), with_movements=True) 
         
     
-    def link_ERG_data_from_labbook(self):
-        select_specimens(self.core, linked_data.link_erg_labbook, command_args=[lambda: filedialog.askopenfilename(title='Select ERG'), lambda: filedialog.askdirectory(title='Select data folder')], return_manalysers=True )
-    
+   
 
     # EXPORTING DATA
 
@@ -520,12 +501,26 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
     def save_sinesweep_analysis_CSV(self):
         def callback(specimens):
-            analysers = [self.core.get_manalyser(specimen) for specimen in specimens]                
+            analysers = self.core.get_manalysers(specimen)                
             sinesweep.save_sinesweep_analysis_CSV(analysers)
  
 
         select_specimens(self.core, callback, with_movements=True) 
 
+
+    def response_magnitude_stats(self):
+        def callback(grouped_manalysers):
+            response_magnitudes(grouped_manalysers)
+
+        select_specimen_groups(self.core, callback)
+
+
+    def LR_stasts(self):
+
+        fns = filedialog.askopenfilenames(initialdir=ANALYSES_SAVEDIR)
+        
+        if fns:
+            lrfiles_summarise(fns)
 
 
 
@@ -533,6 +528,54 @@ class OtherCommands(ModifiedMenuMaker):
     '''
     All kinds of various commands and tools.
     '''
+    
+    def _force_order(self):
+        return ['manage_specimen_groups',
+                'link_ERG_data_from_labbook',
+                '.',
+                'change_Analyser_DASH_object',
+                '.',
+                'about']
+
+
+    def manage_specimen_groups(self):
+        '''
+        Fixme: This is a little hacked together.
+        '''
+        
+        def _preedit():
+            select_specimens(self.core, _postedit)
+
+        def _postedit(specimens):
+            self.dm.im2.set_data(specimens)
+            self.dm.im2.postchange_callback(self.dm.im2.data)
+
+        def onsave():
+            self.groups.groups = self.dm.im1.data
+            self.groups.save_groups()
+
+
+        def oncancel():
+            top.destroy()
+
+        self.groups = SpecimenGroups() 
+        
+        top = tk.Toplevel(self.tk_root)
+
+        self.dm = ListManager(top, start_data=self.groups.groups,
+                save_callback=onsave, cancel_callback=oncancel)
+        tk.Button(self.dm.im2.buttons, text='Select specimens', command=_preedit).grid()
+        self.dm.grid(row=1, column=1, sticky='NSWE')
+        top.rowconfigure(1, weight=1)
+        top.columnconfigure(1, weight=1)
+
+        top.mainloop()
+
+    
+    def link_ERG_data_from_labbook(self):
+        select_specimens(self.core, linked_data.link_erg_labbook, command_args=[lambda: filedialog.askopenfilename(title='Select ERG'), lambda: filedialog.askdirectory(title='Select data folder')], return_manalysers=True )
+ 
+
 
     def change_Analyser_DASH_object(self):
 

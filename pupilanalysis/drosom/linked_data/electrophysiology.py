@@ -57,7 +57,11 @@ def _load_ergs(ergs_labbook, ergs_rootdir):
                 ergs[specimen] = []
 
             ddict = {key: value for key, value in zip(column_names[2:], line[2:])}
-            ddict['data'] = bsextract(match[0], 0)[0].flatten().tolist()
+            trace, fs = bsextract(match[0], 0)
+
+            # Use the mean if many repeats present
+            ddict['data'] = np.mean(trace, axis=1).flatten().tolist()
+            ddict['fs'] = int(fs)
             ergs[specimen].append(ddict)
 
     return ergs
@@ -77,8 +81,9 @@ def link_erg_labbook(manalysers, ergs_labbook, ergs_rootdir):
         
         if mname in erg_data:
             manalyser.link_data('ERGs', erg_data[mname])
-        
-        manalyser.save_linked_data()
+            manalyser.save_linked_data()
 
+        else:
+            print('No ERGs for {}'.format(mname))
 
 

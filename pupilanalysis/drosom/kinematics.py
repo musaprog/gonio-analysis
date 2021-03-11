@@ -24,18 +24,45 @@ def _logistic_function(t, k, L, t0):
     return L / (1+np.exp(-k*(t-t0)))
 
 
-def mean_max_response(manalyser, image_folder):
+def mean_max_response(manalyser, image_folder, maxmethod='max'):
     '''
     Averages over repetitions, and returns the maximum of the
     mean trace.
 
     manalyser
     image_folder
+    maxmethod : string
+        Method how the determine the maximum displacement
+        'max': Take the furthest point
+        'mean_latterhalf': final 50% mean discplacement
     '''
     
     displacements = manalyser.get_displacements_from_folder(image_folder)
     
-    return np.max(np.mean(displacements, axis=0))
+    mean = np.mean(displacements, axis=0)
+    if maxmethod == 'max':
+        return np.max(mean)
+    elif maxmethod == 'mean_latterhalf':
+        return np.mean(mean[int(len(mean)/2):])
+    else:
+        raise ValueError
+
+def magstd_over_repeats(manalyser, image_folder, maxmethod='max'):
+    '''
+    Standard deviation in responses
+    (std of max displacement of each repeat)
+    
+    maxmethod : string
+        See mean_max_response
+    '''
+    displacements = manalyser.get_displacements_from_folder(image_folder)
+    
+    if maxmethod == 'max':
+        displacements = np.max(displacements, axis=1)
+    elif maxmethod == 'mean_latterhalf':
+        displacements = np.mean([d[int(len(d)/2):] for d in displacements], axis=1)
+
+    return np.std(displacements)
 
 
 

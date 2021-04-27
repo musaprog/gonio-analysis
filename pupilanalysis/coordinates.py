@@ -264,7 +264,7 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
     uimy = np.array([0, -sin(radians(vertical)), cos(radians(vertical))])
 
     #print('vertical {}'.format(vertical))
-    print('imx is {}'.format(imx))
+    #print('imx is {}'.format(imx))
     #fx, fy, fz = np.array([x,y,z]) + uimx*cimx + uimy*cimy
     vector = uimx*imx + uimy*imy
 
@@ -372,6 +372,8 @@ def rotate_along_arbitrary(P1, points, rot):
     Rotate along arbitrary axis.
 
     P0 is at origin.
+    
+    P0 and P1 specify the rotation axis
 
     Implemented from here:
     http://paulbourke.net/geometry/rotate/
@@ -393,6 +395,25 @@ def rotate_along_arbitrary(P1, points, rot):
     Rz = get_rotation_matrix('z', rot)
 
     return (Rxr @ Ryr @ Rz @ Ry @ Rx @ points.T).T
+
+
+def rotate_points(points, yaw, pitch, roll):
+    '''
+    Just as rotate_vectors but only for points.
+    '''
+    yaw_ax = (0,0,1)
+    pitch_ax = (1,0,0)
+    roll_ax = (0,1,0)
+
+    axes = np.array([yaw_ax, pitch_ax, roll_ax])
+
+    rotations = [yaw, pitch, roll]
+    
+    for i in range(3):
+        points = rotate_along_arbitrary(axes[i], points, rotations[i])
+    
+    return points
+
 
 
 def rotate_vectors(points, vectors, yaw, pitch, roll):
@@ -426,6 +447,52 @@ def rotate_vectors(points, vectors, yaw, pitch, roll):
         #axes = rotate_along_arbitrary(axes[i], axes, rotations[i])
     
     return points, vectors
+
+
+def distance(a, b):
+    '''
+    Calculates distance between two points in 3D cartesian space.
+    a,b      (x,y,z)
+    '''
+
+    return sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2)
+
+
+def optimal_sampling(horizontals, verticals):
+    '''
+    Determine optimal way to sample using two orthogonal goniometers.
+    '''
+    
+    steps = ((horizontals[1]-horizontals[0]), (verticals[1]-verticals[0]))
+
+    min_distance = 0.75 * distance(camera2Fly(steps[0], steps[1]), camera2Fly(0,0))
+
+  
+    goniometer_vals = {}
+    
+    points = []
+
+    for vertical in verticals:
+        goniometer_vals[vertical] = []
+        for horizontal in horizontals:
+            point = camera2Fly(horizontal, vertical)
+            
+            append = True
+            
+            for previous_point in points:
+                if distance(previous_point, point) < min_distance:
+                    append = False
+                    break
+
+            if append:
+                points.append(point)
+                goniometer_vals[vertical].append(horizontal)
+
+    #for hor, vers in sorted(goniometer_vals.items(), key=lambda x: int(x[0])):
+    #    print('{}: {}'.format(hor, vers))
+    
+    return np.array(points)
+
 
 
 

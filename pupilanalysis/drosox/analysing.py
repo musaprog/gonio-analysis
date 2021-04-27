@@ -1,15 +1,19 @@
 import os
 import json
+import time
 
 import matplotlib.pyplot as plt
 
-from pupilanalysis.directories import ANALYSES_SAVEDIR
+from pupilanalysis.directories import PROCESSING_TEMPDIR
 from pupilanalysis.drosox.loading import load_data
 from pupilanalysis.binary_search import (
         binary_search_middle,
         binary_search_left,
         binary_search_right
 )
+from pupilanalysis.image_tools import ImageShower
+
+
 
 class XAnalyser:
     '''
@@ -30,9 +34,11 @@ class XAnalyser:
         self.skip_flies = ['DrosoX14']
         
         # Set saving directories and create them
-        self.savedirs = {'overlap_width_points': 'overlap_width_points'}
+        self.savedirs = {'overlap': 'binocular_overlap', 'level': 'vertical_correction'}
         for key in self.savedirs:
-            self.savedirs[key] = os.path.join(ANALYSES_SAVEDIR, self.savedirs[key])
+            self.savedirs[key] = os.path.join(PROCESSING_TEMPDIR,
+                    'XAnalyser_data',
+                    self.savedirs[key])
             os.makedirs(self.savedirs[key], exist_ok=True)
     
         
@@ -45,7 +51,8 @@ class XAnalyser:
         '''
         return load_data(os.path.join(self.data_path, self.folder))
     
-    def measure_overlaps(self):
+
+    def measure_overlap(self):
         '''
         Analyses binocular overlap by the binary search method, where
         the user makes decisions wheter the both pseudopupils are visible
@@ -53,7 +60,7 @@ class XAnalyser:
         '''
         start_time = time.time()
         
-        data = load_data(os.path.join(self.data_path, self.folder), correct_antenna_level=False)
+        data = load_data(os.path.join(self.data_path, self.folder))
 
         fig, ax = plt.subplots()
         shower = ImageShower(fig, ax)
@@ -61,7 +68,7 @@ class XAnalyser:
         # Try to open if any previously analysed data
         analysed_data = []
         try: 
-            with open(os.path.join(ANALYSES_SAVEDIR, 'binary_search', 'results_{}.json'.format(fly)), 'r') as fp:
+            with open(os.path.join(PROCESSING_TEMPDIR, 'binary_search', 'results_{}.json'.format(fly)), 'r') as fp:
                 analysed_data = json.load(fp)
         except:
             pass
@@ -108,7 +115,8 @@ class XAnalyser:
             print('Done {}/{} in time {} minutes'.format(i+1, len(data), int((time.time()-start_time)/60) ))
             
             # Save on every round to avoid work loss
-            with open(os.path.join(ANALYSES_SAVEDIR, 'binary_search/', 'results_{}.json'.format(fly)), 'w') as fp:
+            with open(os.path.join(self.savedirs['overlap'],
+                'results_{}.json'.format(self.fly)), 'w') as fp:
                 json.dump(analysed_data, fp)
 
 
@@ -119,7 +127,7 @@ class XAnalyser:
         
         correct_antenna_level       Corrects with antenna level
         '''
-        fn = os.path.join(ANALYSES_SAVEDIR, 'binary_search', 'results_{}.json'.format(self.fly))
+        fn = os.path.join(self.savedirs['overlap'], 'results_{}.json'.format(self.fly))
         
         
         with open(fn, 'r') as fp:
@@ -144,7 +152,7 @@ class XAnalyser:
 
         Run antenna_levels.py first to find antenna levels.
         '''
-        fn = os.path.join(ANALYSES_SAVEDIR, 'antenna_levels', '{}.txt'.format(self.fly))
+        fn = os.path.join(self.savedirs['level'], '{}.txt'.format(self.fly))
         
         if os.path.exists(fn):
             with open(fn, 'r') as fp:
@@ -152,5 +160,13 @@ class XAnalyser:
             
             return antenna_level
         else:
-            raise OSError('Cannot find antenna level corretion {}'.format(fn))
-    
+            #raise OSError('Cannot find antenna level corretion {}'.format(fn))
+            return 0.
+
+    def print_overlap(self):
+        for d in self.get_overlaps():
+            overlap = abs(d['horizontal_right']-d['horizontal_left'])
+            line = 'Vertical {} deg: overlap width {} deg'.format(d['pitch'],
+                overlap)
+
+            print(line)

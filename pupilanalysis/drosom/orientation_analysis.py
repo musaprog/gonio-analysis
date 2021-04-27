@@ -25,15 +25,14 @@ class OAnalyser(MAnalyser):
 
     def __init__(self, *args, **kwargs):
 
-        self.orientation_savefn = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', args[1], 'orientation_{}_{}.json'.format(args[1], '{}'))
-        os.makedirs(os.path.dirname(self.orientation_savefn), exist_ok=True)
-
-        print("Orientation saved in file {}".format(self.orientation_savefn))
 
         super().__init__(*args, **kwargs)
+        
+        self._movements_skelefn = self._movements_skelefn.replace('movements_', 'orientation_')
+        self.active_analysis = ''
 
 
-    def measure_movement(self, eye):
+    def measure_movement(self, eye, *args, **kwargs):
         '''
         The measure movement method overridden to meausure the (rhabdomere)
         orientation.
@@ -51,51 +50,58 @@ class OAnalyser(MAnalyser):
             
             roi = self.ROIs[eye].get(angle, None)
             
-            if roi:
+            if roi is not None:
                 images.append(self.stacks[angle][0][0])
-                rois.append(roi)
+                
 
+                extended_roi = [roi[0]-roi[2]/2, roi[1]-roi[3]/2, 2*roi[2], 2*roi[3]]
 
-        fig, ax = plt.subplots()
-        marker = Marker(fig, ax, images[1:10], self.orientation_savefn.format(eye),
+                rois.append(extended_roi)
+
+        fig, ax = plt.subplots(num='Draw arrows for the {} eye'.format(eye))
+        marker = Marker(fig, ax, images, self.MOVEMENTS_SAVEFN.format(eye),
                 relative_fns_from=os.path.join(self.data_path, self.folder),
+                drop_imagefn=True,
                 selection_type='arrow',
-                callback_on_exit=print)
+                crops=rois,
+                callback_on_exit=lambda eye=eye: self._hotedit_marker_output(eye))
 
         marker.run()
 
         print('Marker should run now')
 
-    def load_analysed_movements(self):
+
+    def _hotedit_marker_output(self, eye):
         '''
+        Edits Marker output to be Movemeter like output.
         '''
 
+        with open(self.MOVEMENTS_SAVEFN.format(eye), 'r') as fp:
+            marker_data = json.load(fp)
 
-        self.movements = {}
+        edited_data = {}
 
-        for eye in ['left', 'right']:
+        for image_folder, arrows in marker_data.items():
             
-            self.movements[eye] = {}
+            repeats = []
 
-            with open(self.orientation_savefn.format(eye), 'r') as fp:
-                marker_data = json.load(fp)
-            
-            for angle in self.stacks:
+            for arrow in arrows:
+                x1, y1, x2, y2 = arrow 
                 
-                roi = marker_data.get( self.stacks[angle][0][0] )
-                
-                try:
-                    self.movements[angle]
-                except KeyError:
-                    self.movements[angle] = []
-                
-                x = roi[2] - roi[0]
-                y = roi[3] - roi[1]
+                repeats.append( {'x': [0, x1-x2], 'y': [0, y1-y2]} )
 
-                self.movements[eye][angle].append({'x': x, 'y': y})
+            # drop pos prefix [3:]
+            if repeats != []:
+                edited_data[image_folder[3:]] = repeats
+       
 
+        with open(self.MOVEMENTS_SAVEFN.format(eye), 'w') as fp:
+            json.dump(edited_data, fp)
+
+   
     
     def is_measured(self):
-        return os.path.exists(self.orientation_savefn) 
+        fns = [self.MOVEMENTS_SAVEFN.format(eye) for eye in self.eyes]
+        return all([os.path.exists(fn) for fn in fns])
 
 

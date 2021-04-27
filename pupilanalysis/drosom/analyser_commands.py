@@ -6,6 +6,7 @@ the Analyser object as their only argument.
 import numpy as np
 
 from pupilanalysis.drosom import plotting
+from pupilanalysis.drosom.plotting.common import save_3d_animation
 from pupilanalysis.drosom.plotting import basics
 from pupilanalysis.drosom.plotting.plotter import MPlotter
 from pupilanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
@@ -13,15 +14,19 @@ from pupilanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
 from pupilanalysis.drosom.special.paired import cli_group_and_compare
 import pupilanalysis.drosom.reports as reports
 
+I_WORKER = None
+N_WORKERS = None
 
 plotter = MPlotter()
 
 
 # Functions that take only one input argument that is the MAnalyser
 ANALYSER_CMDS = {}
-ANALYSER_CMDS['vectormap'] = plotter.plot_3d_vectormap
+ANALYSER_CMDS['pass'] = print
+ANALYSER_CMDS['vectormap'] = basics.plot_3d_vectormap
 ANALYSER_CMDS['vectormap_mayavi'] = plotter.plot_3d_vectormap_mayavi
-ANALYSER_CMDS['vectormap_video'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)
+ANALYSER_CMDS['vectormap_video'] = lambda analyser: save_3d_animation(analyser, plot_function=basics.plot_3d_vectormap, guidance=True, i_worker=I_WORKER, N_workers=N_WORKERS) 
+ANALYSER_CMDS['vectormap_oldvideo'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)
 ANALYSER_CMDS['magtrace'] = basics.plot_1d_magnitude
 ANALYSER_CMDS['2d_vectormap'] =  plotter.plotDirection2D
 ANALYSER_CMDS['trajectories'] = plotter.plot_2d_trajectories
@@ -33,6 +38,7 @@ ANALYSER_CMDS['2dmagnitude'] = plotter.plotMagnitude2D
 ANALYSER_CMDS['illustrate_experiments_video'] = plotting.illustrate_experiments
 ANALYSER_CMDS['norpa_rescue_manyrepeats'] = norpa_rescue_manyrepeats
 ANALYSER_CMDS['compare_paired'] = cli_group_and_compare
+ANALYSER_CMDS['lr_displacements'] = lambda analyser: reports.left_right_displacements(analyser, 'test')
 ANALYSER_CMDS['left_right_summary'] = reports.left_right_summary
 ANALYSER_CMDS['pdf_summary'] = reports.pdf_summary
 
@@ -52,4 +58,15 @@ IMAGEFOLDER_CMDS = {}
 IMAGEFOLDER_CMDS['magtrace'] = basics.plot_1d_magnitude
 
 
+# Functions that take two manalyser as input arguments
+DUALANALYSER_CMDS = {}
+DUALANALYSER_CMDS['difference'] = basics.plot_3d_differencemap
+
+DUALANALYSER_CMDS['compare'] = basics.compare_3d_vectormaps
+DUALANALYSER_CMDS['compare_compact'] = basics.compare_3d_vectormaps_compact
+DUALANALYSER_CMDS['compare_manyviews'] = basics.compare_3d_vectormaps_manyviews
+
+# Manyviews videos
+for animation_type in ['rotate_plot', 'rotate_arrows', 'pitch_rot', 'yaw_rot', 'roll_rot']:
+    DUALANALYSER_CMDS['compare_manyviews_{}_video'.format(animation_type.replace('_',''))] = lambda an1, an2, at=animation_type: save_3d_animation([an1, an2], plot_function=basics.compare_3d_vectormaps_manyviews, animation_type=at)
 

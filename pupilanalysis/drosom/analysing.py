@@ -27,11 +27,9 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pupilanalysis.drosom.loading import load_data, angles_from_fn
-from pupilanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector
+from pupilanalysis.drosom.loading import load_data, angles_from_fn, arange_fns
+from pupilanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector, optimal_sampling
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
-from pupilanalysis.optimal_sampling import optimal
-from pupilanalysis.drosom.optic_flow import flow_vectors
 from pupilanalysis.rotary_encoders import to_degrees, step2degree
 
 from roimarker import Marker
@@ -229,7 +227,11 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
     eyes : tuple of strings
         By default, ("left", "right")
     
-
+    active_analysis : string
+        Name of the active analysis. Sets MOVEMENTS_SAVEFN
+    
+    vector_rotation : float or None
+        Rotation of 2D vectors (affects 3D)
 
     '''
 
@@ -248,18 +250,27 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         
         self.data_path = data_path
         self.folder = folder
+
         
+        # Skip image_folders. i_repeat
+        self.imagefolder_skiplist = {}
+        
+
+        self.manalysers = [self]
+        self.eyes = ("left", "right")
+        self.vector_rotation = None
+        self._movements_skelefn = 'movements_{}_{}{}.json' # specimen_name, eye, active_analysis
+        
+        self.skiplist_savefn = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'imagefolder_skiplist.json')
         self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'rois_{}.json'.format(folder))
-        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'movements_{}_{}.json'.format(folder, '{}'))
+        self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._movements_skelefn.format(folder, '{}', ''))
 
         self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
+        
+
+        self.active_analysis = ''
 
 
-        # Ensure the directories where the crops and movements are saved exist
-        os.makedirs(os.path.dirname(self.CROPS_SAVEFN), exist_ok=True)
-        os.makedirs(os.path.dirname(self.MOVEMENTS_SAVEFN), exist_ok=True)
-
-        self.eyes = ("left", "right")
 
         if no_data_load:
             # no_data_load was speciefied, skip all data loading
@@ -271,7 +282,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         else:
             self.stacks = load_data(os.path.join(self.data_path, self.folder))
+
+            if os.path.isfile(self.skiplist_savefn):
+                with open(self.skiplist_savefn, 'r') as fp:
+                    self.imagefolder_skiplist = json.load(fp)
             
+
             # Load movements and ROIs if they exists
             if self.are_rois_selected():
                 self.load_ROIs()
@@ -285,6 +301,11 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
             self.load_linked_data()
+            
+            # Ensure the directories where the crops and movements are saved exist
+            os.makedirs(os.path.dirname(self.CROPS_SAVEFN), exist_ok=True)
+            os.makedirs(os.path.dirname(self.MOVEMENTS_SAVEFN), exist_ok=True)
+
 
         # For cahcing frequently used data
         self.cahced = {'3d_vectors': None}
@@ -298,8 +319,84 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         # movement directions instead of deep pseudopupil movement directions
         self.receptive_fields = False
 
+    
+    @property
+    def name(self):
+        return self.folder
+    
+    @name.setter
+    def name(self, name):
+        self.folder=name
+
+
+    @property
+    def active_analysis(self):
+        if self.__active_analysis == '':
+            return 'default'
+        else:
+            return self.__active_analysis
+
+
+    @active_analysis.setter
+    def active_analysis(self, name):
+        '''
+        Setting active analysis sets self.MOVEMENTS_SAVEFN.
         
-       
+        name : string
+            The default is "default"
+        '''
+        
+        if name == 'default':
+            name = ''
+
+        if name == '':
+            self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', ''))
+        else:
+            self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', '_'+name))
+    
+        if self.is_measured():
+            self.load_analysed_movements()
+        else:
+            try:
+                del self.movements
+            except AttributeError:
+                pass
+
+        self.__active_analysis = name
+    
+
+
+
+    def list_analyses(self):
+        '''
+        Returns a list of analysis names that exist.
+        '''
+        
+        manalyser_dir = os.path.dirname(self.MOVEMENTS_SAVEFN)
+
+        if os.path.isdir(manalyser_dir):
+            fns = [fn for fn in os.listdir(manalyser_dir) if
+                    self._movements_skelefn.split('{')[0] in fn and
+                    self.eyes[0] in ''.join(fn.split('_')[-2:])]
+        else:
+            fns = []
+
+
+        names = []
+
+        for fn in fns:
+            secondlast, last = fn.split('.')[0].split('_')[-2:]
+            
+            if secondlast in self.eyes and last not in self.eyes:
+                names.append(last)
+            elif secondlast not in self.eyes and last in self.eyes:
+                names.append('default')
+            else:
+                RuntimeWarning('Fixme list_analyses in MAnalyser')
+
+        return names
+
+
     def __fileOpen(self, fn):
         with open(fn, 'r') as fp:
             data = json.load(fp)
@@ -310,16 +407,36 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         with open(fn, 'w') as fp:
             json.dump(data, fp)
 
+
+    def mark_bad(self, image_folder, i_repeat):
+        '''
+        Marks image folder and repeat to be bad and excluded
+        when loading movements.
+
+        i_repeat : int or 'all'
+        '''
+        
+        if self.imagefolder_skiplist.get(image_folder, None) is None:
+            self.imagefolder_skiplist[image_folder] = []
+
+        self.imagefolder_skiplist[image_folder].append(i_repeat)
+        
+        with open(self.skiplist_savefn, 'w') as fp:
+            json.dump(self.imagefolder_skiplist, fp)
+
     
     def list_imagefolders(self, list_special=True,
-            horizontal_condition=None, vertical_condition=None):
+            horizontal_condition=None, vertical_condition=None,
+            endswith='', only_measured=False):
         '''
         Returns a list of the images containing folders (subfolders).
         
         list_special        Sets wheter to list also image folders with suffixes
         horizontal_condition    A callable, that when supplied with horizontal (in steps)
                                     returns either true (includes) or false (excludes).
-        vertical_condition  
+        vertical_condition
+        only_measured : bool
+            Return only image_folders with completed movement analysis
         '''
         def check_conditions(vertical, horizontal):
             if callable(horizontal_condition):
@@ -359,8 +476,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
             image_folders.append('pos'+key)
 
-        return sorted(image_folders) + sorted(special_image_folders)
+        all_folders = [fn for fn in sorted(image_folders) + sorted(special_image_folders) if fn.endswith(endswith)]
+        
+        if only_measured:
+            all_folders = [fn for fn in all_folders if self.folder_has_movements(fn)]
 
+        return all_folders
 
     def get_horizontal_vertical(self, image_folder, degrees=True):
         '''
@@ -398,9 +519,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         fns = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')]
         
-        # Fixed sorting, no zero padding in image filenames.
-        fns.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
-        fns.sort(key=lambda x: int(x.split('_')[-2][3:]))
+        fns = arange_fns(fns)
 
         if absolute_path:
             fns = [os.path.join(self.data_path, self.folder, image_folder, fn) for fn in fns]
@@ -459,98 +578,41 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return self._getAntennaLevelCorrection(self.folder)
 
 
-    def _load_descriptions_file(self):
-        '''
-        Finds and loads the descriptions file that contains imaging parameters,
-        fly sex, age, name, and (in current versions) image_folders for each setting
-        '''
-
-        descriptions = []
-
-        # The descriptions file can be in 2 locations depending version of the
-        # pupil_imsoft.
-        # The old version contains only one set of imaging_parameters, common
-        # to all of the image_folders (and thus inaccurate if settings changed)
-        current_version_loc = os.path.join(self.data_path, self.folder, self.folder+'.txt')
-        old_version_loc = os.path.join(self.data_path, self.folder+'.txt')
-        
-        #print(current_version_loc)
-        #print(old_version_loc)
-        
-        
-        if os.path.exists(current_version_loc):
-            
-            with open(current_version_loc, 'r') as fp:
-                for line in fp:
-                    descriptions.append(line)
-            return descriptions
-
-        if os.path.exists(old_version_loc):
-
-            with open(old_version_loc, 'r') as fp:
-                for line in fp:
-                    descriptions.append(line)
-            return descriptions
-
-        return descriptions
-
-
     def get_imaging_parameters(self, image_folder):
         '''
-        Returns the imaging parameters for the image_folder byt reading the newest
-        matching entry in the destriptions file (pupil_imsoft).
+        Returns a dictionary of the Pupil Imsoft imaging parameters.
+        The dictionary is empty if the descriptions file is missing.
 
-        The descriptions file made by pupil_imsoft contains imaging_parameters
-        and imaged image_folders beneath. New entries are appended to this file.
+        image_folder : string
         '''
+        
+        parameters = {}
 
-        parameters = []
-        
-        try:
-            self.descriptions_file
-        except AttributeError:
-            self.descriptions_file = self._load_descriptions_file()
-        
-        # Find from the bottom, where the image_folder shows up the first time
-        location = 0
-        for location, line in enumerate(reversed(self.descriptions_file)):
-            #print(line)
-            if image_folder in line.strip('\n'):
-                break
-        
 
-        # If not found
-        if location == len(self.descriptions_file)-1:
-            return ''
+        fn = os.path.join(self.data_path, self.folder, image_folder, 'description.txt')
         
-        # If found, get the parameters
-        parameters = []
-        at_parameters = False
-        for line in reversed(self.descriptions_file[0:len(self.descriptions_file)-location-2]):
-            
-            line = line.strip('\n')
-            if not line:
-                continue
-            
-            #print(line)
-            
-            if self.folder+'\\' in line:
-                # If foldername entry    
-                if at_parameters == True:
-                    break
-
+        if not os.path.isfile(fn):
+            # Fallback for older Imsoft data where only
+            # one descriptions file for each imaging
+            old_fn = os.path.join(self.data_path, self.folder, self.folder+'.txt')
+            if os.path.isfile(old_fn):
+                fn = old_fn
             else:
-                # If parameter name+value entry
-                parameters.append(line)
-                at_parameters = True
+                return {}
+
+
+        with open(fn, 'r') as fp:
+            for line in fp:
+                if line.startswith('#') or line in ['\n', '\r\n']:
+                    continue
+                split= line.strip('\n\r').split(' ')
+
+                if len(split) >= 1:
+                    parameters[split[0]] = split[1]
+                else:
+                    parameters[split[0]] = ''
         
-        return reversed(parameters)
-
-
-    def get_imaging_parameters(self, image_folder):
-
-        pass
-
+        return parameters
 
     def get_specimen_age(self):
         '''
@@ -588,6 +650,32 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 return line.lstrip('sex ').strip(' ').strip('\n')
 
         return None
+
+    
+    def get_imaging_frequency(self, image_folder):
+        '''
+        Return imaging frequency (how many images per second) for an image folder
+        by searching for frame_length field in the descriptions file.
+
+        Returns None if the imaging frequency could not be determined.
+        '''
+        fs = self.get_imaging_parameters(image_folder).get('frame_length', None)
+        
+        if fs is None:
+            # FIXME
+            return 100. # Better fallback value than None?
+        else:
+            return 1/float(fs)
+    
+    def get_pixel_size(self, image_folder):
+        '''
+        Return the pixel size of the imaging.
+        Currently always returns the same static value of 1.22375. 
+        '''
+        # Based on the stage micrometer;
+        # 0.8 µm in the images 979 pixels 
+        return 1/1.22376
+
 
 
     def get_snap_fn(self, i_snap=0, absolute_path=True):
@@ -755,7 +843,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             return False
 
         if any([image_folder[3:] in self.movements[eye].keys()] for eye in ['left', 'right']):
-            return True
+            if len(self.get_displacements_from_folder(image_folder)) > 0:
+                return True
         return False
 
 
@@ -766,6 +855,20 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         with open(self.MOVEMENTS_SAVEFN.format('left'), 'r') as fp:
             self.movements['left'] = json.load(fp)
         
+        if self.imagefolder_skiplist:
+            
+            for image_folder, skip_repeats in self.imagefolder_skiplist.items():
+                for eye in self.eyes:
+
+                    if self.movements[eye].get(image_folder[3:], None) is None:
+                        continue
+                    
+                    # Iterate repeats reversed so we can just pop things
+                    for i_repeat in sorted(skip_repeats)[::-1]:
+                        self.movements[eye][image_folder[3:]].pop(i_repeat)
+
+                    
+
 
     def measure_both_eyes(self, **kwargs):
         '''
@@ -776,7 +879,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
     def measure_movement(self, eye, only_folders=None,
-            max_movement=30, absolute_coordinates=False):
+            max_movement=30, absolute_coordinates=False, join_repeats=False):
         '''
         Performs cross-correlation analysis for the selected pseudopupils (ROIs, regions of interest)
         using Movemeter package.
@@ -789,6 +892,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         only_folders            Analyse only image folders in the given list (that is only_folders).
         max_movement            Maximum total displacement in x or y expected. Lower values faster.
         absolute_coordinates    Return movement values in absolute image coordinates
+        join_repeats            Join repeats together as if they were one long recording.
 
         Cross-correlation analysis is the slowest part of the DrosoM pipeline.
         '''
@@ -821,12 +925,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 if only_folders and not 'pos'+angle in only_folders:
                     continue
 
-                # Fuse if only one frame per repetition
-                if len(self.stacks[angle][0]) == 1:
-                    fuse = True
-                else:
-                    fuse = False
-                if fuse:
+                if join_repeats:
                     fused = []
                     for i_repetition in range(len(self.stacks[angle])):
                         fused += self.stacks[angle][i_repetition]
@@ -896,15 +995,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         #    plt.plot(data['y'])
         #    plt.show()
     
-
-    def get_image_interval(image_folder=None):
-        '''
-        Returns the time interval between sequetive frames, in seconds.
-        
-        FIXME Not implemented
-        '''
-        #FIXME Not implemented
-        return 0.010 # 10 ms -> 100 fps
 
 
     def get_time_ordered(self):
@@ -997,7 +1087,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return angles, movement_dict
     
 
-    def get_2d_vectors(self, eye, mirror_horizontal=True, mirror_pitch=True, correct_level=True):
+    def get_2d_vectors(self, eye, mirror_horizontal=True, mirror_pitch=True, correct_level=True, repeats_separately=False):
         '''
         Creates 2D vectors from the movements analysis data.
             Vector start point: Pupils position at the firts frame
@@ -1040,9 +1130,26 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         # Vector X and Y components
         # Fix here if repetitions are needed to be averaged
         # (don't take only x[0] but average)
-        X = [xdirchange*(x[0]['x'][-1]-x[0]['x'][0]) for x in values]
-        Y = [x[0]['y'][-1]-x[0]['y'][0] for x in values]
+        if repeats_separately:
+            tmp_angles = []            
+            X = []
+            Y = []
+            
+            for angle, val in zip(angles, values):
+                for repeat in val:
+                    tmp_angles.append(angle)
+                    X.append( xdirchange*(repeat['x'][-1]-repeat['x'][0]) )
+                    Y.append( repeat['y'][-1]-repeat['y'][0] )
+
+            angles = tmp_angles
+
+        else:
+
+            X = [xdirchange*(x[0]['x'][-1]-x[0]['x'][0]) for x in values]
+            Y = [x[0]['y'][-1]-x[0]['y'][0] for x in values]
         
+
+
         #i_frame = int(len(values[0][0]['x'])/3)
         #X = [xdirchange*(x[0]['x'][i_frame]-x[0]['x'][0]) for x in values]
         #Y = [x[0]['y'][i_frame]-x[0]['y'][0] for x in values]
@@ -1053,6 +1160,26 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         #X = [0.1 for x in values]
         #Y = [0. for x in values]
+
+        if self.vector_rotation:
+            r = math.radians(self.vector_rotation)
+            for i in range(len(X)):
+                x = X[i]
+                y = Y[i]
+                
+                if angles[i][1] > 0:
+                    sr = -1 * r
+                else:
+                    sr = 1 * r
+
+                if eye == 'left':
+                    sr = sr
+                elif eye == 'right':
+                    sr = -sr
+
+                X[i] = x * math.cos(sr) - y * math.sin(sr)
+                Y[i] = x * math.sin(sr) + y * math.cos(sr)
+
 
         return angles, X, Y
 
@@ -1176,7 +1303,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return moving_ROI
         
     
-    def _get_3d_vectors(self, eye, return_angles=False, correct_level=True, normalize_length=0.1):
+    def _get_3d_vectors(self, eye, return_angles=False, correct_level=True, repeats_separately=False, normalize_length=0.1, strict=None, vertical_hardborder=None):
         '''
         Returns 3D vectors and their starting points.
     
@@ -1185,7 +1312,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         va_limits       Vertical angle limits in degrees, (None, None) for no limits
         '''
         angles, X, Y = self.get_2d_vectors(eye, mirror_pitch=False, mirror_horizontal=True,
-                correct_level=False)
+                correct_level=False, repeats_separately=repeats_separately)
         
         
         N = len(angles)
@@ -1211,7 +1338,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             #vectors.append( (tuple(angle), (x0,x1), (y0,y1), (z0, z1)) )
             points[i] = np.array(point0)            
             vectors[i] = np.array(point1) - points[i] 
-            print(vectors[i])
 
         # Vertical/horizontal angle limiting
         booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],
@@ -1250,6 +1376,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 return None
         
         return None
+
 
 
     def stop(self):
@@ -1312,18 +1439,20 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         
         self.manalysers = manalysers
 
-        self.interpolation = {'left': None, 'right': None}
+        self.interpolation = {}
         self.va_limits = [None, None]
         self.ha_limits = [None, None]
         self.alimits_reverse = False
-
+        
+        self.eyes = manalysers[0].eyes
+        self.vector_rotation = None
 
     def get_N_specimens(self):
         return len(self.manalysers)
 
 
     def get_specimen_name(self):
-        return 'averaged_'+'_'.join([manalyser.getFolderName() for manalyser in self.manalysers])
+        return 'averaged_'+'_'.join([manalyser.folder for manalyser in self.manalysers])
 
 
     def setInterpolationSteps(self, horizontal_step, vertical_step):
@@ -1341,13 +1470,16 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         self.intp_step = (horizontal_step, vertical_step)
 
 
-    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=False):
+    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=False, strict=False, vertical_hardborder=False, **kwargs):
         '''
         Equivalent to MAnalysers get_3d_vectors but interpolates with N-nearest
         neughbours.
         '''
 
-        if self.interpolation[eye] is None or recalculate:
+        cachename = ';'.join([str(item) for item in [self.vector_rotation, correct_level, normalize_length, strict, vertical_hardborder]])
+
+
+        if self.interpolation.get(eye, {}).get(cachename) is None or recalculate:
 
             interpolated = [[],[]]
             
@@ -1357,21 +1489,33 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
             vectors_3d = []
 
             for analyser in self.manalysers:
+                analyser.vector_rotation = self.vector_rotation
                 vec = analyser.get_3d_vectors(eye, correct_level=True,
-                        normalize_length=normalize_length)
+                        normalize_length=normalize_length, **kwargs)
                 
 
                 vectors_3d.append(vec)
             
-            intp_points = optimal(np.arange(-90, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
-            
+            if not strict:
+                intp_points = optimal_sampling(np.arange(-90, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
+            else:
+                if eye == 'left':
+                    intp_points = optimal_sampling(np.arange(-90, 0.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
+                else:
+                    intp_points = optimal_sampling(np.arange(0, 90.01, self.intp_step[0]), np.arange(0, 360.01, self.intp_step[1]))
 
             for intp_point in intp_points:
                 
                 nearest_vectors = []
                 for vectors in vectors_3d:
                     i_nearest = nearest_neighbour(intp_point, vectors[0], max_distance=intp_dist)
+                    
                     if not i_nearest is False:
+                        
+                        if vertical_hardborder:
+                            if np.sign(intp_point[2]) != np.sign(vectors[0][i_nearest][2]):
+                                continue
+
                         nearest_vectors.append(vectors[1][i_nearest])
 
                 if len(nearest_vectors) > len(vectors_3d)/2:
@@ -1379,14 +1523,14 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
                     interpolated[0].append(np.array(intp_point))
                     interpolated[1].append(avec)
             
-
-            self.interpolation[eye] = np.array(interpolated[0]), np.array(interpolated[1])
+            self.interpolation[eye] = {}
+            self.interpolation[eye][cachename] = np.array(interpolated[0]), np.array(interpolated[1])
             
         else:
             pass
         
         
-        points, vectors = self.interpolation[eye]
+        points, vectors = self.interpolation[eye][cachename]
 
         # Vertical/horizontal angle limiting
         booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],
@@ -1398,7 +1542,7 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         return points, vectors
 
 
-    def export_3d_vectors(self, *args, optic_flow=False, **kwargs):
+    def export_3d_vectors(self, *args, **kwargs):
         '''
         Exports the 3D vectors in json format.
 
@@ -1417,9 +1561,6 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         for eye in ['left', 'right']:
             points, vectors = self.get_3d_vectors(eye, *args, *kwargs)
             
-            if optic_flow:
-                vectors = flow_vectors(points, xrot=0)
-
             data[eye] = {'points': points.tolist(), 'vectors': vectors.tolist()}
         
         with open(os.path.join(folder, fn), 'w') as fp:

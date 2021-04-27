@@ -26,5 +26,5 @@ class TestTerminal(unittest.TestCase):
 
         for target in targets:
             with self.subTest(target=target):
-                args = ['--unittest','-D', datadir, '-S', testspecimen, target]
+                args = ['--dont-show','-D', datadir, '-S', testspecimen, target]
                 terminal.main(custom_args=args)

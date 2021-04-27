@@ -3,7 +3,7 @@ import tkinter as tk
 
 class RepetitionSelector(tk.Frame):
 
-    def __init__(self, tk_master, RecordingPlotter, update_command):
+    def __init__(self, tk_master, RecordingPlotter, core, update_command):
         '''
         
         update_command      Callable that updates the plots, no input arguments
@@ -12,7 +12,7 @@ class RepetitionSelector(tk.Frame):
         self.update_command = update_command
 
         tk.Frame.__init__(self, tk_master)
-
+        self.core = core
 
         self.plotter = RecordingPlotter
             
@@ -28,6 +28,18 @@ class RepetitionSelector(tk.Frame):
 
         self.next = tk.Button(self, text='Next', command=lambda: self.move_selection(1))
         self.next.grid(row=0, column=3)
+
+        self.mark_bad = tk.Button(self, text='Mark bad', command=self.mark_bad)
+        self.mark_bad.grid(row=0, column=4)
+
+    def mark_bad(self):
+        im_folder = self.core.selected_recording
+        
+        if self.plotter.i_repeat == None:
+            pass
+        else:
+            self.core.analyser.mark_bad(im_folder, self.plotter.i_repeat)
+        
 
     def move_selection(self, direction):
         '''

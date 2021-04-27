@@ -10,12 +10,14 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS as analyses
+from pupilanalysis.drosom import analyser_commands
+from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS, DUALANALYSER_CMDS
 from pupilanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 from pupilanalysis.droso import DrosoSelect
 from pupilanalysis.antenna_level import AntennaLevelFinder
 from pupilanalysis.drosom.analysing import MAnalyser, MAverager
 from pupilanalysis.drosom.orientation_analysis import OAnalyser
+from pupilanalysis.drosom.optic_flow import FAnalyser
 from pupilanalysis.drosom import plotting
 from pupilanalysis.drosom.plotting.plotter import MPlotter
 from pupilanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
@@ -24,13 +26,14 @@ from pupilanalysis.drosom.special.paired import cli_group_and_compare
 import pupilanalysis.drosom.reports as reports
 
 
-if 'tk_waiting_window' in sys.argv:
-    from .gui.waiting_window import WaitingWindow
+if '--tk_waiting_window' in sys.argv:
+    from pupilanalysis.tkgui.waiting_window import WaitingWindow
 
 
 
-Analysers = {'orientation': OAnalyser, 'motion': MAnalyser}
+Analysers = {'orientation': OAnalyser, 'motion': MAnalyser, 'flow': FAnalyser}
 
+analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS}
 
 
 def roimovement_video(analyser):
@@ -71,7 +74,7 @@ def export_optic_flow():
     Exports the optic flow vectors.
     '''
     import json
-    from pupilanalysis.optimal_sampling import optimal as optimal_sampling
+    from pupilanalysis.coordinates import optimal_sampling
     from pupilanalysis.drosom.optic_flow import flow_vectors
     points = optimal_sampling(np.arange(-90, 90, 5), np.arange(-180, 180, 5))
     vectors = flow_vectors(points)
@@ -94,17 +97,20 @@ def main(custom_args=None):
     parser.add_argument('-D', '--data_directory', nargs=1,
             help='Data directory')
 
-    parser.add_argument('-S', '--specimens', nargs=1,
-            help='Comma separeted list of specimen names')
+    parser.add_argument('-S', '--specimens', nargs='+',
+            help='Comma separeted list of specimen names. Separate groups by space when averaging is on.')
 
     
 
     # Analyser settings
     parser.add_argument('-a', '--average', action='store_true',
             help='Average and interpolate the results over the specimens')
+    
+    parser.add_argument('--short-name', nargs=1,
+            help='Short name to set if --average is set')
 
-    parser.add_argument('-t', '--type', default='motion', choices=['motion', 'orientation'],
-            help='Analyser type, either "motion" or "orientation"')
+    parser.add_argument('-t', '--type', nargs='+',
+            help='Analyser type, either "motion" or "orientation". Space separate gor groups')
     
     parser.add_argument('-r', '--reselect-rois', action='store_true',
             help='Reselect ROIs')
@@ -118,12 +124,14 @@ def main(custom_args=None):
     # Other settings
     parser.add_argument('--tk_waiting_window', action='store_true',
             help='(internal) Launches a tkinter waiting window')
-    parser.add_argument('--unittest', action='store_true',
+    parser.add_argument('--dont-show', action='store_true',
             help='Skips showing the plots')
+    parser.add_argument('--worker-info', nargs=2,
+            help='Worker id and total number of parallel workers. Only 3D video plotting now')
 
     # Different analyses for separate specimens
 
-    parser.add_argument('analysis', metavar='analysis',
+    parser.add_argument('-A', '--analysis', nargs=1,
             choices=analyses.keys(),
             help='Analysis method or action. Allowed analyses are '+', '.join(analyses.keys()))
 
@@ -133,8 +141,11 @@ def main(custom_args=None):
 
 
     if args.tk_waiting_window:
-        self.waiting_window = WaitingWindow('terminal.py', 'When ready, this window closes.')
+        waiting_window = WaitingWindow('terminal.py', 'When ready, this window closes.')
 
+    if args.worker_info:
+        analyser_commands.I_WORKER = int(args.worker_info[0])
+        analyser_commands.N_WORKERS = int(args.worker_info[1])
 
     # Getting the data directory
     # --------------------------
@@ -152,11 +163,19 @@ def main(custom_args=None):
 
     # Getting the specimens
     # ---------------------
+    directory_groups = []
     if args.specimens:
-        print('Using specimens {}'.format(args.specimens))
+        
+        for group in args.specimens:
+            print('Using specimens {}'.format(group))
+            
+            if group == 'none':
+                directory_groups.append(None)
+                continue
 
-        selector = DrosoSelect(datadir=data_directory)
-        directories = selector.parse_specimens(args.specimens[0])
+            selector = DrosoSelect(datadir=data_directory)
+            directories = selector.parse_specimens(group)
+            directory_groups.append(directories)
     else:
         selector = DrosoSelect(datadir=data_directory)
         directories = selector.ask_user()
@@ -164,54 +183,80 @@ def main(custom_args=None):
             
     # Setting up analysers
     # ---------------------
-    analysers = []
-    Analyser = Analysers[args.type]
+    
+    if not args.type:
+        args.type = ['motion' for i in directory_groups]
 
-    for directory in directories: 
+    analyser_groups = []
+    
+    for i_group, directories in enumerate(directory_groups):
+
+        analysers = []
+        Analyser = Analysers[args.type[i_group]]
         
-        path, folder_name = os.path.split(directory)
-        analyser = Analyser(path, folder_name) 
-        analysers.append(analyser)
+        print('Using {}'.format(Analyser.__name__))
+        
+        if directories is None:
+            analysers.append(Analyser(None, None))
+        else:
 
-    # Ask ROIs if not selected
-    for analyser in analysers:
-        if analyser.are_rois_selected() == False or args.reselect_rois:
-            analyser.select_ROIs()
+            for directory in directories: 
+                
+                path, folder_name = os.path.split(directory)
+                analyser = Analyser(path, folder_name) 
+                analysers.append(analyser)
 
-    # Analyse movements if not analysed, othewise load these
-    for analyser in analysers:
-        if analyser.is_measured() == False or args.recalculate_movements:
-            analyser.measure_movement(eye='left')
-            analyser.measure_movement(eye='right')
-        analyser.load_analysed_movements()
-    
-    
-    if args.reverse_directions:
+        # Ask ROIs if not selected
         for analyser in analysers:
-            analyser.receptive_fields = True
+            if analyser.are_rois_selected() == False or args.reselect_rois:
+                analyser.select_ROIs()
+
+        # Analyse movements if not analysed, othewise load these
+        for analyser in analysers:
+            if analyser.is_measured() == False or args.recalculate_movements:
+                analyser.measure_movement(eye='left')
+                analyser.measure_movement(eye='right')
+            analyser.load_analysed_movements()
+        
+        
+        if args.reverse_directions:
+            for analyser in analysers:
+                analyser.receptive_fields = True
+        
+        
+
+        if args.average:
+            
+            if len(analysers) >= 2:
+
+                avg_analyser = MAverager(analysers)
+                avg_analyser.setInterpolationSteps(5,5)
+                
+                if args.short_name:
+                    avg_analyser.set_short_name(args.short_name[0])
+                           
+                analysers = avg_analyser
+            else:
+                analysers = analysers[0]
+
+        analyser_groups.append(analysers)
     
+
+    function = analyses[args.analysis[0]]
     
+    print(analyser_groups)
 
     if args.average:
-        avg_analyser = MAverager(analysers)
-        avg_analyser.setInterpolationSteps(5,5)
-        
-        short_name = [arg.split('=')[1] for arg in self.argv if 'short_name=' in arg]
-        if short_name:
-            avg_analyser.set_short_name(short_name[0])
-       
-        analysers = [avg_analyser]
-    
-    
-    function = analyses[args.analysis]
-    
-    for analyser in analysers:
-        function(analyser)
+        function(*analyser_groups)
+    else:
+        for analysers in analyser_groups:
+            for analyser in analysers:
+                function(analyser)
 
     if args.tk_waiting_window:
-        self.waiting_window.close()
+        waiting_window.close()
 
-    if not args.unittest:
+    if not args.dont_show:
         plt.show()
 
 

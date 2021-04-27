@@ -10,7 +10,10 @@ import tifffile
 
 from tk_steroids.matplotlib import CanvasPlotter
 
-from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
+from pupilanalysis.drosom.plotting.basics import (
+        plot_1d_magnitude,
+        plot_3d_vectormap
+        )
 
 class RecordingPlotter:
     '''
@@ -85,7 +88,17 @@ class RecordingPlotter:
                 ax=ax,
                 **kwargs)
 
- 
+
+    def vectormap(self, ax, **kwargs):
+
+        self.N_repeats = 0
+        
+        ax, self.vectors = plot_3d_vectormap(self.core.analyser,
+                ax=ax,
+                **kwargs)
+
+
+
     def xy(self, ax):
         '''
         Plot (x, y) where time is encoded by color.
@@ -170,7 +183,9 @@ class RecordingPlotter:
         image_fn = os.path.join(self.core.analyser.get_specimen_directory(), self.selected_recording, image_fns[i_frame])
         self.image = tifffile.imread(image_fn)
         
-        print(image_fn)
+        # Fast fix for opening stacks
+        if len(self.image.shape) == 3:
+            self.image = self.image[0,:,:]
 
         try:
             self.range_slider
@@ -215,7 +230,7 @@ class RecordingPlotter:
         
         imaging_params = self.core.analyser.get_imaging_parameters(self.selected_recording)
         if imaging_params:
-            text = '\n'.join
+            text = '\n'.join(['{}: {}'.format(setting, value) for setting, value in imaging_params.items()])
         else:
             text = 'Unable to fetch imaging parameters'
 

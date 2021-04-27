@@ -13,7 +13,7 @@ install_requires = [
         'scipy',
         'tifffile',
         'matplotlib',
-        'tk-steroids>=0.4.0',
+        'tk-steroids>=0.5.0',
         'roimarker>=0.1.1',
         'movemeter>=0.2.0',
         'python-biosystfiles',

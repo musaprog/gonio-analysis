@@ -16,19 +16,20 @@ data_directory
 <h2>Installing</h2>
 
 There are two supported installation ways at the moment.
-On Windows, the stand-alone installer is probably the best option unless you are familiar with Python.
+On Windows, the stand-alone installer is possibly the best option unless you feel familiar with Python.
 On other platforms, use pip.
 
 <h3>Installer on Windows (easiest)</h3>
 
-A Windows installer that bundles together Pseudopupil Analysis suite and all its depencies,
+A Windows installer that bundles together the Pseudopupil Analysis suite and all its depencies,
 including a complete Python runtime, is provided at
 [Releases](https://github.com/jkemppainen/pupil-analysis/releases).
 
 The installer creates a start menu shorcut called <em>Pupil Analysis</em>,
-which can be used to launch the GUI.
+which can be used to launch the program.
 
 To uninstall, use <em>Add or Remove programs</em> feature in Windows.
+
 
 <h3>Using pip (the python standard way)</h3>
 
@@ -54,26 +55,22 @@ In case of regressions, a specific version of the suite (for example 0.1.2) can 
 pip install pupil-analysis==0.1.2
 ```
 
-Finally, to open the GUI from Python
+Finally, to open the program
 
-```python
-import pupilanalysis.tkgui as gui
-gui.run()
-```
-
-or from command line
 ```
 python -m pupilanalysis.tkgui
 ```
 
 <h2>How to use</h2>
 
-First, open your data directory. Next, select the regions of interest (ROIs) and then run measure movements.
+First, open a data directory (containing the folders containing the images).
+Next, select the regions of interest (ROIs) and then run the motion analysis.
 The ROIs and movements are saved on disk (<em>C:\Users\USER\PupilAnalysis</em> or <em>/home/USER/.pupilanalysis</em>), so these steps are needed only once per specimen.
 
 After the initial steps you, can perform further analyses in the program or
-export the data by copy-pasting to your favourite spread sheet or plotting program.
-
+export the data by
+1) copy-pasting to your favourite spread sheet or plotting program
+or 2) exporting CSV files.
 
 <h3>Notes</h3>
 This is still an early development version (expect rough edges).

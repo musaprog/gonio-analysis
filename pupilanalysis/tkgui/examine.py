@@ -43,12 +43,15 @@ from pupilanalysis import __version__
 from pupilanalysis.directories import PROCESSING_TEMPDIR, PUPILDIR
 from pupilanalysis.rotary_encoders import to_degrees
 from pupilanalysis.drosom.loading import angles_from_fn
-from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude
+from pupilanalysis.drosom.plotting.common import save_3d_animation
+from pupilanalysis.drosom.plotting.basics import plot_1d_magnitude, plot_3d_vectormap
+from pupilanalysis.drosom.analyser_commands import ANALYSER_CMDS
 from pupilanalysis.tkgui.core import Core
 from pupilanalysis.tkgui.plotting import RecordingPlotter
 from pupilanalysis.tkgui.repetition_selection import RepetitionSelector
 
 from pupilanalysis.tkgui.menu_commands import (
+        ModifiedMenuMaker,
         FileCommands,
         ImageFolderCommands,
         SpecimenCommands,
@@ -84,6 +87,12 @@ class ExamineMenubar(tk.Frame):
         # Specimen commands and menu
         self.specimen_commands = SpecimenCommands(self.parent, self.core, 'Specimen')
         self.specimen_commands._connect(self.menubar, tearoff=0)
+        
+        #    Submenu: Add terminal commands
+        self.terminal_commands = ModifiedMenuMaker(self.parent, self.core, 'Terminal interface commands')
+        for name in ANALYSER_CMDS:
+            setattr(self.terminal_commands, name, lambda name=name: self.core.adm_subprocess('current', name) )
+        self.terminal_commands._connect(self.specimen_commands.tkmenu)
 
         # Many specimen commands and menu
         self.many_specimen_commands = ManySpecimenCommands(self.parent, self.core, 'Many specimens')
@@ -170,8 +179,13 @@ class ExamineView(tk.Frame):
         self.status_antenna_level = tk.Label(self.specimen_control_frame, text='Zero correcter N/A', font=('system', 8))
         #self.status_antenna_level.grid(row=3, column=0, sticky='W')
         
-        
-        
+        self.status_active_analysis = tk.Label(self.specimen_control_frame, text='Active analysis: default', font=('system', 8), justify=tk.LEFT)
+        self.status_active_analysis.grid(row=4, column=0, sticky='W')
+       
+        self.tickbox_analyses = TickboxFrame(self.specimen_control_frame, [], ncols=4)
+        self.tickbox_analyses.grid(row=5, column=0, sticky='W')
+
+
         # Image folder manipulations
         self.folder_control_frame = tk.LabelFrame(self.leftside_frame, text='Image folder')
         self.folder_control_frame.grid(row=2, column=0, sticky='NWES', columnspan=2)
@@ -213,9 +227,10 @@ class ExamineView(tk.Frame):
         self.rightside_frame.grid(row=0, column=1, sticky='NWES')
         
         
-        canvas_constructor = lambda parent: CanvasPlotter(parent, visibility_button=False)
-        tab_names = ['ROI', 'Displacement', 'XY']
-        self.tabs = Tabs(self.rightside_frame, tab_names, [canvas_constructor for i in range(len(tab_names))],
+        tab_kwargs = [{}, {}, {}, {'projection': '3d'}]
+        tab_names = ['ROI', 'Displacement', 'XY', '3D']
+        canvas_constructors = [lambda parent, kwargs=kwargs: CanvasPlotter(parent, visibility_button=False, **kwargs) for kwargs in tab_kwargs]
+        self.tabs = Tabs(self.rightside_frame, tab_names, canvas_constructors,
                 on_select_callback=self.update_plot)
         
         self.tabs.grid(row=0, column=0, sticky='NWES')
@@ -235,12 +250,23 @@ class ExamineView(tk.Frame):
                 defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
         self.displacement_ticks.grid()
 
+        # Controls for the vector plot
+        # Controls for displacement plot (means etc)
+        vectorplot_options, vectorplot_defaults = inspect_booleans(
+                plot_3d_vectormap, exclude_keywords=[])
+        self.vectorplot_ticks = TickboxFrame(self.canvases[3], vectorplot_options,
+                defaults=vectorplot_defaults, callback=lambda:self.update_plot(3))
+        self.vectorplot_ticks.grid()
+        
+        tk.Button(self.canvases[3], text='Save animation', command=self.save_3d_animation).grid()
+
+
         self.default_button_bg = self.button_rois.cget('bg')
 
         self.plotter = RecordingPlotter(self.core)
                 
         # Add buttons for selecting single repeats from a recording
-        self.repetition_selector = RepetitionSelector(self.rightside_frame, self.plotter,
+        self.repetition_selector = RepetitionSelector(self.rightside_frame, self.plotter, self.core,
                 update_command=lambda: self.on_recording_selection('current'))
         self.repetition_selector.grid(row=1, column=0)
         
@@ -269,6 +295,15 @@ class ExamineView(tk.Frame):
             
             colors.append(color)
         return colors
+
+
+    def save_3d_animation(self):
+        
+        def callback():
+            self.canvases[3].update()
+        
+        fig, ax = self.canvases[3].get_figax()
+        save_3d_animation(self.core.analyser, ax=ax, interframe_callback=callback)
 
 
     def copy_to_csv(self, formatted): 
@@ -347,7 +382,8 @@ class ExamineView(tk.Frame):
         elif i_tab == 2:
             data = self.plotter.xys
             data = list(itertools.chain(*data))
-            
+        elif i_tab == 3:
+            raise NotImplementedError('Cannot yet cliboard vectormap data')
 
         # Format the data for tkinter clipboard copy
         for i_frame in range(len(data[0])):
@@ -482,6 +518,18 @@ class ExamineView(tk.Frame):
         else:
             self.status_antenna_level.config(text='Zero corrected FALSE')
 
+        self.status_active_analysis.config(text='Active analysis: {}'.format(self.core.analyser.active_analysis))
+
+        
+        # FIXME Instead of destroyign tickbox, make changes to tk_steroids
+        # so that the selections can be reset
+        self.tickbox_analyses.grid_forget()
+        self.tickbox_analyses.destroy()
+        self.tickbox_analyses = TickboxFrame(self.specimen_control_frame, self.core.analyser.list_analyses(),
+                defaults=[self.core.analyser.active_analysis == an for an in self.core.analyser.list_analyses()],
+                ncols=4, callback=lambda: self.update_plot(None))
+        self.tickbox_analyses.grid(row=5, column=0, sticky='W')
+
         self.button_rois.config(state=tk.NORMAL)
 
 
@@ -514,21 +562,38 @@ class ExamineView(tk.Frame):
 
     def update_plot(self, i_plot):
         '''
-        i_plot      Index of the plot (from 0 to N-1 tabs)
+        i_plot : int or None
+            Index of the plot (from 0 to N-1 tabs) or None just to update
         '''
         if self.core.selected_recording is None:
             return None
+        
+        if i_plot is None:
+            i_plot = self.tabs.i_current
 
         fig, ax = self.canvases[i_plot].get_figax()
 
         if i_plot == 0:
             self.plotter.ROI(ax)
-        elif i_plot == 1:
+        else:
+            
             ax.clear()
-            self.plotter.magnitude(ax, **self.displacement_ticks.states)
-        elif i_plot == 2:  
-            ax.clear()
-            self.plotter.xy(ax) 
+
+            remember_analysis = self.core.analyser.active_analysis
+
+            for analysis in [name for name, state in self.tickbox_analyses.states.items() if state == True]:
+                
+                self.core.analyser.active_analysis = analysis
+
+                if i_plot == 1:
+                    self.plotter.magnitude(ax, **self.displacement_ticks.states)
+                elif i_plot == 2:  
+                    self.plotter.xy(ax) 
+                elif i_plot == 3:
+                    self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
+            
+            self.core.active_analysis = remember_analysis
+
 
         self.canvases[i_plot].update()
         

@@ -7,15 +7,13 @@ with open("README.md", "r") as fh:
 exec(open("pupilanalysis/version.py").read())
 
 install_requires = [
-        # As a workaround for a recent Windows numpy bug, do not use 1.19.4 or later for now 
-        #https://developercommunity.visualstudio.com/content/problem/1207405/fmod-after-an-update-to-windows-2004-is-causing-a.html?page=2&pageSize=10&sort=votes&type=problem
-        'numpy<=1.19.3',
+        'numpy',
         'scipy',
         'tifffile',
         'matplotlib',
-        'tk-steroids>=0.5.0',
-        'roimarker>=0.1.1',
-        'movemeter>=0.2.0',
+        'tk-steroids>=0.6.0',
+        'roimarker>=0.2.0',
+        'movemeter>=0.4.0',
         'python-biosystfiles',
         ]
 

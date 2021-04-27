@@ -426,14 +426,17 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
     
     def list_imagefolders(self, list_special=True,
-            horizontal_condition=None, vertical_condition=None):
+            horizontal_condition=None, vertical_condition=None,
+            endswith='', only_measured=False):
         '''
         Returns a list of the images containing folders (subfolders).
         
         list_special        Sets wheter to list also image folders with suffixes
         horizontal_condition    A callable, that when supplied with horizontal (in steps)
                                     returns either true (includes) or false (excludes).
-        vertical_condition  
+        vertical_condition
+        only_measured : bool
+            Return only image_folders with completed movement analysis
         '''
         def check_conditions(vertical, horizontal):
             if callable(horizontal_condition):
@@ -473,8 +476,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
             image_folders.append('pos'+key)
 
-        return sorted(image_folders) + sorted(special_image_folders)
+        all_folders = [fn for fn in sorted(image_folders) + sorted(special_image_folders) if fn.endswith(endswith)]
+        
+        if only_measured:
+            all_folders = [fn for fn in all_folders if self.folder_has_movements(fn)]
 
+        return all_folders
 
     def get_horizontal_vertical(self, image_folder, degrees=True):
         '''

@@ -39,6 +39,15 @@ def write_CSV_cols(fn, columns):
             #writer.writerow([sublist[i] for sublist in columns])
 
 
+def read_CSV_cols(fn):
+    rows = []
+    with open(fn, 'r') as fp:
+        reader = csv.reader(fp, delimiter=',')
+        for row in reader:
+            rows.append(row)
+
+    return list(map(list, zip(*rows)))
+
 
 def left_right_displacements(manalysers, group_name,
         fn_prefix='LR-displacements',
@@ -151,7 +160,15 @@ def left_right_displacements(manalysers, group_name,
         
         # Mean in the end
         csv_files[csv_file].append(np.mean([csv_files[csv_file][i][1:] for i in range(len(csv_files[csv_file]))], axis=0).tolist())
-        csv_files[csv_file][-1].insert(0, 'mean')
+        try:
+            csv_files[csv_file][-1].insert(0, 'mean')
+        except AttributeError as e:
+            if csv_file.startswith('ERGs'):
+                print(csv_files[csv_file])
+                raise ValueError("No ERGs, check linking the ERG data")
+            else:
+                raise e
+            
 
         if csv_file.startswith('ERGs_'):
             ufs = efs
@@ -162,12 +179,108 @@ def left_right_displacements(manalysers, group_name,
         data = csv_files[csv_file][0][1:]
         xaxis = np.linspace(0, (len(data)-1)/ufs, len(data)).tolist()
         xaxis.insert(0, 'time (s)')
-        print(xaxis)
         csv_files[csv_file].insert(0, xaxis)
 
         fn = '{}_{}_{}.csv'.format(fn_prefix, group_name, csv_file)
         fn = os.path.join(savedir, fn)
         write_CSV_cols(fn, csv_files[csv_file])
+
+
+def quantify_metric(data1d, metric_type='mean', ab=(None, None)):
+    '''
+    From a 1D array (time series) quantify single value metric.
+
+    metric_type : string
+        "mean" to take the mean of the range
+    ab : tuple of integers
+        The range as datapoint indices.
+    '''
+    part = data1d
+    if ab[1] is not None:
+        part = part[:ab[1]]
+    if ab[0] is not None:
+        part = part[ab[0]:]
+
+   
+    if metric_type == 'mean':
+        value = np.mean(part)
+
+    return value
+
+
+def lrfiles_summarise(lrfiles, point_type='mean', ab=(None, None)):
+    '''
+    Datapoints for making box/bar plots and/or for statistical testing.
+
+    Arguments
+    ---------
+    lrfiles : list of filenames
+        LR-displacements files of the left_right_displacements.
+    point_type : string
+        Either "mean" to take mean of the range (used for DPP movement data) or
+        min-start to take the mean around the minimum and subtract start value (used for ERGs).
+        If not specified, use 'mean'.
+    ab : tuple
+        Specify the range as indices (rows of the lrfiles excluding the header)
+        If not specified, try to autodetect based on if ERGs is contained in the filesames
+        ((half,end) for DPP, (400, 800) for ERGs).
+    '''
+    
+    csv_files = {}
+    
+
+    for fn in lrfiles:
+        
+        
+        sfn = os.path.basename(fn)
+        specimen_name = '_'.join(sfn.split('_')[1:-1])
+        stim = sfn.split('_')[-1].split('.')[0]
+
+        csv_rows = csv_files.get(stim, {})
+
+        
+        coldata = read_CSV_cols(fn)
+        
+        if specimen_name not in csv_rows:
+            csv_rows[specimen_name] = []
+        
+        if ab[0] is None or ab[1] is None:
+        
+            # FIXME Quite specific
+            if 'ERGs' in sfn:
+                a, b = [400, 800]
+            else:
+                a, b = [int((len(coldata[0])-1)/2), len(coldata[0])-1]
+        else:
+            a, b = ab
+
+        # First column is time, the last is the mean, skip these
+        for col in coldata[1:-1]:
+
+            if a is not None and b is not None:
+                numerical_col = [float(num) for num in col[a+1:b]]
+            else:
+                numerical_col = [float(num) for num in col[1:]]
+
+            if point_type == 'mean':
+                value = np.mean(numerical_col)
+            elif point_type.startswith('min-start'):
+                value = np.min(numerical_col) - float(col[1])
+
+            csv_rows[specimen_name].append(value)
+
+
+        csv_files[stim] = csv_rows
+
+    path = os.path.join(os.path.dirname(lrfiles[0]), 'summary')
+    os.makedirs(path, exist_ok=True)
+
+    for fn in csv_files:
+        ofn = os.path.join( path, 'LR_summary_{}.csv'.format(fn) )
+        with open(ofn, 'w') as fp:
+            writer = csv.writer(fp, delimiter=',')
+            for row in csv_files[fn]:
+                writer.writerow([row]+csv_files[fn][row])
 
 
 

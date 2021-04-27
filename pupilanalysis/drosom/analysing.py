@@ -662,7 +662,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         fs = self.get_imaging_parameters(image_folder).get('frame_length', None)
         
         if fs is None:
-            return fs
+            # FIXME
+            return 100. # Better fallback value than None?
         else:
             return 1/float(fs)
     

@@ -843,7 +843,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             return False
 
         if any([image_folder[3:] in self.movements[eye].keys()] for eye in ['left', 'right']):
-            return True
+            if len(self.get_displacements_from_folder(image_folder)) > 0:
+                return True
         return False
 
 

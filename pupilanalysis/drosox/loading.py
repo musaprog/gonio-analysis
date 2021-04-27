@@ -39,10 +39,23 @@ def load_data(folder, arl_fly=False):
                             (meaning no outliner remove, pitch grouping etc...)
 
     '''
-    fns = [os.path.join(folder,'rot',fn) for fn in os.listdir(os.path.join(folder, 'rot')) if fn.endswith('.tif')]
-    fns.sort()
     
-    angles = load_angle_pairs(os.path.join(folder, 'anglepairs.txt'))
+    if os.path.isdir(os.path.join(folder, 'rot')):
+        # DrosoX format (MM + trigger): Sequence saved images + anglepairs.txt
+        fns = [os.path.join(folder,'rot',fn) for fn in os.listdir(os.path.join(folder, 'rot')) if fn.endswith('.tif')]
+        fns.sort()
+        
+        angles = load_angle_pairs(os.path.join(folder, 'anglepairs.txt'))
+    else:
+        # DrosoM format (pupil imsoft): each position in own folder
+        # Here for DrosoX, use only the first image in each pos folder
+        # if many exists
+        _folders = [f for f in os.listdir(folder) if f.startswith('pos')]
+        fns = [[os.path.join(folder, f, fn) for fn in
+            os.listdir(os.path.join(folder, f)) if fn.endswith('.tiff')][0] for f in _folders]
+        
+        angles = [ [int(n) for n in f.split('(')[1].split(')')[0].split(',')] for f in _folders]
+
     to_degrees(angles)
     
     print('Angles {} and images {}'.format(len(angles), len(fns)))

@@ -15,15 +15,22 @@ from pupilanalysis.drosox.plotting import (
 def main():
 
     parser = argparse.ArgumentParser(description='DrosoX: Analyse DPP static imaging data')
-    parser.add_argument('datadir',
+    parser.add_argument('--datadir',
             help='Path to the specimens data directory or ASK')
     
-    parser.add_argument('specimens',
-            help='Comma separated list of specimens or ASK')
+    parser.add_argument('--specimens',
+            help='Space separated list of specimens. Ased if not specified.',
+            nargs='*')
 
    
     parser.add_argument('--measure-overlap',
             help='(Re)measure binocular overlap using user-assisted binary search',
+            action='store_true')
+
+    
+    # Overlap data
+    parser.add_argument('--print-overlap',
+            help='Print overlap data as text',
             action='store_true')
 
     # Plotting arguments
@@ -47,17 +54,21 @@ def main():
         datadir = args.datadir
 
 
-    if args.specimens.lower() == 'ask':
+    if not args.specimens:
         specimens = DrosoSelect(datadir=datadir).ask_user()
         specimens = [os.path.basename(specimen) for specimen in specimens]
     else:
-        specimens = args.specimens.split(',')
+        specimens = args.specimens
     
 
     xanalysers = [XAnalyser(datadir, specimen) for specimen in specimens]
 
     # Perform the tasks that have to be performed per xanalyser
     for xanalyser in xanalysers:
+        print(xanalyser.fly)
+        if args.print_overlap:
+            xanalyser.print_overlap()
+
         if args.measure_overlap:
             xanalyser.measure_overlap()
         
@@ -70,7 +81,8 @@ def main():
     elif args.plot_matrix_overlap:
         plot_matrix_overlap(xanalysers)
 
-    plt.show()
+    if not args.measure_overlap:
+        plt.show()
 
 
 if __name__ == "__main__":

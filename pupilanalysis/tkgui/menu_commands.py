@@ -427,6 +427,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 'comparision_to_optic_flow_DASH_video',
                 '.',
                 'export_LR_displacement_CSV',
+                'export_LR_displacement_CSV_DASH_strong_weak_eye_division',
                 'save_kinematics_analysis_CSV',
                 'save_sinesweep_analysis_CSV']
 
@@ -498,16 +499,24 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         
     
     
-    def export_LR_displacement_CSV(self):
+    def export_LR_displacement_CSV(self, strong_weak_division=False):
         '''
         Grouped to left right
         '''
         def callback(specimens):
             group_name = ask_string('Group name', 'Name the selected group of specimens', self.tk_root)
             analysers = self.core.get_manalysers(specimens)
-            left_right_displacements(analysers, group_name)
+            left_right_displacements(analysers, group_name,
+                    strong_weak_division=strong_weak_division) 
 
         select_specimens(self.core, callback, with_movements=True) 
+    
+
+    def export_LR_displacement_CSV_DASH_strong_weak_eye_division(self):
+        '''
+        Grouped to strong vs weak eye.
+        '''
+        self.export_LR_displacement_CSV(strong_weak_division=True)
 
 
     def save_kinematics_analysis_CSV(self):

@@ -52,7 +52,8 @@ def read_CSV_cols(fn):
 def left_right_displacements(manalysers, group_name,
         fn_prefix='LR-displacements',
         savedir=LR_SAVEDIR,
-        stimuli={'uv': 'uv', 'green': 'green'}):
+        stimuli={'uv': ['uv', ')'], 'green': ['green']},
+        strong_weak_division=True, divide_threshold=3):
     '''
     Saves CSV files of left and right eye movements and ERGs.
     
@@ -69,9 +70,16 @@ def left_right_displacements(manalysers, group_name,
         "controls".
     fn_prefix : string
         Text to append in the beginnign of the CSV filename.
-    stimuli : dict of strings
-        Each key is the name of the stimulus, and matching value is the suffix
-        that matches the stimulus (the suffix in the end of imagefolder name)
+    stimuli : dict of lists of strings
+        Each key is the name of the stimulus, and matching value is a list of
+        the suffixes that match the stimulus (the suffix in the end of imagefolder name)
+    strong_weak_division : bool
+        If True, group data based on strong and weak eye instead of
+        combined left and right.
+    divide_threshold : int
+        Related to the strong_weak_divison argument. For some specimen there may be
+        recordings only from one eye, and divide_threshold or more is required
+        to in total to do the division.
     '''
     
     # each "file" is a list of columns
@@ -79,6 +87,7 @@ def left_right_displacements(manalysers, group_name,
     
     fs = None
     efs = None
+
 
     for manalyser in manalysers:
         
@@ -90,7 +99,7 @@ def left_right_displacements(manalysers, group_name,
             for image_folder in manalyser.list_imagefolders(horizontal_condition=condition): 
                 
                 for stim in stimuli.keys():
-                    if image_folder.endswith(stimuli[stim]):
+                    if any([image_folder.endswith(match) for match in stimuli[stim]]):
                         
                         trace = manalyser.get_magnitude_traces(eye,
                                 image_folder=image_folder,
@@ -152,12 +161,77 @@ def left_right_displacements(manalysers, group_name,
                     csv_files[uname] = []
 
                 csv_files[uname].append(erg_columns[name])
+    
+    
+    if strong_weak_division:
+        new_csv_files = {}
+    
+        # Process first DPP data then ERGs
+        strong_eyes = {}
+        keys = [k for k in csv_files if not 'ERGs' in k] + [k for k in csv_files if 'ERGs' in k]        
+
+        for csv_file in keys:
+            pairs = []
+
+            column_titles = [column[0] for column in csv_files[csv_file]]
+
+            for column in csv_files[csv_file]:
+                
+                if not 'right' in column[0]:
+                    try:
+                        indx = column_titles.index( column[0].replace('left', 'right'))
+                    except ValueError:
+                        continue
+
+                    pairs.append((column, csv_files[csv_file][indx]))
+
+           
+            if len(pairs) > divide_threshold:
+                new_csv_files[csv_file+'_strong'] = []
+                new_csv_files[csv_file+'_weak'] = []
+
+                for left, right in pairs:
+                    # Fixme
+                    rdata = [float(num) for num in right[1:]]
+                    ldata = [float(num) for num in left[1:]]
+
+                    if not 'ERGs' in csv_file:
+                        specimen_name = '_'.join(left[0].split('_')[:-2])
+                    else:
+                        specimen_name = '_'.join(left[0].split('_')[:-1])
+                    
+                    print(specimen_name)
+
+                    if 'ERGs' in csv_file:
+                        #ab = [400, 800]
+                        
+                        if strong_eyes[specimen_name] == 'right':
+                            new_csv_files[csv_file+'_strong'].append(right)
+                            new_csv_files[csv_file+'_weak'].append(left)
+                        else:
+                            new_csv_files[csv_file+'_strong'].append(left)
+                            new_csv_files[csv_file+'_weak'].append(right)
+                    else:
+                        ab = [None, None]
+                        if abs(quantify_metric(rdata, ab=ab)) > abs(quantify_metric(ldata, ab=ab)):
+                            new_csv_files[csv_file+'_strong'].append(right)
+                            new_csv_files[csv_file+'_weak'].append(left)
+                            strong_eyes[specimen_name] = 'right'
+                        else:
+                            new_csv_files[csv_file+'_strong'].append(left)
+                            new_csv_files[csv_file+'_weak'].append(right)
+                            strong_eyes[specimen_name] = 'left'
+
+            else:
+                new_csv_files[csv_file+'_all'] = csv_files[csv_file]
+            
+        csv_files = new_csv_files
+
 
 
     os.makedirs(savedir, exist_ok=True)
 
     for csv_file in csv_files:
-        
         # Mean in the end
         csv_files[csv_file].append(np.mean([csv_files[csv_file][i][1:] for i in range(len(csv_files[csv_file]))], axis=0).tolist())
         try:

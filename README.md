@@ -1,5 +1,5 @@
-<h1>Pseudopupil Analysis suite</h1>
-Specialised spatial motion analysis software for Pupil Imsoft data.
+<h1>Goniometric Analysis suite</h1>
+Specialised spatial motion analysis software for Gonio Imsoft data.
 
 In general, can be used for data that follows hierarchy
 ```
@@ -21,11 +21,11 @@ On other platforms, use pip.
 
 <h3>Installer on Windows (easiest)</h3>
 
-A Windows installer that bundles together the Pseudopupil Analysis suite and all its depencies,
+A Windows installer that bundles together the Gonio Analysis suite and all its depencies,
 including a complete Python runtime, is provided at
-[Releases](https://github.com/jkemppainen/pupil-analysis/releases).
+[Releases](https://github.com/jkemppainen/gonio-analysis/releases).
 
-The installer creates a start menu shorcut called <em>Pupil Analysis</em>,
+The installer creates a start menu shorcut called <em>Gonio Analysis</em>,
 which can be used to launch the program.
 
 To uninstall, use <em>Add or Remove programs</em> feature in Windows.
@@ -36,7 +36,7 @@ To uninstall, use <em>Add or Remove programs</em> feature in Windows.
 The latest version from [PyPi](https://pypi.org/) can be installed with the command
 
 ```
-pip install pupil-analysis
+pip install gonio-analysis
 ```
 
 This should install all the required dependencies, except when on Windows, OpenCV may require
@@ -46,26 +46,26 @@ This should install all the required dependencies, except when on Windows, OpenC
 Afterwards, to upgrade an existing installation to the latest version
 
 ```
-pip install --upgrade pupil-analysis
+pip install --upgrade gonio-analysis
 ```
 
 In case of regressions, a specific version of the suite (for example 0.1.2) can be installed
 
 ```
-pip install pupil-analysis==0.1.2
+pip install gonio-analysis==0.1.2
 ```
 
 Finally, to open the program
 
 ```
-python -m pupilanalysis.tkgui
+python -m gonioanalysis.tkgui
 ```
 
 <h2>How to use</h2>
 
 First, open a data directory (containing the folders containing the images).
 Next, select the regions of interest (ROIs) and then run the motion analysis.
-The ROIs and movements are saved on disk (<em>C:\Users\USER\PupilAnalysis</em> or <em>/home/USER/.pupilanalysis</em>), so these steps are needed only once per specimen.
+The ROIs and movements are saved on disk (<em>C:\Users\USER\GonioAnalysis</em> or <em>/home/USER/.gonioanalysis</em>), so these steps are needed only once per specimen.
 
 After the initial steps you, can perform further analyses in the program or
 export the data by

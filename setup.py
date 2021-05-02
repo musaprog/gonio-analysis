@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 # Version number to __version__ variable
-exec(open("pupilanalysis/version.py").read())
+exec(open("gonioanalysis/version.py").read())
 
 install_requires = [
         'numpy',
@@ -19,14 +19,14 @@ install_requires = [
 
 
 setuptools.setup(
-    name="pupil-analysis",
+    name="gonio-analysis",
     version=__version__,
     author="Joni Kemppainen",
     author_email="jjtkemppainen1@sheffield.ac.uk",
     description="Spatial motion analysis program",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/jkemppainen/pupil-analysis",
+    url="https://github.com/jkemppainen/gonio-analysis",
     packages=setuptools.find_packages(),
     install_requires=install_requires, 
     classifiers=[

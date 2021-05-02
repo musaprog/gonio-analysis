@@ -1,8 +1,8 @@
 import os
 import unittest
 
-import pupilanalysis.drosom.analyser_commands as ac
-import pupilanalysis.drosom.terminal as terminal
+import gonioanalysis.drosom.analyser_commands as ac
+import gonioanalysis.drosom.terminal as terminal
 
 TESTPATH = os.path.dirname(__file__)
 

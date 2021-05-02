@@ -10,8 +10,8 @@ import os
 import numpy as np
 import tifffile
 
-from pupilanalysis.antenna_level import AntennaLevelFinder
-from pupilanalysis.directories import PROCESSING_TEMPDIR_BIGFILES
+from gonioanalysis.antenna_level import AntennaLevelFinder
+from gonioanalysis.directories import PROCESSING_TEMPDIR_BIGFILES
 
 from imalyser.averaging import Templater
 from imalyser.aligning import Aligner

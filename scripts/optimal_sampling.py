@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 
-from pupilanalysis.coordinates import camera2Fly, optimal_sampling
+from gonioanalysis.coordinates import camera2Fly, optimal_sampling
 
 
 def test():

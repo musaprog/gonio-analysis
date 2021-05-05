@@ -8,7 +8,7 @@ def main():
     pdir = os.path.dirname(sys.executable)
 
     shutil.copytree(os.path.join(pdir, 'tcl'), 'lib')
-    os.makedirs('pynsist_pkgs')
+    os.makedirs('pynsist_pkgs', exist_ok=True)
 
     copyfiles = [os.path.join(pdir, 'DLLs', fn) for fn in ['_tkinter.pyd', 'tcl86t.dll', 'tk86t.dll']]
     copyfiles.append(os.path.join(pdir, 'libs', '_tkinter.lib'))

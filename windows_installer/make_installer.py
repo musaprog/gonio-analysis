@@ -20,6 +20,7 @@ PYTHONVERSION : string
 '''
 
 import os
+import sys
 import shutil
 
 try:
@@ -29,7 +30,7 @@ except:
     __version__ == input('gonioanalysis version use (exmpl. 0.1.2) >>')
 
 GONIOVERSION = __version__
-PYTHONVERSION = '3.8.6'
+PYTHONVERSION = '{}.{}.{}'.format(*sys.version_info[0:3])
 
 def fetch_wheels():
     
@@ -51,6 +52,9 @@ def build(gonioversion, pythonversion):
     wheels = [os.path.join('wheels', fn) for fn in os.listdir('wheels') if fn.endswith('.whl')]
     
     str_wheels = '\n '.join(wheels)
+
+    moveversion = [fn for fn in wheels if 'movemeter-' in fn][0]
+    moveversion = moveversion.split('-')[1]
     
     cfg_file = []
     with open('pynsist_template.cfg', 'r') as fp:
@@ -58,6 +62,7 @@ def build(gonioversion, pythonversion):
             edited = line.replace('GONIOVERSION', gonioversion)
             edited = edited.replace('PYTHONVERSION', pythonversion)
             edited = edited.replace('LOCAL_WHEELS', str_wheels)
+            edited = edited.replace('MOVEVERSION', moveversion)
             cfg_file.append(edited)
 
     with open('pynsist_temp.cfg', 'w') as fp:

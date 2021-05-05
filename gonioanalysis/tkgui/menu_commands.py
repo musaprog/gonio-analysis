@@ -380,11 +380,11 @@ class SpecimenCommands(ModifiedMenuMaker):
 
 
     def vectormap_DASH_interactive_plot(self):
-        self.core.adm_subprocess('current', 'vectormap')
+        self.core.adm_subprocess('current', '-A vectormap')
 
 
     def vectormap_DASH_rotating_video(self):
-        self.core.adm_subprocess('current', '--tk_waiting_window vectormap_video')
+        self.core.adm_subprocess('current', '--tk_waiting_window -A vectormap_video')
 
     
     def vectormap_DASH_export_npy(self):
@@ -398,7 +398,7 @@ class SpecimenCommands(ModifiedMenuMaker):
 
     
     def mean_displacement_over_time(self):
-        self.core.adm_subprocess('current', 'magtrace')
+        self.core.adm_subprocess('current', '-A magtrace')
 
 
     def mean_latency_by_sigmoidal_fit(self):
@@ -466,12 +466,12 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
 
     def averaged_vectormap_DASH_interactive_plot(self):
-        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average vectormap'), with_movements=True)
+        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average -A vectormap'), with_movements=True)
 
 
     
     def averaged_vectormap_DASH_rotating_video(self):
-        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average vectormap_video'), with_movements=True) 
+        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average -A vectormap_video'), with_movements=True) 
 
 
     def averaged_vectormap_DASH_rotating_video_multiprocessing(self):
@@ -484,18 +484,18 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                         additional = '--dont-show'
                     else:
                         additional = ''
-                    self.core.adm_subprocess(specimens, '--tk_waiting_window --worker-info {} {} --average vectormap_video'.format(i_worker, N_workers)) 
+                    self.core.adm_subprocess(specimens, '--tk_waiting_window --worker-info {} {} --average -A vectormap_video'.format(i_worker, N_workers)) 
 
 
         select_specimens(self.core, run_workers, with_movements=True) 
         
 
     def averaged_vectormap_DASH_rotating_video_DASH_set_title(self):
-        ask_string('Set title', 'Give video title', lambda title: select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average --short-name {} vectormap_video'.format(title)), with_movements=True)) 
+        ask_string('Set title', 'Give video title', lambda title: select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average --short-name {} -A vectormap_video'.format(title)), with_movements=True)) 
         
         
     def comparision_to_optic_flow_DASH_video(self): 
-        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average flow_analysis_pitch'), with_movements=True) 
+        select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average -A flow_analysis_pitch'), with_movements=True) 
         
     
     

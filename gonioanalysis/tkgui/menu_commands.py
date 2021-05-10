@@ -29,7 +29,7 @@ from gonioanalysis.drosom.reports.left_right import left_right_displacements, lr
 from gonioanalysis.drosom.reports.stats import response_magnitudes
 from gonioanalysis.tkgui import settings
 from gonioanalysis.tkgui.run_measurement import MeasurementWindow
-from gonioanalysis.tkgui.zero_correct import ZeroCorrect
+from gonioanalysis.tkgui.widgets import ZeroCorrect
 
 
 

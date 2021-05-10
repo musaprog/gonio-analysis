@@ -48,7 +48,7 @@ from gonioanalysis.drosom.plotting.basics import plot_1d_magnitude, plot_3d_vect
 from gonioanalysis.drosom.analyser_commands import ANALYSER_CMDS
 from gonioanalysis.tkgui.core import Core
 from gonioanalysis.tkgui.plotting import RecordingPlotter
-from gonioanalysis.tkgui.repetition_selection import RepetitionSelector
+from gonioanalysis.tkgui.widgets import RepetitionSelector
 
 from gonioanalysis.tkgui.menu_commands import (
         ModifiedMenuMaker,

@@ -1443,6 +1443,8 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         self.va_limits = [None, None]
         self.ha_limits = [None, None]
         self.alimits_reverse = False
+
+        self.intp_step = (5, 5)
         
         self.eyes = manalysers[0].eyes
         self.vector_rotation = None

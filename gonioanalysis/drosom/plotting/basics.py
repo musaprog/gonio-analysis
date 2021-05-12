@@ -24,6 +24,7 @@ from .common import (
 from gonioanalysis.directories import CODE_ROOTDIR
 from gonioanalysis.drosom.optic_flow import field_error
 from gonioanalysis.coordinates import rotate_vectors
+from tk_steroids.routines import extend_keywords
 
 plt.rcParams.update({'font.size': 12})
 
@@ -188,34 +189,52 @@ def _set_analyser_attributes(analyser, skip_none=True, raise_errors=False, **kwa
                 raise AttributeError('{} has no attribute {} prior setting'.format(anlayser, key))
 
 
+
+@extend_keywords(vector_plot)
 def plot_3d_vectormap(manalyser, arrow_rotations = [0],
-        guidance=False, draw_sphere=False, hide_behind=True, rhabdomeres=True,
-        elev=None, azim=None, color=None, repeats_separately=False, vertical_hardborder=True,
-        i_frame=0,
+        rhabdomeres=True, repeats_separately=False, vertical_hardborder=True,
+        elev=None, azim=None,
         pitch_rot=None, roll_rot=None, yaw_rot=None,
-        animation=None, animation_type=None, animation_variable=None,
+        animation=None, animation_type=None, animation_variable=None, i_frame=0,
         ax=None, **kwargs):
     '''
-    Plot a 3D vectormap, where the arrows point the movement or feature directions.
+    Plot a 3D vectormap, where the arrows point movement (MAnalyser, FAnalyser) or
+    feature (OAnalyser) directions.
     
+    Arguments
+    ---------
+    manalyser : object
+        Analyser object
     arrow_rotations : list of int
-        Radial rotation of the vectors
-    guidance : bool
-        Draw ventral/dorsal/left/right axes
-    draw_sphere : bool
-        Draw a 
-
-    arrows : bool
-        If False, draw lines instead (only OAnalyser)
+        Rotation of arrows in the plane of the arrows (ie. radially).
     rhabdomeres : bool
-        If True, draw rhadbomeres (only OAnalyser)
+        If True, draw rhabdomere pattern where the arrows are.
+    repeats_separately : bool
+        If True, and repeat data exists, draw each repeat
+        with it's own arrow.
+    vertical_hardborder : bool
+        For MAverager, interpolate dorsal and ventral separetly
+    elev, azim : float or None
+        Plot elevation and azim
+    animation : None
+    animation_type : None
+    animation_variable : None
+    i_frame : int
+    ax : object
+        Maptlotlib ax object. If not specified, creates a new figure.
+    kwargs : dict
+        Variable keyword arguments are passed to vector_plot function.
 
-    **kwargs to vector_plot
+    Returns
+    -------
+    ax : object
+        Matplotlib Axes object
+    vectors : list of objects
+        List of arrow artist drawn on the figure.
     '''
-
     colors = EYE_COLORS
-    plot_rhabdomeres = True
     
+    # Work out MAnalyser type
     manalyser_type = 'MAnalyser'
 
     if manalyser.__class__.__name__ == 'OAnalyser' and len(arrow_rotations) == 1 and arrow_rotations[0] == 0:
@@ -252,10 +271,10 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
     if animation_type == 'rotate_plot':
         elev, azim = animation_variable
 
-    if hide_behind and azim is not None and elev is not None:
+    if azim is not None and elev is not None:
         camerapos = (elev, azim)
     else:
-        camerapos = False
+        camerapos = None
     
     # For OAnalyser, when rhabdomeres is set True,
     # plot the rhabdomeres also
@@ -278,8 +297,6 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
                         camerapos=camerapos,
                         resolution=9, edgecolor=None, facecolor='gray')
 
-
-
     for i_rotation, rotation in enumerate(arrow_rotations):
 
         for eye in manalyser.eyes:
@@ -299,13 +316,9 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
             if manalyser_type == 'OAnalyser' and rhabdomeres:
                 
                 for point, vector in zip(*vectors_3d):
-                    add_line(ax, *point, *vector, camerapos=camerapos, color=REPEAT_COLORS[i_rotation])
+                    add_line(ax, *point, *vector, color=REPEAT_COLORS[i_rotation])
             else:
                 vector_plot(ax, *vectors_3d, color=colr,
-                        guidance=guidance,
-                        draw_sphere=draw_sphere,
-                        camerapos=camerapos,
-                        i_pulsframe=i_frame,
                         **kwargs
                         )
                
@@ -319,14 +332,11 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
     ax.set_zlim3d((-1,1))
     ax.set_box_aspect((1, 1, 1)) 
     
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    
     if azim is None and elev is None:
         ax.view_init(elev=DEFAULT_ELEV, azim=DEFAULT_AZIM)
     else:
         ax.view_init(elev=elev, azim=azim)
+
 
     return ax, vectors
 

@@ -269,53 +269,77 @@ def is_behind_sphere(elev, azim, point):
 
 
 
-    
-
-
-
-
 def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
-        i_pulsframe=False, guidance=False, camerapos=None, draw_sphere=True,
+        i_pulsframe=None, guidance=False, camerapos=None, draw_sphere=True,
+        hide_axes=False, hide_text=False,
         **kwargs):
     '''
-    Plot vectors on ax.
+    Plot vectors on a 3D matplotlib Axes object as arrows.
 
-    ax              Matplotlib ax (axes) instance
-    points          Starting points 
-    vectors
-    color           Color of the arrows
-    mutation_scale  Size of the arrow head basically
-    i_pulsframe    Index of the pulsation animation frame, sets the length of the arrows
-    guidance    Add help elements to point left,right,front,back etc. and hide axe
-    camerapos       (elev, axzim). Supply so vectors bending the visible himspehere can be hidden 
-    draw_sphere     If true draw a gray sphere
-    **kwargs        To matplotlib FancyArrowPatch
+    ax : object
+        Matplotlib ax (axes) instance
+    points : array_like
+        Sequence of arrow starting/tail (x,y,z) points 
+    vectors : array_like
+        Arrow lengts and directions, sequence of (x,y,z)
+    color : string
+        Matplotlib valid color for the drawn arrows
+    mutation_scale : float
+        Size of the arrow head basically
+    i_pulsframe : int
+        Index of the pulsation frame, setting the arrow length. For animation.
+    guidance : bool
+        Add help elements to point left,right,front,back
+    camerapos : tuple or None
+        Values of (elev, axzim) to hide vectors behind the sphere. If none,
+        use values from ax.elev and ax.azim.
+    draw_sphere : bool
+        If true draw a gray sphere
+    hide_axes : bool
+        Call set_axis_off
+    hide_text : bool
+        Omit from drawing any text
+    kwargs : dict
+        Passed to matplotlib FancyArrowPatch
+    
+    Returns
+    -------
+    arrow_artists : list
+        All ArrowArtists added to the ax
+
     '''
-    
     global CURRENT_ARROW_DIRECTION
-    
+    r = 0.9
+
     arrow_artists = []
 
-    #ax.scatter([x for (x,y,z) in points], [y for (x,y,z) in points],
-    #        [z for (x,y,z) in points], color='black')
 
-    # With patches limits are not automatically adjusted
-    ax.set_xlim(-1, 1)
-    ax.set_ylim(-1,1)
-    ax.set_zlim(-1, 1)
-     
-    if guidance:
+    if hide_axes:
         ax.set_axis_off()
-        
-        r = 0.9
-        
+    
+    if hide_text:
+        ax.axes.xaxis.set_ticklabels([])
+        ax.axes.yaxis.set_ticklabels([]) 
+        ax.axes.zaxis.set_ticklabels([]) 
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.set_zlabel('')
+    else:
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+
+
+    if not camerapos:
+        camerapos = (ax.elev, ax.azim)
+ 
+    if guidance:
         guidances = {'Right': ((r,0,0), (0.2,0,0)),
                 'Left': ((-r,0,0),(-0.2,0,0)),
                 '  Ventral': ((0,0,-r),(0,0,-0.3)),
                 '  Dorsal': ((0,0,r),(0,0,0.3))}
-        #'Antenna': ((0,0.7,0),(0,0.4,0))}
-
-        
+           
         for name, (point, vector) in guidances.items():
             point = np.array(point)
             vector = np.array(vector)
@@ -325,22 +349,27 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
             else:
                 zorder = 8
 
-            ar = Arrow3D(*point, *(point+vector), mutation_scale=mutation_scale, lw=0.2, color='black', zorder=zorder)
+            ar = Arrow3D(*point, *(point+vector), mutation_scale=mutation_scale,
+                    lw=0.2, color='black', zorder=zorder)
             ax.add_artist(ar)
             
-            if name in ('Left', 'Right'):
-                ha = 'center'
-            else:
-                ha = 'left'
-            ax.text(*(point+vector/1.05), name, color='black', fontsize='xx-large', va='bottom', ha=ha, linespacing=1.5, zorder=zorder+1)
-        
-        if draw_sphere:
-            N = 75
-            phi, theta = np.meshgrid(np.linspace(0, 2*np.pi, N), np.linspace(0, np.pi, N))
-            X = r * np.sin(theta) * np.cos(phi)
-            Y = r * np.sin(theta) * np.sin(phi)
-            Z = r * np.cos(theta)
-            ax.plot_surface(X, Y, Z, color='lightgray')
+            if not hide_text:
+                if name in ('Left', 'Right'):
+                    ha = 'center'
+                else:
+                    ha = 'left'
+                ax.text(*(point+vector/1.05), name, color='black',
+                        fontsize='xx-large', va='bottom', ha=ha,
+                        linespacing=1.5, zorder=zorder+1)
+
+    if draw_sphere:
+        N = 75
+        phi, theta = np.meshgrid(np.linspace(0, 2*np.pi, N), np.linspace(0, np.pi, N))
+        X = r * np.sin(theta) * np.cos(phi)
+        Y = r * np.sin(theta) * np.sin(phi)
+        Z = r * np.cos(theta)
+        ax.plot_surface(X, Y, Z, color='lightgray')
+
 
     if i_pulsframe:
         global CURRENT_ARROW_LENGTH
@@ -351,32 +380,18 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
     for point, vector in zip(points, vectors):
 
         if camerapos:
-            #elev, azim = camerapos
-            #cx = np.sin(np.radians(90-elev)) * np.cos(np.radians(azim))
-            #cy = np.sin(np.radians(90-elev)) * np.sin(np.radians(azim))
-            #cz = np.cos(np.radians(90-elev))
-            
-            #if elev < 0:
-            #    cz = -cz
-
-
-            #vec_cam = (cx,cy,cz)
             vec_arr = point
-            #angle = np.arccos(np.inner(vec_cam, vec_arr)/(np.linalg.norm(vec_cam)*np.linalg.norm(vec_arr)))
     
-
             if is_behind_sphere(*camerapos, vec_arr):
                 alpha = 0
             else:
                 alpha = 1
                 zorder = 10
-
         else:
             alpha = 1
             zorder = 10
-
         
-        if CURRENT_ARROW_DIRECTION > 0 or i_pulsframe == False:
+        if CURRENT_ARROW_DIRECTION > 0 or i_pulsframe is None:
             A = point
             B = point+scaler*vector
         else:
@@ -388,25 +403,11 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
         ax.add_artist(ar)
         arrow_artists.append(ar)
 
-    #try:
-    #    ar = Arrow3D(*(0,0,0), *vec_cam, arrowstyle="-|>", lw=1,
-    #        mutation_scale=mutation_scale, color='green', zorder=11)
-    #    
-    #    ax.add_artist(ar)
-    #except:
-    #    pass
-    
-           
+
     ax.set_xlim(-1.1, 1.1)
     ax.set_ylim(-1.1,1.1)
     ax.set_zlim(-1.1, 1.1)
-    
-
    
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    
     return arrow_artists
 
 

@@ -14,10 +14,9 @@ import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 import tkinter.simpledialog as simpledialog
 
-from tk_steroids.dialogs import TickSelect, popup_tickselect
+from tk_steroids.dialogs import popup_tickselect, popup
 from tk_steroids.menumaker import MenuMaker
 from tk_steroids.datamanager import ListManager
-from tk_steroids.elements import Tabs
 
 import gonioanalysis
 from gonioanalysis.directories import USER_HOMEDIR, ANALYSES_SAVEDIR
@@ -29,7 +28,13 @@ from gonioanalysis.drosom.reports.left_right import left_right_displacements, lr
 from gonioanalysis.drosom.reports.stats import response_magnitudes
 from gonioanalysis.tkgui import settings
 from gonioanalysis.tkgui.run_measurement import MeasurementWindow
-from gonioanalysis.tkgui.widgets import ZeroCorrect
+from gonioanalysis.tkgui.widgets import (
+        select_specimens,
+        select_specimen_groups,
+        ZeroCorrect,
+        CompareVectormaps,
+        )
+        
 
 
 
@@ -50,101 +55,6 @@ def prompt_result(tk_root, string):
     tk_root.clipboard_append(string)
 
     messagebox.showinfo(title='Result of ', message=string)
-
-
-
-def select_specimens(core, command, with_rois=None, with_movements=None, with_correction=None,
-        command_args=[], execute_callable_args=True, breaking_args=[()],
-        return_manalysers=False):
-    '''
-    Opens a specimen selection window and after ok runs command using
-    selected specimens list as the only input argument.
-
-    command                 Command to close after fly selection
-    with_rois               List specimens with ROIs selected if True
-    with_movements          List specimens with movements measured if True
-    command_args            A list of arguments passed to the command
-    execute_callable_args   Callable command_args will get executed and return
-                                value is used instead
-    breaking_args           If command_args callable return value in this list,
-                                halt the command
-    return_manalysers       Instead of passing the list of the specimen names as the first
-                            argument to the command, already construct MAnalyser objects and pass those
-    '''
-    parsed_args = []
-    for arg in command_args:
-        if execute_callable_args and callable(arg):
-            result = arg()
-            if result in breaking_args:
-                # Halting
-                return None
-            parsed_args.append(result)
-        else:
-            parsed_args.append(arg)
-
-
-    top = tk.Toplevel()
-    top.title('Select specimens')
-    top.grid_columnconfigure(1, weight=1)
-    top.grid_rowconfigure(1, weight=1)
-
-
-    if with_rois or with_movements or with_correction:
-        notify_string = 'Listing specimens with '
-        notify_string += ' and '.join([string for onoff, string in zip([with_rois, with_movements, with_correction],
-            ['ROIs', 'movements', 'correction']) if onoff ])
-        tk.Label(top, text=notify_string).grid(row=0, column=1)
-
-    specimens = core.list_specimens(with_rois=with_rois, with_movements=with_movements, with_correction=with_correction) 
-    
-    groups = list(SpecimenGroups().groups.keys())
-
-    if return_manalysers:
-        # This is quite wierd what is going on here
-        def commandx(specimens, *args, **kwargs):
-            manalysers = core.get_manalysers(specimens)
-            return command(manalysers, *args, **kwargs)
-    else:
-        commandx = command
-
-    tabs = Tabs(top, ['Specimens', 'Groups'])
-
-    for tab, selectable in zip(tabs.tabs, [specimens, groups]):
-        selector = TickSelect(tab, selectable, commandx, callback_args=parsed_args)
-        selector.grid(sticky='NSEW', row=1, column=1)
-    
-        tk.Button(selector, text='Close', command=top.destroy).grid(row=2, column=1)
-    
-    tabs.grid(row=1, column=1,sticky='NSEW')
-
-
-
-def select_specimen_groups(core, command):
-    '''
-    command gets the following dictionary
-        {'group1_name': [manalyser1_object, ...], ...}
-    '''
-    top = tk.Toplevel()
-    top.title('Select specimen groups')
-    top.grid_columnconfigure(0, weight=1)
-    top.grid_rowconfigure(1, weight=1)
-
-    
-    gm = SpecimenGroups()
-    gm.load_groups()
-
-    def commandx(group_names):
-        grouped = {}
-        for group_name in group_names:
-            print(gm.groups[group_name])
-            manalysers = [core.get_manalyser(specimen) for specimen in gm.groups[group_name]]
-            grouped[group_name] = manalysers
-        command(grouped)
-
-    selector = TickSelect(top, list(gm.groups.keys()), commandx)
-    selector.grid(sticky='NSEW')
-
-    tk.Button(selector, text='Close', command=top.destroy).grid(row=2, column=1)
 
 
 
@@ -424,6 +334,8 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 'averaged_vectormap_DASH_interactive_plot', 'averaged_vectormap_DASH_rotating_video',
                 'averaged_vectormap_DASH_rotating_video_DASH_set_title',
                 '.',
+                'compare_vectormaps',
+                '.',
                 'comparision_to_optic_flow_DASH_video',
                 '.',
                 'export_LR_displacement_CSV',
@@ -493,7 +405,12 @@ class ManySpecimenCommands(ModifiedMenuMaker):
     def averaged_vectormap_DASH_rotating_video_DASH_set_title(self):
         ask_string('Set title', 'Give video title', lambda title: select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average --short-name {} -A vectormap_video'.format(title)), with_movements=True)) 
         
-        
+
+    def compare_vectormaps(self):
+        popup(self.tk_root, CompareVectormaps, args=[self.core],
+                title='Vectormap comparison')
+       
+
     def comparision_to_optic_flow_DASH_video(self): 
         select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average -A flow_analysis_pitch'), with_movements=True) 
         

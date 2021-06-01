@@ -268,8 +268,43 @@ def is_behind_sphere(elev, azim, point):
         return False
 
 
+def plot_guidance(ax, camerapos=None, r=1,
+        mutation_scale=6, hide_text=False):
+    '''
+    Plot help elements to point left,right,front,back
+    '''
+    arrows = []
+    guidances = {'Right': ((r,0,0), (0.2,0,0)),
+            'Left': ((-r,0,0),(-0.2,0,0)),
+            '  Ventral': ((0,0,-r),(0,0,-0.3)),
+            '  Dorsal': ((0,0,r),(0,0,0.3))}
+       
+    for name, (point, vector) in guidances.items():
+        point = np.array(point)
+        vector = np.array(vector)
 
-def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
+        if is_behind_sphere(*camerapos, point):
+            zorder = 1
+        else:
+            zorder = 8
+
+        ar = Arrow3D(*point, *(point+vector), mutation_scale=mutation_scale,
+                lw=0.2, color='black', zorder=zorder)
+        ax.add_artist(ar)
+        arrows.append(ar)
+        
+        if not hide_text:
+            if name in ('Left', 'Right'):
+                ha = 'center'
+            else:
+                ha = 'left'
+            ax.text(*(point+vector/1.05), name, color='black',
+                    fontsize='xx-large', va='bottom', ha=ha,
+                    linespacing=1.5, zorder=zorder+1)
+
+    return arrows
+
+def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_length=1,
         i_pulsframe=None, guidance=False, camerapos=None, draw_sphere=True,
         hide_axes=False, hide_text=False,
         **kwargs):
@@ -335,32 +370,7 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
         camerapos = (ax.elev, ax.azim)
  
     if guidance:
-        guidances = {'Right': ((r,0,0), (0.2,0,0)),
-                'Left': ((-r,0,0),(-0.2,0,0)),
-                '  Ventral': ((0,0,-r),(0,0,-0.3)),
-                '  Dorsal': ((0,0,r),(0,0,0.3))}
-           
-        for name, (point, vector) in guidances.items():
-            point = np.array(point)
-            vector = np.array(vector)
-
-            if is_behind_sphere(*camerapos, point):
-                zorder = 1
-            else:
-                zorder = 8
-
-            ar = Arrow3D(*point, *(point+vector), mutation_scale=mutation_scale,
-                    lw=0.2, color='black', zorder=zorder)
-            ax.add_artist(ar)
-            
-            if not hide_text:
-                if name in ('Left', 'Right'):
-                    ha = 'center'
-                else:
-                    ha = 'left'
-                ax.text(*(point+vector/1.05), name, color='black',
-                        fontsize='xx-large', va='bottom', ha=ha,
-                        linespacing=1.5, zorder=zorder+1)
+        plot_guidance(ax, camerapos=camerapos, hide_text=hide_text)
 
     if draw_sphere:
         N = 75
@@ -376,6 +386,8 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
         scaler = CURRENT_ARROW_LENGTH
     else:
         scaler = 1.1
+
+    scaler *= scale_length
 
     for point, vector in zip(points, vectors):
 

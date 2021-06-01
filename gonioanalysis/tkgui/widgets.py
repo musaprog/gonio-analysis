@@ -6,6 +6,7 @@ import numpy as np
 import threading
 
 import tkinter as tk
+from tkinter import filedialog
 import tifffile
 
 from tk_steroids.elements import (Tabs,
@@ -459,6 +460,9 @@ class CompareVectormaps(tk.Frame):
                 super().__init__(*args, **kwargs)
                 self.main_widget = main_widget
             
+            def save_all_views(self):
+                self.main_widget.savefig()
+
             def close_window(self):
                 self.main_widget.tk_parent.destroy()
                 
@@ -466,9 +470,6 @@ class CompareVectormaps(tk.Frame):
         self.tk_parent = tk_parent
         
         self.core = core
-        self.analyser0 = None
-        self.analyser1 = None
-
 
         self.plot_functions = [plot_3d_vectormap, plot_3d_vectormap,
                 plot_3d_differencemap]
@@ -490,9 +491,13 @@ class CompareVectormaps(tk.Frame):
             axes[-1].azim = 60
             
             # Plot settings
+            if i in [0,1]:
+                cmd = lambda i=i: self.set_vectormap(i_canvas=i)
+            else:
+                cmd = self.plot_difference
             options, defaults = inspect_booleans(self.plot_functions[i])
             tickboxes = TickboxFrame(self, options, defaults=defaults,
-                    callback=lambda i=i: self.set_vectormap(i_canvas=i))
+                    callback=cmd)
             tickboxes.grid(row=4, column=i, sticky='NSWE')
             self.tickbox_frames.append(tickboxes)
 
@@ -531,8 +536,11 @@ class CompareVectormaps(tk.Frame):
 
     def _update_canvases(self):
         for i in range(3):
+            ax = self.canvases[i].ax
+            if ax.dist != 8.5:
+                ax.dist = 8.5
+ 
             self.canvases[i].update()
-
 
     def select_specimens(self, i_canvas):
         select_specimens(self.core, self.set_vectormap,
@@ -545,6 +553,7 @@ class CompareVectormaps(tk.Frame):
         start_time = time.time()
 
         canvas = self.canvases[i_canvas]
+        ax = canvas.ax
         
         if manalysers is None:
             analyser = self.analysers[i_canvas]
@@ -556,12 +565,18 @@ class CompareVectormaps(tk.Frame):
             else:
                 analyser = manalysers[0]
         
-        azim, elev = (canvas.ax.azim, canvas.ax.elev)
-        canvas.ax.clear()
-
+        azim, elev = (ax.azim, ax.elev)
+        ax.clear()
+        
+       
         kwargs = self.tickbox_frames[i_canvas].states
         
-        plot_3d_vectormap(analyser, ax=canvas.ax, azim=azim, elev=elev, **kwargs)
+        plot_3d_vectormap(analyser, ax=ax, azim=azim, elev=elev,
+                mutation_scale=6, scale_length=1.2, **kwargs)
+        
+        if ax.dist != 8.5:
+            ax.dist = 8.5
+ 
         canvas.update()
 
         self.analysers[i_canvas] = analyser
@@ -571,15 +586,52 @@ class CompareVectormaps(tk.Frame):
 
     def plot_difference(self):
         
-        if self.analyser0 is None or self.analyser1 is None:
+        if any([an is None for an in self.analysers]):
             return None
+        
+        kwargs = self.tickbox_frames[-1].states
+        
+        ax = self.canvases[-1].ax
+        ax.clear()
+        plot_3d_differencemap(*self.analysers[0:2], ax=ax, **kwargs)
+        
+        if ax.dist != 8.5:
+            ax.dist = 8.5
 
-        plot_3d_differencemap(*self.analysers[0:2], ax=self.canvases[-1].ax)
         self.canvases[-1].update()
 
     
-    def save_image(self, i_canvas='all'):
+    def savefig(self, i_canvas=None, fn=None):
         '''
         Save current images visible on the canvases
+
+        i_canvas : int or None
+            If none, save all views by inserting index of the canvas
+            to the end of the saved filename.
+        fn : string or None
+            If not given, save name is asked from the user.
         '''
-        pass 
+        
+        if i_canvas is None:
+            iterate = range(len(self.canvases))
+        elif isinstance(i_canvas, int) and i_canvas:
+            iterate = [i_canvas]
+        else:
+            raise ValueError('wrong type for i_canvas: {}'.format(i_canvas))
+
+        if fn is None:
+            
+            if i_canvas == 'all':
+                text = 'Select common save name for the views'
+            else:
+                text = 'Save image on a view'
+
+            fn = filedialog.asksaveasfilename(title=text)
+            
+            if not '.' in os.path.basename(fn):
+                fn = fn + '.png'
+
+            if fn:
+                for i_canvas in iterate:
+                    efn = '.'.join(fn.split('.')[:-1]+[str(i_canvas)]+fn.split('.')[-1:])
+                    self.canvases[i_canvas].figure.savefig(efn, dpi=600)

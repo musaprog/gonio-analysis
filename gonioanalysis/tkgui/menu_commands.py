@@ -33,6 +33,7 @@ from gonioanalysis.tkgui.widgets import (
         select_specimen_groups,
         ZeroCorrect,
         CompareVectormaps,
+        ImagefolderMultisel,
         )
         
 
@@ -341,7 +342,9 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 'export_LR_displacement_CSV',
                 'export_LR_displacement_CSV_DASH_strong_weak_eye_division',
                 'save_kinematics_analysis_CSV',
-                'save_sinesweep_analysis_CSV']
+                'save_sinesweep_analysis_CSV',
+                '.',
+                'detailed_export',]
 
 
     def _batch_measure(self, specimens, absolute_coordinates=False):
@@ -472,6 +475,22 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         
         if fns:
             lrfiles_summarise(fns)
+
+
+    def detailed_export(self):
+        
+        def callback(wanted_imagefolders):
+            
+            analysers = self.core.get_manalysers(list(wanted_imagefolders.keys()))
+
+            group_name = ask_string('Group name', 'Name the selected group of specimens', self.tk_root)
+
+            left_right_displacements(analysers, group_name,
+                    wanted_imagefolders=wanted_imagefolders) 
+
+
+        top, imagefolder_multisel = popup(self.tk_root, ImagefolderMultisel,
+                args=[self.core, callback], title='Detailed export...')
 
 
 

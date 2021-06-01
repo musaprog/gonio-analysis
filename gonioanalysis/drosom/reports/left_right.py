@@ -52,8 +52,9 @@ def read_CSV_cols(fn):
 def left_right_displacements(manalysers, group_name,
         fn_prefix='LR-displacements',
         savedir=LR_SAVEDIR,
-        stimuli={'uv': ['uv', ')'], 'green': ['green']},
-        strong_weak_division=True, divide_threshold=3):
+        stimuli={'uv': ['uv', ')'], 'green': ['green'], 'NA': []},
+        strong_weak_division=False, divide_threshold=3,
+        wanted_imagefolders=None):
     '''
     Saves CSV files of left and right eye movements and ERGs.
     
@@ -80,47 +81,67 @@ def left_right_displacements(manalysers, group_name,
         Related to the strong_weak_divison argument. For some specimen there may be
         recordings only from one eye, and divide_threshold or more is required
         to in total to do the division.
+    wanted_imagefolders: None or a dict
+        Keys specimen names, items a sequence of wanted imagefolders
+        Relaxes horizontal conditions.
     '''
     
     # each "file" is a list of columns
-    csv_files = {stim: [] for stim in stimuli.keys()}
     
     fs = None
     efs = None
-
+    
+    if wanted_imagefolders:
+        conditions = [None, None] 
+        csv_files = {'NA': []}
+    else:
+        conditions = [lambda h: h>10, lambda h: h<-10]
+        csv_files = {stim: [] for stim in stimuli.keys()}
 
     for manalyser in manalysers:
         
         # Left eye
-        for eye, condition in zip(['left', 'right'], [lambda h: h>10, lambda h: h<-10]):
+        for eye, condition in zip(['left', 'right'], conditions):
 
             eyedata = {stim: [] for stim in stimuli.keys()}
 
             for image_folder in manalyser.list_imagefolders(horizontal_condition=condition): 
                 
-                for stim in stimuli.keys():
-                    if any([image_folder.endswith(match) for match in stimuli[stim]]):
-                        
-                        trace = manalyser.get_magnitude_traces(eye,
-                                image_folder=image_folder,
-                                mean_repeats=True)
+                if wanted_imagefolders and image_folder not in wanted_imagefolders.get(manalyser.name, []):
+                    # Skip image_folder if not in wanted_imagefolders (if it's not None)
+                    continue
+                
+                if wanted_imagefolders is None:
+                    # look for match
+                    stims = []
+                    for _stim in stimuli.keys():
+                        if any([image_folder.endswith(match) for match in stimuli[stim]]):
+                            stims.append( _stim )
+                else:
+                    stims = ['NA']
+                
+                for stim in stims:
+
+                    trace = manalyser.get_magnitude_traces(eye,
+                            image_folder=image_folder,
+                            mean_repeats=True)
+                
+                    trace = list(trace.values())
+                    if len(trace) >= 2:
+                        raise NotImplementedError('mistake in implementation')
                     
-                        trace = list(trace.values())
-                        if len(trace) >= 2:
-                            raise NotImplementedError('mistake in implementation')
-                        
 
-                        if trace:
-                            # Check that fs matches
-                            nfs = manalyser.get_imaging_frequency(image_folder=image_folder)
-                            if fs is None:
-                                fs = nfs
-                            elif fs != nfs:
-                                raise ValueError('Analysers with multiple fs!')
+                    if trace:
+                        # Check that fs matches
+                        nfs = manalyser.get_imaging_frequency(image_folder=image_folder)
+                        if fs is None:
+                            fs = nfs
+                        elif fs != nfs:
+                            raise ValueError('Analysers with multiple fs!')
 
-                            trace = trace[0][0]
-                            eyedata[stim].append(trace)
-           
+                        trace = trace[0][0]
+                        eyedata[stim].append(trace)
+       
 
             for stim in stimuli.keys():
                 if eyedata[stim]:

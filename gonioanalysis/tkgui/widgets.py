@@ -12,6 +12,7 @@ import tifffile
 from tk_steroids.elements import (Tabs,
         ButtonsFrame,
         TickboxFrame,
+        Listbox,
         )
 from tk_steroids.matplotlib import CanvasPlotter
 from tk_steroids.dialogs import TickSelect
@@ -29,6 +30,11 @@ from gonioanalysis.drosom.plotting.basics import (
         plot_3d_vectormap,
         plot_3d_differencemap,
         )
+
+
+
+
+
 
 
 def select_specimens(core, command, with_rois=None, with_movements=None, with_correction=None,
@@ -122,6 +128,86 @@ def select_specimen_groups(core, command):
     selector.grid(sticky='NSEW')
 
     tk.Button(selector, text='Close', command=top.destroy).grid(row=2, column=1)
+
+
+
+class ImagefolderMultisel(tk.Frame):
+    '''
+    Widget to select image folders from the specimens
+    
+    Attributes
+    ----------
+    core
+    specimens_listbox
+    imagefolders_listbox
+    buttons_frame
+    '''
+    
+    def __init__(self, tk_parent, core, callback, **kwargs):
+        '''
+        *kwargs to core.list_specimens
+        '''
+        tk.Frame.__init__(self, tk_parent)
+        
+        self.tk_parent = tk_parent
+        self.core = core
+        self.callback = callback
+        self._separator = ';'
+
+        specimens = core.list_specimens(**kwargs) 
+        self.specimens_listbox = Listbox(self, specimens, self.on_specimen_selection)
+        self.specimens_listbox.grid(row=0, column=0, sticky='NSWE')
+        
+        self.imagefolders_listbox = Listbox(self, [''], None)
+        self.imagefolders_listbox.grid(row=0, column=1, sticky='NSWE')
+
+        self.buttons_frame = ButtonsFrame(self,
+                button_names=['Add', 'Remove', 'Ok'], horizontal=False,
+                button_commands=[self.on_add_press, self.on_remove_press, self.on_ok])
+        self.buttons_frame.grid(row=0, column=2)
+
+        self.selected_listbox = Listbox(self, [], None)
+        self.selected_listbox.grid(row=0, column=3, sticky='NSWE')
+        
+        for i in [0, 1, 3]:
+            self.grid_columnconfigure(i, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+    
+    def on_specimen_selection(self, name):
+        analyser = self.core.get_manalyser(name)
+        image_folders = analyser.list_imagefolders()
+        self.imagefolders_listbox.set_selections(image_folders)
+
+
+    def on_add_press(self):
+        image_folder = self.imagefolders_listbox.current
+        if image_folder:
+            sel = self.specimens_listbox.current + self._separator + image_folder
+            
+            selections = self.selected_listbox.selections + [sel]
+            self.selected_listbox.set_selections(selections)
+
+    
+    def on_remove_press(self):
+        to_remove = self.selected_listbox.current
+        if to_remove:
+            selections = self.selected_listbox.selections
+            selections.remove(to_remove)
+            
+            self.selected_listbox.set_selections(selections)
+
+
+    def on_ok(self):
+        image_folders = {}
+        for z in self.selected_listbox.selections:
+            s, i = z.split(self._separator)
+            if s not in image_folders:
+                image_folders[s] = []
+            image_folders[s].append(i)
+
+        self.callback(image_folders)
+        self.tk_parent.destroy()
+
 
 
 

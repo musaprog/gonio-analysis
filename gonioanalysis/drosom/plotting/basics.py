@@ -19,10 +19,11 @@ from .common import (
         surface_plot,
         add_rhabdomeres,
         add_line,
-        plot_2d_opticflow
+        plot_2d_opticflow,
+        plot_guidance
         )
 from gonioanalysis.directories import CODE_ROOTDIR
-from gonioanalysis.drosom.optic_flow import field_error
+from gonioanalysis.drosom.optic_flow import field_error, field_pvals
 from gonioanalysis.coordinates import rotate_vectors
 from tk_steroids.routines import extend_keywords
 
@@ -341,11 +342,12 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
     return ax, vectors
 
 
-def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
+def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=True,
         elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True,
         colorbar=True, colorbar_text=True, colorbar_ax=None, reverse_errors=False,
         colorbar_text_positions=[[1.1,0.95,'left', 'top'],[1.1,0.5,'left', 'center'],[1.1,0.05,'left', 'bottom']],
-        i_frame=0, arrow_rotations=[0], pitch_rot=None, yaw_rot=None, roll_rot=None):
+        i_frame=0, arrow_rotations=[0], pitch_rot=None, yaw_rot=None, roll_rot=None,
+        hide_axes=False, hide_text=False, guidance=False):
     '''
     Plots 3d heatmap presenting the diffrerence in the vector orientations
     for two analyser objects, by putting the get_3d_vectors of both analysers
@@ -359,6 +361,9 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         Analyser objects to plot the difference with 3d vectors
     ax : object or None
         Matplotlib Axes object
+    stats_map : bool
+        If True, do not plot the difference but mann-whitney U
+        test p value
     colorbar : bool
         Whether to add the colors explaining colorbar
     colorbar_text: bool
@@ -369,6 +374,9 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         Arrow rotations, for the second manalyser
     i_frame : int
         Neglected here
+    hide_axes : bool
+    hide_text : bool
+    guidance : bool
     '''
     
     if ax is None:
@@ -389,6 +397,24 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
     if roll_rot is not None:
         manalyser2.roll_rot = roll_rot
     
+    if guidance:
+        plot_guidance(ax, camerapos=(ax.elev, ax.azim), hide_text=hide_text)
+    
+    if hide_axes:
+        ax.set_axis_off()
+
+    if hide_text:
+        ax.axes.xaxis.set_ticklabels([])
+        ax.axes.yaxis.set_ticklabels([])
+        ax.axes.zaxis.set_ticklabels([]) 
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.set_zlabel('')      
+    else:   
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+    
 
     all_errors = []
     for eye in manalyser1.eyes:
@@ -398,14 +424,18 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         for manalyser in [manalyser1, manalyser2]:
             
             vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True,
-                repeats_separately=False,
+                repeats_separately=stats_map,
                 strict=True, vertical_hardborder=True)
  
             points.append(vectors_3d[0])
             vectors.append(vectors_3d[1])
        
         # Errors at the points[0]
-        errors = field_error(points[0], vectors[0], points[1], vectors[1], colinear=colinear)
+        if stats_map:
+            points, errors = field_pvals(points[0], vectors[0], points[1], vectors[1], colinear=colinear)
+        else:
+            # regular difference map
+            errors = field_error(points[0], vectors[0], points[1], vectors[1], colinear=colinear)
         
         if reverse_errors:
             errors = 1-errors
@@ -425,8 +455,10 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
     ax.view_init(elev=elev, azim=azim)
 
     # COLORBAR
-    if colorbar and getattr(ax, 'differencemap_colorbar', None) is None:
-
+    cax = getattr(ax, 'differencemap_colorbar_ax', None)
+    colorbar_obj = getattr(ax, 'differencemap_colorbar', None)
+    if colorbar and (cax is None or colorbar_obj is None): 
+        
         if colorbar_ax is None:
             cbox = ax.get_position()
             cbox.x1 -= abs(cbox.x1 - cbox.x0)/10
@@ -436,11 +468,11 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         else:
             cax = colorbar_ax
         
-        ax.differencemap_colorbar = [cax, plt.colorbar(m, cax)]
+        ax.differencemap_colorbar_ax = cax
+        ax.differencemap_colorbar = plt.colorbar(m, cax)
     
         # COLORBAR INFO TEXT
         if colorbar_text:
-            cax = ax.differencemap_colorbar[0]
             #text_x = 1+0.1
             #ha = 'left'
             if colinear:
@@ -467,6 +499,9 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
                         transform=cax.transAxes)
             
             cax.set_axis_off()
+    elif colorbar is False and colorbar_obj is not None:
+        ax.differencemap_colorbar.remove()
+        ax.differencemap_colorbar = None
 
     if arrow_rotations:
         manalyser2.vector_rotation = original_rotation

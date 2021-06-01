@@ -1449,6 +1449,9 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         self.eyes = manalysers[0].eyes
         self.vector_rotation = None
 
+        self.interpolated_raw= {}
+
+
     def get_N_specimens(self):
         return len(self.manalysers)
 
@@ -1472,10 +1475,16 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         self.intp_step = (horizontal_step, vertical_step)
 
 
-    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=False, strict=False, vertical_hardborder=False, **kwargs):
+    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1,
+            recalculate=False, strict=False, vertical_hardborder=False,
+            repeats_separately=False, **kwargs):
         '''
         Equivalent to MAnalysers get_3d_vectors but interpolates with N-nearest
         neughbours.
+
+        repeats_separately : bool
+            If True, return underlying MAnalyser vectors separetly
+            (same points get repeated many times)
         '''
 
         cachename = ';'.join([str(item) for item in [self.vector_rotation, correct_level, normalize_length, strict, vertical_hardborder]])
@@ -1484,7 +1493,8 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         if self.interpolation.get(eye, {}).get(cachename) is None or recalculate:
 
             interpolated = [[],[]]
-            
+            self.interpolated_raw[eye] = [] # key points str, value list of vectors
+
             R = 1
             intp_dist = (2 * R * np.sin(math.radians(self.intp_step[0])))
             
@@ -1524,7 +1534,9 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
                     avec = mean_vector(intp_point, nearest_vectors)
                     interpolated[0].append(np.array(intp_point))
                     interpolated[1].append(avec)
-            
+                    
+                    self.interpolated_raw[eye].append(nearest_vectors)
+
             self.interpolation[eye] = {}
             self.interpolation[eye][cachename] = np.array(interpolated[0]), np.array(interpolated[1])
             
@@ -1533,13 +1545,26 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         
         
         points, vectors = self.interpolation[eye][cachename]
+        
+        if repeats_separately:
+            newpoints = []
+            newvecs = []
+            for i_point, point in enumerate(points):
+                for vec in self.interpolated_raw[eye][i_point]:
+                    newpoints.append(point)
+                    newvecs.append(vec)
+            points = np.array(newpoints)
+            vectors = np.array(newvecs)
 
+        for point in points:
+            print(point)
+        
         # Vertical/horizontal angle limiting
         booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],
                 vertical_upper=self.va_limits[1], reverse=self.alimits_reverse)
         points = points[booleans]
         vectors = vectors[booleans]
-
+        
 
         return points, vectors
 

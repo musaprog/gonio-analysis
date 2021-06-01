@@ -534,7 +534,7 @@ class OtherCommands(ModifiedMenuMaker):
 
         self.dm = ListManager(top, start_data=self.groups.groups,
                 save_callback=onsave, cancel_callback=oncancel)
-        tk.Button(self.dm.im2.buttons, text='Select specimens', command=_preedit).grid()
+        tk.Button(self.dm.im2.buttons, text='Select specimens', command=_preedit).grid(row=3, column=1)
         self.dm.grid(row=1, column=1, sticky='NSWE')
         top.rowconfigure(1, weight=1)
         top.columnconfigure(1, weight=1)

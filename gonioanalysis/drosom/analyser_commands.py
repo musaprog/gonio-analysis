@@ -70,3 +70,6 @@ DUALANALYSER_CMDS['compare_manyviews'] = basics.compare_3d_vectormaps_manyviews
 for animation_type in ['rotate_plot', 'rotate_arrows', 'pitch_rot', 'yaw_rot', 'roll_rot']:
     DUALANALYSER_CMDS['compare_manyviews_{}_video'.format(animation_type.replace('_',''))] = lambda an1, an2, at=animation_type: save_3d_animation([an1, an2], plot_function=basics.compare_3d_vectormaps_manyviews, animation_type=at)
 
+
+# Functions that take in a list of manalysers (first positional argument)
+MULTIANALYSER_CMDS = {}

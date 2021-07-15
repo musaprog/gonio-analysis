@@ -184,9 +184,11 @@ class Core:
         if specimens == 'current':
             specimen_names = self.analyser.folder
         else:
-            specimen_names = ','.join(specimens)
+            specimen_names = ':'.join(specimens)
+            if not ':' in specimen_names:
+                specimen_names += ':'
         
-        arguments = '-D {} -S {} {}'.format(self.data_directory[0], specimen_names, terminal_args)
+        arguments = '-D "{}" -S "{}" {}'.format(self.data_directory[0], specimen_names, terminal_args)
         
         # FIXME for general use
         if self.analyser_class is not MAnalyser:

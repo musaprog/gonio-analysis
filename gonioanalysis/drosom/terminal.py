@@ -11,7 +11,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from gonioanalysis.drosom import analyser_commands
-from gonioanalysis.drosom.analyser_commands import ANALYSER_CMDS, DUALANALYSER_CMDS
+from gonioanalysis.drosom.analyser_commands import (
+        ANALYSER_CMDS,
+        DUALANALYSER_CMDS,
+        MULTIANALYSER_CMDS,
+        )
 from gonioanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 from gonioanalysis.droso import DrosoSelect
 from gonioanalysis.antenna_level import AntennaLevelFinder
@@ -33,7 +37,7 @@ if '--tk_waiting_window' in sys.argv:
 
 Analysers = {'orientation': OAnalyser, 'motion': MAnalyser, 'flow': FAnalyser}
 
-analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS}
+analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS, **MULTIANALYSER_CMDS}
 
 
 def roimovement_video(analyser):
@@ -98,8 +102,12 @@ def main(custom_args=None):
             help='Data directory')
 
     parser.add_argument('-S', '--specimens', nargs='+',
-            help='Comma separeted list of specimen names. Separate groups by space when averaging is on.')
-
+            help=('Comma separeted list of specimen names.'
+                ' Separate groups by space when averaging is on.'
+                ' If needed, wanted image folders can be specified with semicolons'
+                ' for example, specimen1;imf1;imf2:specimen2;imf1'
+                ' (does not work with groups). If image folders contain commas, use'
+                ' semicolons, use colons (:) to separate specimens'))
     
 
     # Analyser settings
@@ -160,6 +168,8 @@ def main(custom_args=None):
     if not os.path.isdir(data_directory):
         raise ValueError("{} is not a directory".format(data_directory))
 
+    # {specimen name : [image_folder_1, ...]}
+    wanted_imagefolders = {}
 
     # Getting the specimens
     # ---------------------
@@ -172,6 +182,25 @@ def main(custom_args=None):
             if group == 'none':
                 directory_groups.append(None)
                 continue
+
+            if ':' in group:
+                specimen_separator = ':'
+            else:
+                specimen_separator = ','
+
+            if ';' in group:
+                
+                for specimen in group.split(specimen_separator):
+                    if ';' in specimen:
+                        splitted = specimen.split(';')
+                        wanted_imagefolders[splitted[0]] = splitted[1:]
+                
+                # Remove specified imagefolders
+                group = ','.join([z.split(';')[0] for z in group.split(specimen_separator)])
+            
+            
+            # dont commit me
+            group = group.replace(':', ',')
 
             selector = DrosoSelect(datadir=data_directory)
             directories = selector.parse_specimens(group)
@@ -238,6 +267,9 @@ def main(custom_args=None):
                 analysers = avg_analyser
             else:
                 analysers = analysers[0]
+        else:
+            if len(analysers) == 1:
+                analysers = analysers[0]
 
         analyser_groups.append(analysers)
     
@@ -245,13 +277,20 @@ def main(custom_args=None):
     function = analyses[args.analysis[0]]
     
     print(analyser_groups)
-
-    if args.average:
-        function(*analyser_groups)
+    
+    kwargs = {}
+    if wanted_imagefolders:
+        kwargs['wanted_imagefolders'] = wanted_imagefolders
+    
+    if function in MULTIANALYSER_CMDS.values():
+        for analysers in analyser_groups:
+            function(analysers, **kwargs)
+    elif args.average or function in DUALANALYSER_CMDS.values():
+        function(*analyser_groups, **kwargs)
     else:
         for analysers in analyser_groups:
             for analyser in analysers:
-                function(analyser)
+                function(analyser, **kwargs)
 
     if args.tk_waiting_window:
         waiting_window.close()

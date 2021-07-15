@@ -6,7 +6,11 @@ import os
 import csv
 import numpy as np
 
-from gonioanalysis.drosom.kinematics import mean_max_response
+from gonioanalysis.drosom.kinematics import (
+        mean_max_response,
+        _sigmoidal_fit,
+        _simple_latencies,
+        )
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 
 LR_SAVEDIR = os.path.join(ANALYSES_SAVEDIR, 'LR_exports')
@@ -54,7 +58,8 @@ def left_right_displacements(manalysers, group_name,
         savedir=LR_SAVEDIR,
         stimuli={'uv': ['uv', ')'], 'green': ['green'], 'NA': []},
         strong_weak_division=False, divide_threshold=3,
-        wanted_imagefolders=None):
+        wanted_imagefolders=None,
+        microns=True):
     '''
     Saves CSV files of left and right eye movements and ERGs.
     
@@ -84,6 +89,8 @@ def left_right_displacements(manalysers, group_name,
     wanted_imagefolders: None or a dict
         Keys specimen names, items a sequence of wanted imagefolders
         Relaxes horizontal conditions.
+    microns : bool
+        Convert pixel movement values to microns
     '''
     
     # each "file" is a list of columns
@@ -115,7 +122,7 @@ def left_right_displacements(manalysers, group_name,
                     # look for match
                     stims = []
                     for _stim in stimuli.keys():
-                        if any([image_folder.endswith(match) for match in stimuli[stim]]):
+                        if any([image_folder.endswith(match) for match in stimuli[_stim]]):
                             stims.append( _stim )
                 else:
                     stims = ['NA']
@@ -124,7 +131,7 @@ def left_right_displacements(manalysers, group_name,
 
                     trace = manalyser.get_magnitude_traces(eye,
                             image_folder=image_folder,
-                            mean_repeats=True)
+                            mean_repeats=True, microns=microns)
                 
                     trace = list(trace.values())
                     if len(trace) >= 2:
@@ -351,9 +358,12 @@ def lrfiles_summarise(lrfiles, point_type='mean', ab=(None, None)):
 
         # First column is time, the last is the mean, skip these
         for col in coldata[1:-1]:
-
-            if a is not None and b is not None:
-                numerical_col = [float(num) for num in col[a+1:b]]
+            
+            if point_type != 'kinematics':
+                if a is not None and b is not None:
+                    numerical_col = [float(num) for num in col[a+1:b]]
+                else:
+                    numerical_col = [float(num) for num in col[1:]]
             else:
                 numerical_col = [float(num) for num in col[1:]]
 
@@ -361,8 +371,24 @@ def lrfiles_summarise(lrfiles, point_type='mean', ab=(None, None)):
                 value = np.mean(numerical_col)
             elif point_type.startswith('min-start'):
                 value = np.min(numerical_col) - float(col[1])
+            
+            elif point_type == 'kinematics':
+                fs = 1/(float(coldata[0][2]) - float(coldata[0][1]))
+                value = _sigmoidal_fit([numerical_col], fs)
+                value = [value[0][0], value[1][0], value[2][0]]
+                #value = _simple_latencies([numerical_col], fs)[0]
+            
+            if len(lrfiles)==1 and point_type == "kinematics":
+                # expand CSV rows
+                for name, val in zip(['displacement', 'speed', '1/2-risetime'], value):
+                    try:
+                        csv_rows[specimen_name+'_'+name]
+                    except:
+                        csv_rows[specimen_name+'_'+name] = []
+                    csv_rows[specimen_name+'_'+name].append(val)
 
-            csv_rows[specimen_name].append(value)
+            else:
+                csv_rows[specimen_name].append(value)
 
 
         csv_files[stim] = csv_rows

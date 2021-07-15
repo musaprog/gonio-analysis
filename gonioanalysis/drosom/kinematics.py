@@ -65,6 +65,54 @@ def magstd_over_repeats(manalyser, image_folder, maxmethod='max'):
     return np.std(displacements)
 
 
+def _simple_latencies(displacements, fs):
+    '''
+    Interpolate and take when goes over 1/10th
+    ''' 
+    latencies = []
+
+    timepoints = np.linspace(0, len(displacements[0])/fs, len(displacements[0]))
+    newx = np.linspace(0, len(displacements[0])/fs, 200)
+
+    for displacement in displacements:
+        y = np.interp(newx, timepoints, displacement)
+        
+        index = np.where(y>(np.max(y)/10))[0][0]
+        
+        latencies.append(newx[index])
+        
+    return latencies
+
+
+def _sigmoidal_fit(displacements, fs):
+    amplitudes = []
+    speeds = []
+    latencies = []
+ 
+    timepoints = np.linspace(0, len(displacements[0])/fs, len(displacements[0]))
+
+    for i_repeat, displacement in enumerate(displacements):
+        
+        # Initial guesses for k,L,t0
+        est_t0 = (np.argmax(displacement)/fs)/2
+        est_L = np.max(displacement)
+        est_k = est_L/est_t0
+        
+        try:
+            popt, pcov = scipy.optimize.curve_fit(_logistic_function, timepoints, displacement,
+                    p0=[est_k, est_L, est_t0])
+        except RuntimeError:
+            # Runtime Error occurs when curve fitting takes over maxfev iterations
+            # Usually then we have nonsigmoidal data (no response)
+            continue
+       
+        speeds.append(popt[0])
+        amplitudes.append(popt[1])
+        latencies.append(popt[2])
+
+    return amplitudes, speeds, latencies
+
+
 
 def sigmoidal_fit(manalyser, image_folder, figure_savefn=None, debug=False):
     '''

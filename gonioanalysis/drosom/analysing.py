@@ -1186,7 +1186,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
             
     def get_magnitude_traces(self, eye, image_folder=None,
-            mean_repeats=False, mean_imagefolders=False):
+            mean_repeats=False, mean_imagefolders=False,
+            microns=False):
         '''
         Get all movement magnitudes (sqrt(x**2+y**2)) from the specified eye.
         The results are returned as a dictionary where the keys are the
@@ -1204,6 +1205,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             Only makes sense when image_folder is None
         mean_eyes : bool
             Only makes sense when eye is None
+        microns : bool
+            Call self.get_pixel_size(image_folder) to convert from
+            pixel units to micrometers.
 
         Returns
             if mean_repeats == True
@@ -1277,6 +1281,11 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
             magnitude_traces = merge
+
+        if microns:
+            for image_folder in magnitude_traces:
+                pixel_size = self.get_pixel_size(image_folder)
+                magnitude_traces[image_folder] = [t*pixel_size for t in magnitude_traces[image_folder]]
 
         return magnitude_traces
 

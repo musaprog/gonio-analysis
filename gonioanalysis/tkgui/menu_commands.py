@@ -15,6 +15,7 @@ import tkinter.filedialog as filedialog
 import tkinter.simpledialog as simpledialog
 
 from tk_steroids.dialogs import popup_tickselect, popup
+from tk_steroids.elements import DropdownList
 from tk_steroids.menumaker import MenuMaker
 from tk_steroids.datamanager import ListManager
 
@@ -25,6 +26,7 @@ from gonioanalysis.drosom import linked_data
 from gonioanalysis.drosom import kinematics
 from gonioanalysis.drosom import sinesweep
 from gonioanalysis.drosom.reports.left_right import left_right_displacements, lrfiles_summarise
+from gonioanalysis.drosom.reports.repeats import mean_repeats, repeat_stds
 from gonioanalysis.drosom.reports.stats import response_magnitudes
 from gonioanalysis.tkgui import settings
 from gonioanalysis.tkgui.run_measurement import MeasurementWindow
@@ -475,6 +477,14 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         
         if fns:
             lrfiles_summarise(fns)
+    
+    def LR_kinematics(self):
+
+        fns = filedialog.askopenfilenames(initialdir=ANALYSES_SAVEDIR)
+        
+        if fns:
+            lrfiles_summarise(fns, point_type='kinematics')
+
 
 
     def detailed_export(self):
@@ -483,14 +493,34 @@ class ManySpecimenCommands(ModifiedMenuMaker):
             
             analysers = self.core.get_manalysers(list(wanted_imagefolders.keys()))
 
-            group_name = ask_string('Group name', 'Name the selected group of specimens', self.tk_root)
+            sel = self._export_selection.ticked[0]
 
-            left_right_displacements(analysers, group_name,
-                    wanted_imagefolders=wanted_imagefolders) 
+            if 'CSV' in sel:
+                group_name = ask_string('Group name', 'Name the selected group of specimens', self.tk_root)
+                if sel == 'Mean displacement curve CSV':
+                    left_right_displacements(analysers, group_name,
+                            wanted_imagefolders=wanted_imagefolders) 
+                elif sel == 'Mean over repeats CSV':
+                    mean_repeats(analysers, group_name,
+                            wanted_imagefolders=wanted_imagefolders)
+                elif sel == 'Stds over repeats CSV':
+                    repeat_stds(analysers, group_name,
+                            wanted_imagefolders=wanted_imagefolders)
+            elif sel == 'Displacement probability TIFF':
+                specimens = [';'.join([specimen, *image_folders]) for specimen, image_folders in wanted_imagefolders.items()]
+                self.core.adm_subprocess(specimens, '-A magnitude_probability')
 
+            else:
+                raise ValueError('Invalid export type selection')
 
         top, imagefolder_multisel = popup(self.tk_root, ImagefolderMultisel,
                 args=[self.core, callback], title='Detailed export...')
+        
+        self._export_selection = DropdownList(top,
+                ['Mean displacement curve CSV', 'Mean over repeats CSV',
+                    'Stds over repeats CSV',
+                    'Displacement probability TIFF'])
+        self._export_selection.grid()
 
 
 

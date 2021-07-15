@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import proj3d
 import mpl_toolkits.axes_grid1
 import matplotlib.image
+import matplotlib.colors
+import matplotlib.cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.ndimage import rotate
 import PIL
@@ -40,7 +42,8 @@ DEFAULT_FIGSIZE = (16,9)
 
 def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
         mean_repeats=False, mean_imagefolders=False, mean_eyes=False,
-        color_eyes=False, gray_repeats=False, show_mean=False, show_std=False,
+        color_eyes=False, gray_repeats=False, progressive_colors=False,
+        show_mean=False, show_std=False,
         show_label=True, milliseconds=False, microns=False,
         label="EYE-ANGLE-IREPEAT", ax=None):
     '''
@@ -106,7 +109,8 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
     N_repeats = 0
     traces = []
-   
+    
+
 
     for eye in eyes:
         magtraces = manalyser.get_magnitude_traces(eye, image_folder=image_folder,
@@ -116,7 +120,12 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
             
             if X is None or yscaler is None:
                 X, yscaler = get_x_yscaler(repeat_mags[0])
-
+            
+            if progressive_colors:
+                if gray_repeats:
+                    cmap = matplotlib.cm.get_cmap('binary', len(repeat_mags))
+                else:
+                    cmap = matplotlib.cm.get_cmap('viridis', len(repeat_mags))
 
             for _i_repeat, mag_rep_i in enumerate(repeat_mags):
                 
@@ -139,10 +148,14 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
                 if color_eyes:
                     ax.plot(X, Y, label=_label, color=EYE_COLORS.get(eye, 'green'))
-                elif gray_repeats:
-                    ax.plot(X, Y, label=_label, color='gray')
+                elif progressive_colors:
+                    color = cmap(_i_repeat)
+                    ax.plot(X, Y, label=_label, color=color)
                 else:
-                    ax.plot(X, Y, label=_label)
+                    if gray_repeats:
+                        ax.plot(X, Y, label=_label, color='gray')
+                    else:
+                        ax.plot(X, Y, label=_label)
                 
                 traces.append(Y)
     

@@ -423,7 +423,8 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
     return arrow_artists
 
 
-def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=None):
+def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=None,
+        colormap='own'):
     '''
     3D surface plot of the error between the optic flow vectors and the actual
     eye-movements vector map.
@@ -432,6 +433,17 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
 
     points
     values
+
+    Arguments
+    ---------
+    ax : object
+        Matplolib Axes object
+    points : list
+        List of x,y,z coordinates
+    values : list of scalars
+        List of scalar values at the given points, in the same order.
+    colormap : string
+        "own", "own-diverge" or any matplotlib colormap name
     '''
 
     if len(points) != len(values):
@@ -494,12 +506,17 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
         return errs
 
 
-
     colors = color_function_optimized(theta, phi)
     
-    culurs = [(0.2, 0.1, 0),(1,0.55,0),(1,1,0.4)]
+    if colormap == 'own':
+        culurs = [(0.2, 0.1, 0),(1,0.55,0),(1,1,0.4)]
+    elif colormap == 'own-diverge':
+        culurs = [(0,(0,0,0)),(0.001,(1,0,0)), (0.5,(1,1,1)), (1,(0,0,1))]
+    else:
+        # Must be Matplotlib colormap othewise
+        culurs = matplotlib.cm.get_cmap(colormap).colors
+
     ownmap = matplotlib.colors.LinearSegmentedColormap.from_list('ownmap', culurs, 100)
-    
     ax.plot_surface(X, Y, Z, facecolors=ownmap(colors), linewidth=0, vmin=0, vmax=1)
 
     

@@ -451,8 +451,8 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
     return ax, vectors
 
 
-def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=True,
-        elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True,
+def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=False,
+        elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True, direction=True,
         colorbar=True, colorbar_text=True, colorbar_ax=None, reverse_errors=False,
         colorbar_text_positions=[[1.1,0.95,'left', 'top'],[1.1,0.5,'left', 'center'],[1.1,0.05,'left', 'bottom']],
         i_frame=0, arrow_rotations=[0], pitch_rot=None, yaw_rot=None, roll_rot=None,
@@ -471,8 +471,7 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=True,
     ax : object or None
         Matplotlib Axes object
     stats_map : bool
-        If True, do not plot the difference but mann-whitney U
-        test p value
+        If true, plot p-vals.
     colorbar : bool
         Whether to add the colors explaining colorbar
     colorbar_text: bool
@@ -544,7 +543,8 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=True,
             points, errors = field_pvals(points[0], vectors[0], points[1], vectors[1], colinear=colinear)
         else:
             # regular difference map
-            errors = field_error(points[0], vectors[0], points[1], vectors[1], colinear=colinear)
+            errors = field_error(points[0], vectors[0], points[1], vectors[1],
+                    colinear=colinear, direction=direction)
         
         if reverse_errors:
             errors = 1-errors
@@ -556,8 +556,16 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=True,
         else:
             all_phi_points = [np.linspace(0, math.pi/2, 25), np.linspace(3*math.pi/2, 2*math.pi,25)]
 
+        if direction:
+            colormap = 'own-diverge'
+        else:
+            colormap = 'own'
+
+        print('{} eye, mean error {}'.format(eye, np.mean(errors)))
+
         for phi_points in all_phi_points:
-            m = surface_plot(ax, points[0], errors, phi_points=phi_points)
+            m = surface_plot(ax, points[0], errors, phi_points=phi_points,
+                    colormap=colormap)
     
     errors = np.concatenate(all_errors)
 
@@ -584,6 +592,19 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=True,
         if colorbar_text:
             #text_x = 1+0.1
             #ha = 'left'
+            if direction:
+                cax.text(colorbar_text_positions[0][0], colorbar_text_positions[0][1],
+                        'Counterclockwise +90',
+                        ha=colorbar_text_positions[0][2], va=colorbar_text_positions[0][3],
+                        transform=cax.transAxes)
+                cax.text(colorbar_text_positions[1][0], colorbar_text_positions[1][1],
+                        'Perpendicular',
+                        ha=colorbar_text_positions[1][2], va=colorbar_text_positions[1][3],
+                        transform=cax.transAxes)
+                cax.text(colorbar_text_positions[2][0], colorbar_text_positions[2][1], 
+                        'Clockwise -90',
+                        ha=colorbar_text_positions[2][2], va=colorbar_text_positions[2][3],
+                        transform=cax.transAxes)
             if colinear:
                 cax.text(colorbar_text_positions[0][0], colorbar_text_positions[0][1],
                         'Collinear',
@@ -913,13 +934,14 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
             text = text.format(formatting).format(float(animation_variable))
             ax.text(0.1, 1, text, transform=ax.transAxes, va='bottom', ha='left',fontsize=12)
         
-        if np.min(animation) < -100 and np.max(animation) > 100:
-            ax.set_xticks([-90,0,90])
-            ax.set_xticklabels(['-90$^\circ$', '0$^\circ$','90$^\circ$'])   
-        else:
-            ax.set_xticks([-45, 0, 45])
-            ax.set_xticklabels(['-45$^\circ$', '0$^\circ$','45$^\circ$'])   
-        
+        if animation:
+            if np.min(animation) < -100 and np.max(animation) > 100:
+                ax.set_xticks([-90,0,90])
+                ax.set_xticklabels(['-90$^\circ$', '0$^\circ$','90$^\circ$'])   
+            else:
+                ax.set_xticks([-45, 0, 45])
+                ax.set_xticklabels(['-45$^\circ$', '0$^\circ$','45$^\circ$'])   
+            
         if biphasic:
             if getattr(ax, 'pupil_compare_reverse_errors', None) is None:
                 ax.pupil_compare_reverse_errors = []

@@ -47,6 +47,14 @@ def load_data(folder, arl_fly=False):
         fns.sort()
         
         angles = load_angle_pairs(os.path.join(folder, 'anglepairs.txt'))
+        
+        # FIXME: Cannot really load any stack to check how many images in it,
+        #       takes too long if remote filesystem
+        # If saved as stack (much less images than angles)
+        if 10*len(fns) < len(angles):
+            fns = [fns[0]+'_{}'.format(i) for i in range(len(angles))]
+
+
     else:
         # DrosoM format (gonio imsoft): each position in own folder
         # Here for DrosoX, use only the first image in each pos folder

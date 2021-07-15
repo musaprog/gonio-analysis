@@ -27,7 +27,7 @@ import gonioanalysis.drosom.reports as reports
 
 
 if '--tk_waiting_window' in sys.argv:
-    from gonioanalysis.tkgui.waiting_window import WaitingWindow
+    from gonioanalysis.tkgui.widgets import WaitingWindow
 
 
 

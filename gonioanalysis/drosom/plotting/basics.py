@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import proj3d
 import mpl_toolkits.axes_grid1
 import matplotlib.image
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.ndimage import rotate
 import PIL
 
@@ -173,6 +174,101 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
     return ax, traces, N_repeats
 
+
+
+def plot_magnitude_probability(manalysers, wanted_imagefolders=None, ax=None,
+        mean_repeats=False, mean_imagefolders=False,
+        microns=True, milliseconds=True, xpoints=100):
+    '''
+    With many analysers and image folders, calculate probablity of the magnitude
+    response (2D histogram).
+
+    Arguments
+    ---------
+    manalysers : list of objs
+        Analyser objects
+    wanted_imagefolders : None or dict
+        Keys are analyser names, items lists of image folder names
+        to incldue. If None, use all image folders.
+    '''
+    print(wanted_imagefolders)
+
+    for logaritmic in [False, True]:
+
+        N_real = None
+
+        all_magtraces = []
+
+        for manalyser in manalysers:
+            for eye in manalyser.eyes:
+                
+                if wanted_imagefolders:
+                    image_folders = wanted_imagefolders[manalyser.name]
+                else:
+                    image_folders = manalyser.list_imagefolders()
+                
+                for image_folder in image_folders:
+                    magtraces = manalyser.get_magnitude_traces(eye, image_folder=image_folder,
+                            mean_repeats=mean_repeats, mean_imagefolders=mean_imagefolders)
+
+                    magtraces = list(magtraces.values())
+                    
+                    if len(magtraces) == 0:
+                        continue
+
+                    magtraces = magtraces[0]
+                    
+                    if N_real is None:
+                        N_real = len(magtraces[0])
+                    elif N_real != len(magtraces[0]):
+                        raise ValueError('All magtrace not the same length')
+
+                    # Interpolate
+                    magtraces = [np.interp(np.linspace(0,1,xpoints), np.linspace(0,1,len(magtrace)), magtrace) for magtrace in magtraces]
+                    
+                    all_magtraces.extend(magtraces)
+        
+        all_magtraces = np.array(all_magtraces, dtype=np.float)
+
+        limits = (min(0, np.min(all_magtraces)), np.max(all_magtraces)*1.5)
+        tmax = len(all_magtraces[0]) * (N_real/xpoints)
+        
+
+        #if ax is None:
+        fig, ax = plt.subplots()
+        
+        if microns:
+            pixel_size = manalyser.get_pixel_size(image_folder)
+            limits = [z*pixel_size for z in limits]
+        ax.set_ylabel('Displacement (µm)')
+        
+        if milliseconds:
+            tmax *= 1000 / manalyser.get_imaging_frequency(image_folder) 
+            ax.set_xlabel('Time (ms)')
+        else:
+            ax.set_xlabel('i_frame')
+        
+        prob = []
+
+        for points_t in all_magtraces.T:
+            hist = np.histogram(points_t, range=limits, bins=25)[0]
+            prob.append(hist/np.sum(hist))
+        
+        if logaritmic:
+            norm = matplotlib.colors.LogNorm()
+        else:
+            norm = None
+
+        im = ax.imshow(np.array(prob).T, origin='lower', cmap='binary',
+                norm=norm,
+                extent=[0, tmax,limits[0], limits[1]],
+                aspect='auto')# interpolation='lanczos')
+        
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05) 
+        ax.figure.colorbar(im, cax)
+
+    return ax, prob
 
 
 def _set_analyser_attributes(analyser, skip_none=True, raise_errors=False, **kwargs):

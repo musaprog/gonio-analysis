@@ -98,17 +98,26 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colin
                 else:
                     error = 1
             
-            if direction and vecB[2] > vecA[2]:
-                error = -error
+            if direction:
+                counter = coordinates.rotate_along_arbitrary(points_A[i], vecB, angle) 
+                clock = coordinates.rotate_along_arbitrary(points_A[i], vecB, -angle)
+                
+                if np.sum(counter - vecB) > np.sum(clock - vecB):
+                    error = -error
 
             vec_errors.append(error)
 
         errors[i] = np.average(vec_errors, weights=vecB_weights)
-
-    if colinear:
-        errors = 2 * np.abs(errors - 0.5)
+    
+    if direction:
+        if colinear:
+            errors *= 2
+        errors = (errors + 1)/2
     else:
-        errors = 1 - errors
+        if colinear:
+            errors = 2 * np.abs(errors - 0.5)
+        else:
+            errors = 1 - errors
 
     return errors
 

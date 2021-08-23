@@ -50,14 +50,14 @@ def ask_string(title, prompt, tk_parent):
 
 
 
-def prompt_result(tk_root, string):
+def prompt_result(tk_root, string, title='Message'):
     '''
     Shows the result and also sets it to the clipboard
     '''
     tk_root.clipboard_clear()
     tk_root.clipboard_append(string)
 
-    messagebox.showinfo(title='Result of ', message=string)
+    messagebox.showinfo(title=title, message=string)
 
 
 
@@ -77,7 +77,12 @@ class ModifiedMenuMaker(MenuMaker):
 
         self.replacement_dict['DASH'] = '-'
         self.replacement_dict['_'] = ' '
-
+    
+    def _message(self, message, **kwargs):
+        prompt_result(self.tk_root, message, **kwargs)
+    
+    def _ask_string(self, message, title='Input text'):
+        return ask_string(title, message, self.tk_root)
 
 
 class FileCommands(ModifiedMenuMaker):
@@ -194,7 +199,7 @@ class SpecimenCommands(ModifiedMenuMaker):
     def _force_order(self):
         return ['set_active_analysis', 'set_vector_rotation',
                 '.',
-                'select_ROIs', 'measure_movement', 'zero_correct',
+                'select_ROIs', 'measure_movement', 'set_vertical_zero_rotation',
                 '.',
                 'measure_movement_DASH_in_absolute_coordinates',
                 '.',
@@ -261,9 +266,9 @@ class SpecimenCommands(ModifiedMenuMaker):
         self.measure_movement(absolute_coordinates=True)
 
 
-    def zero_correct(self):
+    def set_vertical_zero_rotation(self):
         '''
-        Start antenna level search for the current specimen 
+        Start antenna level search for the current specimen (zero correction)
         '''
         
         # Try to close and destroy if any other antenna_level
@@ -273,23 +278,25 @@ class SpecimenCommands(ModifiedMenuMaker):
         except:
             # Nothing to destroy
             pass
+        
+        if not self.core.current_specimen:
+            self._message("Select a specimen first")
+        else:
+            
+            self.correct_window = tk.Toplevel()
+            self.correct_window.title('Zero correction -  {}'.format(self.core.current_specimen))
+            self.correct_window.grid_columnconfigure(0, weight=1)
+            self.correct_window.grid_rowconfigure(0, weight=1)
 
-        #fullpath = os.path.join(self.data_directory, self.current_specimen)
-        #self.core.adm_subprocess('current', 'antenna_level', open_terminal=True)
-        self.correct_window = tk.Toplevel()
-        self.correct_window.title('Zero correction -  {}'.format(self.current_specimen))
-        self.correct_window.grid_columnconfigure(0, weight=1)
-        self.correct_window.grid_rowconfigure(0, weight=1)
+            def callback():
+                self.correct_window.destroy()
+                self.core.update_gui()
 
-        def callback():
-            self.correct_window.destroy()
-            self.core.update_gui()
-
-        self.correct_frame = ZeroCorrect(self.correct_window,
-                os.path.join(self.core.directory, self.core.current_specimen), 
-                'alr_data',
-                callback=callback)
-        self.correct_frame.grid(sticky='NSEW')
+            self.correct_frame = ZeroCorrect(self.correct_window,
+                    self.core.get_specimen_fullpath(),
+                    'alr_data',
+                    callback=callback)
+            self.correct_frame.grid(sticky='NSEW')
 
 
     def vectormap_DASH_interactive_plot(self):

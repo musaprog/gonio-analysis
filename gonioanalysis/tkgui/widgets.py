@@ -254,9 +254,14 @@ class ZeroCorrect(tk.Frame):
         # Load data
         self.specimen_pitches, self.specimen_images = load_drosom(specimen_path)
         #self.reference_pitches, self.reference_images = {fn: pitch for pitch, fn in loadReferenceFly(alr_data_path).items()}
-        
+       
+        try:
+            alr_data = load_reference_fly(alr_data_path)
+        except FileNotFoundError:
+            alr_data = {}
+
         self.reference_pitches, self.reference_images = [[],[]]
-        for pitch, fn in sorted(load_reference_fly(alr_data_path).items(), key=lambda x: float(x[0])):
+        for pitch, fn in sorted(alr_data.items(), key=lambda x: float(x[0])):
             self.reference_pitches.append(pitch)
             self.reference_images.append(fn)
 
@@ -266,7 +271,14 @@ class ZeroCorrect(tk.Frame):
 
         self.reference_plotter = CanvasPlotter(self, text='Reference fly')
         self.reference_plotter.grid(row=1, column=1, sticky='NSEW')
-      
+        
+        if not alr_data:
+            self.reference_plotter.ax.text(0.1, 0.1, (
+                    "No reference data created. Options:\n"
+                    "  A) Set correction manually\n"
+                    "  B) Run scripts/create_alr_data.py"),
+                    color='red')
+
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -332,8 +344,9 @@ class ZeroCorrect(tk.Frame):
         '''
         Call to update imshow plots.
         '''
-        self.reference_image = tifffile.imread(self.reference_images[self.i_reference])
-        self.reference_plotter.imshow(self.reference_image, cmap='gray', slider=True)
+        if self.reference_images:
+            self.reference_image = tifffile.imread(self.reference_images[self.i_reference])
+            self.reference_plotter.imshow(self.reference_image, cmap='gray', slider=True)
 
         self.specimen_image = tifffile.imread(self.specimen_images[self.i_specimen])
         self.specimen_plotter.imshow(self.specimen_image, cmap='gray', slider=True)
@@ -346,15 +359,17 @@ class ZeroCorrect(tk.Frame):
         value = tk.simpledialog.askstring("Manual correction value",
                 "The vertical angle when the deep\npseudopupils align with the antenna?", parent=self)
         
-        self.offsets = float(value)
-        self.report()
+        if value:
+            self.offsets = float(value)
+            self.report()
+
 
     def report(self):
         '''
         Report the results with a pop up window
         '''
-        message = 'Correction value {}'.format(np.mean(self.offsets))
-        tk.messagebox.showinfo('Zero correction ready', message)
+        message = 'Correction value set as {}'.format(np.mean(self.offsets))
+        tk.messagebox.showinfo('Zero correction ready', message, parent=self)
         
         save_antenna_level_correction(self.specimen_name, np.mean(self.offsets))
         

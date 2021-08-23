@@ -113,6 +113,25 @@ class Core:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction() is not False]
 
         return sorted(specimens)
+    
+
+    def get_specimen_fullpath(self, specimen_name=None):
+        '''
+        Returns the full path of a specimen (datadir + specimen_patch)
+        
+        Arguments
+        ---------
+        specimen_namse : string or None
+            If None use self.current_specimen
+        '''
+        if specimen_name is None:
+            specimen_name = self.current_specimen
+
+        for directory in self.data_directory:
+            if specimen_name in self._folders[directory]:
+                return os.path.join(directory, specimen_name)
+
+        raise ValueError("no specimen with name {}".format(specimen_name))
 
 
     def get_manalyser(self, specimen_name, **kwargs):

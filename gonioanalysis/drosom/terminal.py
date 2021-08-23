@@ -289,6 +289,8 @@ def main(custom_args=None):
         function(*analyser_groups, **kwargs)
     else:
         for analysers in analyser_groups:
+            if not isinstance(analysers, list):
+                analysers = [analysers]
             for analyser in analysers:
                 function(analyser, **kwargs)
 

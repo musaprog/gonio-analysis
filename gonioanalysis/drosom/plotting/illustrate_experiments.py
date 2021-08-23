@@ -3,15 +3,148 @@ import math
 
 import numpy as np
 import matplotlib.pyplot as plt
+import tifffile
 
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 import gonioanalysis.coordinates as coordinates
-from .common import vector_plot
+from gonioanalysis.drosom.plotting.common import vector_plot
 
 
-def illustrate_experiments(manalyser):
+def _load_image(fn, roi, e):
+
+    image = tifffile.imread(fn)
+    
+    x,y,w,h = [int(round(z)) for z in roi]
+    
+    upper = np.percentile(image[y-e:y+h+e,x-e:x+w+e], 99.5) 
+    lower = np.percentile(image[y-e:y+h+e,x-e:x+w+e], 0.5)
+
+    image = np.clip(image, lower, upper) - lower
+    image = (image-np.min(image)) / np.max(image)
+    image *= 255
+    
+    return np.array([image,image,image])
+
+
+def _box(image, roi, lw, color, crop_factor=1):
+    x,y,w,h = [int(round(z)) for z in roi]
+    
+    for i, c in enumerate(color):
+        # Top
+        image[i, y:y+lw,x:x+w] = c
+        # Left
+        image[i, y:y+h,x:x+lw] = c
+        # Bottom
+        image[i, y+h-lw:y+h,x:x+w] = c
+        # Right
+        image[i, y:y+h,x+w-lw:x+w] = c
+
+    return image
+
+def _crop(image, roi, factor):
+    
+    x,y,w,h = [int(round(z)) for z in roi]
+    cp = [x+int(w/2), y+int(h/2)]
+
+    new_image = []
+    
+    if factor < 1:
+        h2 = int(round(factor*image.shape[1]/2))
+        for i in range(len(image)):
+            new_image.append( image[i, cp[1]-h2:cp[1]+h2, :] )
+    elif factor > 1:
+        w2 = int(round(image.shape[2]/2/factor))
+        for i in range(len(image)):
+            new_image.append( image[i, cp[0]-w2:cp[0]+w2, :] )
+    else:
+        return image
+
+    return np.array(new_image)
+
+def moving_rois(manalyser, roi_color='red,blue', lw=3, e=50,
+        rel_rotation_time=1, crop_factor=0.5):
+    '''
+    Visualization video how the ROI boxes track the analyzed features,
+    drawn on top of the original video frames.
+
+    Arguments
+    ---------
+    roi : string
+        A valid matplotlib color. If two comma separated colors
+        given use the first for the left eye and the second for the right.
+    lw : int
+        ROI box line width, in pixels
+    e : int
+        Extended region for brightness normalization, in pixels
+    rel_rotation_time : int or float
+        Blend the last and the first next frame for "smooth"
+        transition
+    crop_factor : int
+        If smaller than 1 then cropped in Y.
+    '''
+    savedir = os.path.join(ANALYSES_SAVEDIR, 'illustrate_experiments', 'moving_rois', manalyser.get_specimen_name())
+    os.makedirs(savedir, exist_ok=True)
+    
+    colors = roi_color.split(',')
+    
+    image_fns, ROIs, angles = manalyser.get_time_ordered()
+    N = len(image_fns)
+    
+    i_frame = 0
+
+    aangles = []
+    
+    crop_roi = ROIs[0]
+
+    for i_fn, (fn, roi, angle) in enumerate(zip(image_fns, ROIs, angles)):
+
+        if i_fn+1 < len(image_fns) and angle != angles[i_fn-1]:
+            aangles.append(angle)
+            crop_roi = roi
+        #continue
+
+        print("{}/{}".format(i_fn+1, N))
+
+        image = _load_image(fn, roi, e)
+        
+        if angle[0] > 0:
+            color = (255, 0, 0)
+        else:
+            color = (0,0,255)
+
+        image = _box(image, roi, lw, color=color)
+        image = _crop(image, crop_roi, crop_factor)
+        savefn = os.path.join(savedir, 'image_{:08d}.png'.format(i_frame))
+        tifffile.imsave(savefn, image.astype(np.uint8))
+        i_frame += 1
+
+        if rel_rotation_time and angle != angles[i_fn+1]:
+            next_image = _load_image(image_fns[i_fn+1], roi, e)
+            if angles[i_fn+1][0] > 0:
+                color = (255, 0, 0)
+            else:
+                color = (0,0,255)
+            next_image = _box(next_image, ROIs[i_fn+1], lw, color=color)
+            
+            for blend in np.zeros(5).tolist() + np.linspace(0, 1, 25).tolist():
+                
+                im = image*(1-blend) + _crop(next_image, ROIs[i_fn+1], crop_factor)*(blend)
+                savefn = os.path.join(savedir, 'image_{:08d}.png'.format(i_frame))
+                tifffile.imsave(savefn, im.astype(np.uint8))
+                i_frame += 1
+
+    np.savetxt('aangles.txt', aangles)
+
+
+def illustrate_experiments(manalyser, rel_rotation_time=1):
     '''
     Create a visualizing video how the vectormap is built.
+
+    Arguments
+    ---------
+    rel_rotation_time : int or float
+        Relative time spend on incrimentally rotating the vectormap
+        between the stimuli.
     '''
     print('illustrate_experiments')
     
@@ -22,6 +155,7 @@ def illustrate_experiments(manalyser):
     ax = fig.add_subplot(1,1,1, projection='3d')
     plt.axis('off') 
     plt.subplots_adjust(left=-0.2, bottom=-0.2, right=1.2, top=1.2, wspace=0.0, hspace=0)
+
 
     # Points, vectors, angles
     lp, lv, la = manalyser.get_3d_vectors('left', return_angles=True)
@@ -37,6 +171,8 @@ def illustrate_experiments(manalyser):
 
     print(len(ROIs))
     print(len(angles))
+
+    i_frame = 0
     for i_angle, (image_fn, ROI, angle) in enumerate(zip(image_fns, ROIs, angles)): 
         
         length_scale = (i_angle%20)/20 + 0.5
@@ -44,7 +180,6 @@ def illustrate_experiments(manalyser):
 
         #if not final_image:
         #   continue
-
         # Fix to account mirror_horizontal in 2D vectors
         angle = [-1*angle[0], angle[1]]
 
@@ -100,13 +235,64 @@ def illustrate_experiments(manalyser):
         ax.view_init(elev=0, azim=azim)
         print('Horizontal {}, vertical {}'.format(*angle))
 
-        savefn = os.path.join(savedir, 'image_{:08d}.png'.format(i_angle))
-        fig.savefig(savefn, dpi=300)
+        savefn = os.path.join(savedir, 'image_{:08d}.png'.format(i_frame))
+        fig.savefig(savefn, dpi=300, transparent=True)
+        i_frame += 1
         
         # Rotating the saved image
         #camera_rotation = coordinates.correct_camera_rotation(*angle, return_degrees=True)
         #saved_image = Image.open(savefn)
         #saved_image.rotate(-camera_rotation).save(savefn)
+
+        # Final image of this location, rotate the plot to the
+        # new location
+        if final_image and rel_rotation_time:
+            next_angle = angles[i_angle+1]
+            duration = 25
+            hold_duration = 5
+            
+            for i, (h, v) in enumerate(zip(np.linspace(-angle[0], next_angle[0], duration), np.linspace(angle[1], next_angle[1], duration))):
+                
+                angle = [-h,v]
+                azim = -angle[0]+90
+                
+                # FIXME The following part is copy paste from the part above
+                # -> put it behind one function etc.
+
+                # Clear arrows
+                for arrow_artist in arrow_artists:
+                    arrow_artist.remove()
+                arrow_artists = []
+                 
+                # Redraw arros
+                if lpoints:
+                    tmp_lpoints, tmp_lvectors = coordinates.rotate_vectors(np.array(lpoints), np.array(lvectors), 0, -math.radians(angle[1]), 0)
+                
+                    arrow_artists.extend(vector_plot(ax, tmp_lpoints, tmp_lvectors, color='red', mutation_scale=3,
+                            camerapos=[0,azim]))
+                    
+                
+                if rpoints:
+                    tmp_rpoints, tmp_rvectors = coordinates.rotate_vectors(np.array(rpoints), np.array(rvectors), 0, -math.radians(angle[1]), 0)
+                
+
+                    arrow_artists.extend(vector_plot(ax, tmp_rpoints, tmp_rvectors, color='blue', mutation_scale=3,
+                            camerapos=[0,azim]))
+
+                
+                ax.view_init(elev=0, azim=azim)
+                
+                savefn = os.path.join(savedir, 'image_{:08d}.png'.format(i_frame))
+                fig.savefig(savefn, dpi=300, transparent=True)
+                i_frame += 1
+  
+                if i == 0:
+                    for repeat in range(hold_duration):
+                        savefn = os.path.join(savedir, 'image_{:08d}.png'.format(i_frame))
+                        fig.savefig(savefn, dpi=300, transparent=True)
+                        i_frame += 1
+     
+
 
         for arrow_artist in arrow_artists:
             arrow_artist.remove()

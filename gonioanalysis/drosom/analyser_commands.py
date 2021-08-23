@@ -7,7 +7,7 @@ import numpy as np
 
 from gonioanalysis.drosom import plotting
 from gonioanalysis.drosom.plotting.common import save_3d_animation
-from gonioanalysis.drosom.plotting import basics
+from gonioanalysis.drosom.plotting import basics, illustrate_experiments
 from gonioanalysis.drosom.plotting.plotter import MPlotter
 from gonioanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
 from gonioanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
@@ -35,7 +35,8 @@ ANALYSER_CMDS['2dmagnitude'] = plotter.plotMagnitude2D
 # Analyser + image_folder
 #ANALYSER_CMDS['1dmagnitude'] = plotter.plot_1d_magnitude_from_folder
 
-ANALYSER_CMDS['illustrate_experiments_video'] = plotting.illustrate_experiments
+ANALYSER_CMDS['moving_rois_video'] = illustrate_experiments.moving_rois
+ANALYSER_CMDS['illustrate_experiments_video'] = illustrate_experiments.illustrate_experiments
 ANALYSER_CMDS['norpa_rescue_manyrepeats'] = norpa_rescue_manyrepeats
 ANALYSER_CMDS['compare_paired'] = cli_group_and_compare
 ANALYSER_CMDS['lr_displacements'] = lambda analyser: reports.left_right_displacements(analyser, 'test')

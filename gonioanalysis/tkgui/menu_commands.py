@@ -181,7 +181,7 @@ class ImageFolderCommands(ModifiedMenuMaker):
         '''
         Run Movemeter (cross-correlation) on the selected image folder.
         '''
-        func = lambda: self.core.analyser.measure_both_eyes(only_folders=str(self.core.selected_recording), absolute_coordinates=absolute_coordinates)
+        func = lambda stop: self.core.analyser.measure_both_eyes(only_folders=str(self.core.selected_recording), absolute_coordinates=absolute_coordinates, stop_event=stop)
         
         MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
 
@@ -252,7 +252,7 @@ class SpecimenCommands(ModifiedMenuMaker):
             if not sure:
                 return None
         
-        func = lambda: self.core.analyser.measure_both_eyes(absolute_coordinates=absolute_coordinates)
+        func = lambda stop: self.core.analyser.measure_both_eyes(absolute_coordinates=absolute_coordinates, stop_event=stop)
         
         if self.core.analyser.__class__.__name__ == 'MAnalyser':
             MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
@@ -360,7 +360,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         
         # Here lambda requires specimen=specimen keyword argument; Otherwise only
         # the last specimen gets analysed N_specimens times
-        targets = [lambda specimen=specimen: self.core.get_manalyser(specimen).measure_both_eyes(absolute_coordinates=absolute_coordinates) for specimen in specimens]
+        targets = [lambda stop, specimen=specimen: self.core.get_manalyser(specimen).measure_both_eyes(absolute_coordinates=absolute_coordinates, stop_event=stop) for specimen in specimens]
     
 
         if self.core.analyser_class.__name__ == 'MAnalyser':

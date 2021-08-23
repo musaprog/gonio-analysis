@@ -879,7 +879,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
     def measure_movement(self, eye, only_folders=None,
-            max_movement=30, absolute_coordinates=False, join_repeats=False):
+            max_movement=30, absolute_coordinates=False, join_repeats=False,
+            stop_event=None):
         '''
         Performs cross-correlation analysis for the selected ROIs (regions of interest)
         using Movemeter package.
@@ -893,6 +894,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         max_movement            Maximum total displacement in x or y expected. Lower values faster.
         absolute_coordinates    Return movement values in absolute image coordinates
         join_repeats            Join repeats together as if they were one long recording.
+        stop_event              None or threading.Event for stopping the movement measurement
+            
 
         Cross-correlation analysis is the slowest part of the DrosoM pipeline.
         '''
@@ -948,6 +951,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             
             for stack_i, angle in enumerate(angles):
                 
+                if stop_event and stop_event.is_set():
+                    self.stop_now = True
+
                 if self.stop_now:
                     self.stop_now = False
                     self.movements = {}

@@ -1016,7 +1016,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     time = self.movements[eye][angle][0]['time']
                     
                     fn = self.stacks[angle][0]
-                    ROI = self.getMovingROIs(eye, angle)
+                    ROI = self.get_moving_ROIs(eye, angle)
                     deg_angle = [list(ast.literal_eval(angle.split(')')[0]+')' ))]
                     to_degrees(deg_angle)
                     

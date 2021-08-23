@@ -36,6 +36,40 @@ def arange_fns(fns):
     return fns
 
 
+def split_to_repeats(fns):
+    '''
+    Split a list of filenames into repeats (sublists) based on the
+    REPETITION_INDICATOR
+
+    Arguments
+    ---------
+    fns : list
+        1D sequence of filenames
+
+    Returns
+    --------
+    splitted_fns : list
+        A list where each item is a sublist of filenames (or empty list
+        if there were no filenames for that repeat)
+    '''
+    
+    repeats = {}
+    
+    for fn in fns:
+        try:
+            i_repeat = str(int(fn[fn.index(REPETITION_INDICATOR)+len(REPETITION_INDICATOR):].split('_')[0]))
+        except ValueError:
+            print('Warning: Cannot determine i_repeat for {}'.format(fn))
+        
+        if i_repeat not in repeats:
+            repeats[i_repeat] = []
+        
+        repeats[i_repeat].append(fn)
+    
+    return [fns for i_repeat, fns in repeats.items()]
+
+
+
 def angleFromFn(fn):
     '''
     Returns the horizontal and vertical angles from a given filename

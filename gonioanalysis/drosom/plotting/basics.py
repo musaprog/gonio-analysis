@@ -302,7 +302,7 @@ def _set_analyser_attributes(analyser, skip_none=True, raise_errors=False, **kwa
 
 @extend_keywords(vector_plot)
 def plot_3d_vectormap(manalyser, arrow_rotations = [0],
-        rhabdomeres=True, repeats_separately=False, vertical_hardborder=True,
+        rhabdomeres=False, repeats_separately=False, vertical_hardborder=False,
         elev=None, azim=None,
         pitch_rot=None, roll_rot=None, yaw_rot=None,
         animation=None, animation_type=None, animation_variable=None, i_frame=0,
@@ -452,11 +452,11 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
 
 
 def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=False,
-        elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True, direction=True,
+        elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True, direction=False,
         colorbar=True, colorbar_text=True, colorbar_ax=None, reverse_errors=False,
         colorbar_text_positions=[[1.1,0.95,'left', 'top'],[1.1,0.5,'left', 'center'],[1.1,0.05,'left', 'bottom']],
         i_frame=0, arrow_rotations=[0], pitch_rot=None, yaw_rot=None, roll_rot=None,
-        hide_axes=False, hide_text=False, guidance=False):
+        hide_axes=False, hide_text=False, guidance=False, **kwargs):
     '''
     Plots 3d heatmap presenting the diffrerence in the vector orientations
     for two analyser objects, by putting the get_3d_vectors of both analysers
@@ -554,7 +554,8 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=False,
         if eye=='left':
             all_phi_points = [np.linspace(math.pi/2, 3*math.pi/2, 50)]
         else:
-            all_phi_points = [np.linspace(0, math.pi/2, 25), np.linspace(3*math.pi/2, 2*math.pi,25)]
+            all_phi_points = [np.linspace(-math.pi/2, math.pi/2, 50)]
+            #all_phi_points = [np.linspace(0, math.pi/2, 25), np.linspace(3*math.pi/2, 2*math.pi,25)]
 
         if direction:
             colormap = 'own-diverge'
@@ -605,7 +606,7 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=False,
                         'Clockwise -90',
                         ha=colorbar_text_positions[2][2], va=colorbar_text_positions[2][3],
                         transform=cax.transAxes)
-            if colinear:
+            elif colinear:
                 cax.text(colorbar_text_positions[0][0], colorbar_text_positions[0][1],
                         'Collinear',
                         ha=colorbar_text_positions[0][2], va=colorbar_text_positions[0][3],

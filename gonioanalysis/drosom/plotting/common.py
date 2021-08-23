@@ -6,6 +6,7 @@ import os
 import math
 import copy
 import multiprocessing
+import datetime
 
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
@@ -584,7 +585,7 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
     optimal_ranges = []
     
     # FIXME No predetermined optimal ranges
-    if len(manalysers) > 1:
+    if len(manalysers) > 1 and animation_type not in['rotate_plot']:
         
         if manalysers[0].manalysers[0].__class__.__name__ == 'MAnalyser':
             optimal_ranges = [[24.3-3, 24.3+3, 'Typical photoreceptor\nmovement axis']]
@@ -659,7 +660,7 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
    
     title = plot_function.__name__ + '_{}_'.format(animation_type) + '_'.join([ma.manalysers[0].__class__.__name__ for ma in manalysers])
     
-    savedir = os.path.join(ANALYSES_SAVEDIR, 'videos', title)
+    savedir = os.path.join(ANALYSES_SAVEDIR, 'videos', title+'_'+str(datetime.datetime.now()))
     os.makedirs(savedir, exist_ok=True)
 
 
@@ -719,8 +720,8 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
                 video_writer.grab_frame()
                 doublegrab_next = False
         
-        axes[0].figure.savefig(os.path.join(savedir, 'frame_{0:07d}.png'.format(i_frame)))
-
+        ax.dist=7
+        axes[0].figure.savefig(os.path.join(savedir, 'frame_{0:07d}.png'.format(i_frame)), transparent=True, dpi=300)
         #except Exception as e:
         #    print('Could not make a frame, error message on the next line')
         #    print(e)

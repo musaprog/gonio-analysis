@@ -95,7 +95,7 @@ class ExamineMenubar(tk.Frame):
         #    Submenu: Add terminal commands
         self.terminal_commands = ModifiedMenuMaker(self.parent, self.core, 'Terminal interface commands')
         for name in ANALYSER_CMDS:
-            setattr(self.terminal_commands, name, lambda name=name: self.core.adm_subprocess('current', name) )
+            setattr(self.terminal_commands, name, lambda name=name: self.core.adm_subprocess('current', "-A "+name) )
         self.terminal_commands._connect(self.specimen_commands.tkmenu)
 
         # Many specimen commands and menu

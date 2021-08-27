@@ -427,7 +427,7 @@ class ExamineView(tk.Frame):
         if fn:
             self.last_saveplotter_dir = os.path.dirname(fn)
 
-            fig.savefig(fn)
+            fig.savefig(fn, dpi=1200)
             
         
 

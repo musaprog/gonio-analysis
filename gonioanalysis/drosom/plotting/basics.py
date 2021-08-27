@@ -45,6 +45,7 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
         color_eyes=False, gray_repeats=False, progressive_colors=False,
         show_mean=False, show_std=False,
         show_label=True, milliseconds=False, microns=False,
+        phase=False, derivative=False,
         label="EYE-ANGLE-IREPEAT", ax=None):
     '''
     Plots 1D displacement magnitude over time, separately for each eye.
@@ -114,7 +115,8 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
     for eye in eyes:
         magtraces = manalyser.get_magnitude_traces(eye, image_folder=image_folder,
-                mean_repeats=mean_repeats, mean_imagefolders=mean_imagefolders)
+                mean_repeats=mean_repeats, mean_imagefolders=mean_imagefolders,
+                _phase=phase, _derivative=derivative)
         
         for angle, repeat_mags in magtraces.items():
             

@@ -59,7 +59,7 @@ def left_right_displacements(manalysers, group_name,
         stimuli={'uv': ['uv', ')'], 'green': ['green'], 'NA': []},
         strong_weak_division=False, divide_threshold=3,
         wanted_imagefolders=None,
-        microns=True):
+        microns=True, phase=False):
     '''
     Saves CSV files of left and right eye movements and ERGs.
     
@@ -91,6 +91,8 @@ def left_right_displacements(manalysers, group_name,
         Relaxes horizontal conditions.
     microns : bool
         Convert pixel movement values to microns
+    phase : bool
+        If True, return phase (vector direction) instead of the magnitude.
     '''
     
     # each "file" is a list of columns
@@ -131,7 +133,8 @@ def left_right_displacements(manalysers, group_name,
 
                     trace = manalyser.get_magnitude_traces(eye,
                             image_folder=image_folder,
-                            mean_repeats=True, microns=microns)
+                            mean_repeats=True, microns=microns,
+                            _phase=phase)
                 
                     trace = list(trace.values())
                     if len(trace) >= 2:

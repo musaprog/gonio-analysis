@@ -79,6 +79,9 @@ class ModifiedMenuMaker(MenuMaker):
         self.replacement_dict['_'] = ' '
     
     def _message(self, message, **kwargs):
+        if message == 'nospecimen':
+            message = 'Select a specimen first'
+
         prompt_result(self.tk_root, message, **kwargs)
     
     def _ask_string(self, message, title='Input text'):
@@ -245,7 +248,10 @@ class SpecimenCommands(ModifiedMenuMaker):
         '''
         Run Movemeter (cross-correlation) on the specimen.
         '''
-        
+        if not self.core.current_specimen:
+            self._message('nospecimen')
+            return None
+
         # Ask confirmation if ROIs already selected
         if self.core.analyser.is_measured():
             sure = messagebox.askokcancel('Remeasure movements', 'Are you sure you want to remeasure?')
@@ -280,7 +286,7 @@ class SpecimenCommands(ModifiedMenuMaker):
             pass
         
         if not self.core.current_specimen:
-            self._message("Select a specimen first")
+            self._message("nospecimen")
         else:
             
             self.correct_window = tk.Toplevel()
@@ -491,7 +497,6 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         
         if fns:
             lrfiles_summarise(fns, point_type='kinematics')
-
 
 
     def detailed_export(self):

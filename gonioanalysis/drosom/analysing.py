@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 from gonioanalysis.drosom.loading import load_data, angles_from_fn, arange_fns
 from gonioanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector, optimal_sampling
 from gonioanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
-from gonioanalysis.rotary_encoders import to_degrees, step2degree
+from gonioanalysis.rotary_encoders import to_degrees, step2degree, DEFAULT_STEPS_PER_REVOLUTION
 
 from roimarker import Marker
 from movemeter import Movemeter
@@ -424,20 +424,32 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         with open(self.skiplist_savefn, 'w') as fp:
             json.dump(self.imagefolder_skiplist, fp)
 
-    
-    def list_imagefolders(self, list_special=True,
+
+
+    def list_rotations(self, list_special=True, special_separated=False,
             horizontal_condition=None, vertical_condition=None,
-            endswith='', only_measured=False):
+            _return_imagefolders=False):
         '''
-        Returns a list of the images containing folders (subfolders).
+        List all the imaged vertical-horizontal pair rotations.
         
-        list_special        Sets wheter to list also image folders with suffixes
-        horizontal_condition    A callable, that when supplied with horizontal (in steps)
-                                    returns either true (includes) or false (excludes).
-        vertical_condition
-        only_measured : bool
-            Return only image_folders with completed movement analysis
+        Arguments
+        ---------
+        list_special : bool
+            If false, include only rotations whose folders have no suffix
+        special_separated : bool
+            If true, return standard and special image folders separetly.
+        horizontal_condition : callable or None
+            A callable, that when supplied with horizontal (in steps),
+            returns either True (includes) or False (excludes).
+        vertical_condition : callable or None
+            Same as horizontal condition but for vertical rotation
+
+        Returns
+        -------
+        rotations : list of tuples
+            List of rotations.
         '''
+
         def check_conditions(vertical, horizontal):
             if callable(horizontal_condition):
                 if not horizontal_condition(horizontal):
@@ -446,9 +458,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 if not vertical_condition(vertical):
                     return False
             return True
-
-        image_folders = []
-        special_image_folders = []
+ 
+        standard = []
+        special = []
 
         for key in self.stacks.keys():
             try:
@@ -470,18 +482,56 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                             continue
                     except:
                         pass
-
-                special_image_folders.append('pos'+key)
+                
+                if _return_imagefolders:
+                    special.append('pos'+key)
+                else:
+                    special.append((horizontal, vertical))
                 continue
 
-            image_folders.append('pos'+key)
+            if _return_imagefolders:
+                standard.append('pos'+key)
+            else:
+                standard.append((horizontal, vertical))
+        
+        if not list_special:
+            special = []
 
+        if special_separated:
+            return standard, special
+        else:
+            return standard + special
+
+    
+    def list_imagefolders(self, endswith='', only_measured=False, **kwargs):
+        '''
+        Returns a list of the image folders (specimen subfolders that contain
+        the images).
+        
+        Arguments
+        ---------
+        only_measured : bool
+            Return only image_folders with completed movement analysis
+        
+        See list_rotations for other allowed keyword arguments. 
+        
+        Returns
+        -------
+        image_folders : list of strings
+        '''
+
+        image_folders, special_image_folders = self.list_rotations(
+                special_separated=True,
+                _return_imagefolders=True,
+                **kwargs)
+        
         all_folders = [fn for fn in sorted(image_folders) + sorted(special_image_folders) if fn.endswith(endswith)]
         
         if only_measured:
             all_folders = [fn for fn in all_folders if self.folder_has_movements(fn)]
 
         return all_folders
+
 
     def get_horizontal_vertical(self, image_folder, degrees=True):
         '''
@@ -675,7 +725,14 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         # Based on the stage micrometer;
         # 0.8 µm in the images 979 pixels 
         return 1/1.22376
+    
 
+    def get_rotstep_size(self):
+        '''
+        Returns how many degrees one rotation encoder step was
+        (the return value * steps == rotation in degrees)
+        '''
+        return 360/DEFAULT_STEPS_PER_REVOLUTION
 
 
     def get_snap_fn(self, i_snap=0, absolute_path=True):
@@ -1003,7 +1060,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
     
 
 
-    def get_time_ordered(self):
+    def get_time_ordered(self, angles_in_degrees=True, first_frame_only=False):
         '''
         Get images, ROIs and angles, ordered in recording time for movie making.
         
@@ -1024,7 +1081,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     fn = self.stacks[angle][0]
                     ROI = self.get_moving_ROIs(eye, angle)
                     deg_angle = [list(ast.literal_eval(angle.split(')')[0]+')' ))]
-                    to_degrees(deg_angle)
+                    
+                    if angles_in_degrees:
+                        to_degrees(deg_angle)
                     
                     deg_angle = [deg_angle[0] for i in range(len(fn))]
 
@@ -1037,11 +1096,17 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         image_fns = []
         ROIs = []
         angles = []
-
-        for time, fns, ROI, angle in times_and_data:
-            image_fns.extend(fns)
-            ROIs.extend(ROI)
-            angles.extend(angle)
+        
+        if not first_frame_only:
+            for time, fns, ROI, angle in times_and_data:
+                image_fns.extend(fns)
+                ROIs.extend(ROI)
+                angles.extend(angle)
+        else:
+            for time, fns, ROI, angle in times_and_data:
+                image_fns.append(fns[0])
+                ROIs.append(ROI[0])
+                angles.append(angle[0])
         
         return image_fns, ROIs, angles
 

@@ -299,3 +299,93 @@ def illustrate_experiments(manalyser, rel_rotation_time=1):
         arrow_artists = []
     
     plt.close()
+
+
+
+def rotation_mosaic(manalyser, imsize=(512,512),
+        e=50, crop_factor=0.5):
+    '''
+    A mosaic (matrix) of the taken images.
+    
+    Arguments
+    ---------
+    manalyser : obj
+        Analyser object
+    n_vecticals : int
+        How many vertical rotations rows to show
+    n_horizontals : int
+        How many horizontal rotation columns to show
+    e, crop_factor
+    '''
+
+    # Part 1) Find rotations matching the interpolation
+
+    rotations = manalyser.list_rotations()
+    
+    kdtree = KDTree(rotations)
+
+    hrots, vrots = zip(*rotations)
+
+    hmin, hmax = (np.min(hrots), np.max(hrots))
+    vmin, vmax = (np.min(vrots), np.max(vrots))
+   
+    hstep = int(10 * (1024/360))
+    vstep = int(10 * (1024/360))
+    
+    plot_data = []
+
+    intp_v = np.arange(vmin, vmax, vstep)[::-1]
+    intp_h = np.arange(hmin, hmax, hstep)
+
+    for i_v, vrot in enumerate(intp_v):
+        for i_h, hrot in enumerate(intp_h):
+            
+            distance, i_point = kdtree.query( (hrot, vrot), n_jobs=-1)
+            
+            if distance > math.sqrt((hstep/1.5)**2 + (vstep/1.5)**2):
+                continue
+
+            plot_data.append((i_v, i_h, i_point))
+            
+
+    # Part 2: Plot the images
+
+    image_fns, ROIs, angles = manalyser.get_time_ordered(angles_in_degrees=False,
+            first_frame_only=True)
+    
+    w_mosaic = int(imsize[0]*len(intp_h))
+    h_mosaic = int(imsize[1]*len(intp_v))
+    mosaic = 255 * np.ones( (h_mosaic, w_mosaic) )
+    
+    print('Mosaic shape {}'.format(mosaic.shape))
+    
+    for i_plot_data, (i_v, i_h, i_point) in enumerate(plot_data): 
+        print("{}/{}".format(i_plot_data+1, len(plot_data)))
+
+        x = i_v * imsize[0]
+        y = i_h * imsize[1]
+
+        try:
+            index = angles.index(list(rotations[i_point]))
+        except ValueError:
+            continue
+        
+        try:
+            image = _load_image(image_fns[index], ROIs[index], 50) 
+        except:
+            continue
+
+        image = image[0, :, :]
+        image = cv2.resize(image, dsize=(*imsize,))        
+
+        mosaic[x:x+imsize[0], y:y+imsize[1]] = image
+    
+    drot = manalyser.get_rotstep_size()
+
+    fig, ax = plt.subplots(figsize=(10,10))
+    ax.imshow(mosaic, cmap='gray', extent=[hmin*drot, hmax*drot, vmin*drot, vmax*drot])
+    
+    fig.savefig(os.path.join(ANALYSES_SAVEDIR, 'illustrate_experiments', "mosaic_"+manalyser.name+'.jpg'),
+            dpi=600)
+
+    plt.close()

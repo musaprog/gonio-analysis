@@ -32,11 +32,13 @@ ANALYSER_CMDS['2d_vectormap'] =  plotter.plotDirection2D
 ANALYSER_CMDS['trajectories'] = plotter.plot_2d_trajectories
 ANALYSER_CMDS['2dmagnitude'] = plotter.plotMagnitude2D
 
+
 # Analyser + image_folder
 #ANALYSER_CMDS['1dmagnitude'] = plotter.plot_1d_magnitude_from_folder
 
 ANALYSER_CMDS['moving_rois_video'] = illustrate_experiments.moving_rois
 ANALYSER_CMDS['illustrate_experiments_video'] = illustrate_experiments.illustrate_experiments
+ANALYSER_CMDS['rotation_mosaic'] = illustrate_experiments.rotation_mosaic
 ANALYSER_CMDS['norpa_rescue_manyrepeats'] = norpa_rescue_manyrepeats
 ANALYSER_CMDS['compare_paired'] = cli_group_and_compare
 ANALYSER_CMDS['lr_displacements'] = lambda analyser: reports.left_right_displacements(analyser, 'test')

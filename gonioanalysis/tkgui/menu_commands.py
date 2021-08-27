@@ -516,7 +516,9 @@ class ManySpecimenCommands(ModifiedMenuMaker):
             elif sel == 'Displacement probability TIFF':
                 specimens = [';'.join([specimen, *image_folders]) for specimen, image_folders in wanted_imagefolders.items()]
                 self.core.adm_subprocess(specimens, '-A magnitude_probability')
-
+            elif sel == 'XY trajectory plot':
+                specimens = [';'.join([specimen, *image_folders]) for specimen, image_folders in wanted_imagefolders.items()]
+                self.core.adm_subprocess(specimens, '-A xy_trajectory')
             else:
                 raise ValueError('Invalid export type selection')
 
@@ -526,7 +528,8 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         self._export_selection = DropdownList(top,
                 ['Mean displacement curve CSV', 'Mean over repeats CSV',
                     'Stds over repeats CSV',
-                    'Displacement probability TIFF'])
+                    'Displacement probability TIFF',
+                    'XY trajectory plot'])
         self._export_selection.grid()
 
 

@@ -44,7 +44,11 @@ from gonioanalysis.directories import PROCESSING_TEMPDIR, GONIODIR
 from gonioanalysis.rotary_encoders import to_degrees
 from gonioanalysis.drosom.loading import angles_from_fn
 from gonioanalysis.drosom.plotting.common import save_3d_animation
-from gonioanalysis.drosom.plotting.basics import plot_1d_magnitude, plot_3d_vectormap
+from gonioanalysis.drosom.plotting.basics import (
+        plot_1d_magnitude, 
+        plot_xy_trajectory,
+        plot_3d_vectormap,
+        )
 from gonioanalysis.drosom.analyser_commands import ANALYSER_CMDS
 from gonioanalysis.tkgui.core import Core
 from gonioanalysis.tkgui.plotting import RecordingPlotter
@@ -249,6 +253,14 @@ class ExamineView(tk.Frame):
         self.displacement_ticks = TickboxFrame(self.canvases[1], displacementplot_options,
                 defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
         self.displacement_ticks.grid()
+
+        xyplot_options, xyplot_defaults = inspect_booleans(
+                plot_xy_trajectory)
+        self.xy_ticks = TickboxFrame(self.canvases[2], xyplot_options,
+                defaults=xyplot_defaults, callback=lambda:self.update_plot(2))
+        self.xy_ticks.grid()
+
+
 
         # Controls for the vector plot
         # Controls for displacement plot (means etc)
@@ -588,7 +600,7 @@ class ExamineView(tk.Frame):
                 if i_plot == 1:
                     self.plotter.magnitude(ax, **self.displacement_ticks.states)
                 elif i_plot == 2:  
-                    self.plotter.xy(ax) 
+                    self.plotter.xy(ax, **self.xy_ticks.states) 
                 elif i_plot == 3:
                     self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
             

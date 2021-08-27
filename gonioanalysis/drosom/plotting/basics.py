@@ -190,6 +190,85 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
     return ax, traces, N_repeats
 
 
+def plot_xy_trajectory(manalysers, wanted_imagefolders=None, i_repeat=None,
+        mean_repeats=True,
+        ax=None):
+    '''
+    A (x,y) 2D plot of the movement trajectory where time is encoded
+    in color.
+
+    manalysers : list
+    wanted_imagefolders : dict
+        {specimen_name: [image_folder1, ...]}
+    i_repeat : int
+    mean_repeats : bool
+    '''
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    xys = []
+
+    
+    for manalyser in manalysers:
+
+        if wanted_imagefolders:
+            image_folders = wanted_imagefolders[manalyser.name]
+        else:
+            image_folders = manalyser.list_imagefolders()
+        
+        for image_folder in image_folders:
+
+            movement_data = manalyser.get_movements_from_folder(image_folder)
+
+            for eye, movements in movement_data.items():
+                
+                N_repeats = len(movements)
+                X = [[-x for x in movements[i]['x']] for i in range(N_repeats) if not (
+                    (i_repeat is not None) and i_repeat != i)]
+
+                Y = [movements[i]['y'] for i in range(N_repeats) if not (
+                    (i_repeat is not None) and i_repeat != i)]
+
+                if mean_repeats:
+                    X = [np.mean(X, axis=0)]
+                    Y = [np.mean(Y, axis=0)]
+
+                for x, y in zip(X, Y):  
+                    N = len(x) 
+                    cmap = matplotlib.cm.get_cmap('tab20', N)
+                    for i_point in range(1, N):
+                        ax.plot([x[i_point-1], x[i_point]], [y[i_point-1], y[i_point]], color=cmap((i_point-1)/(N-1)))
+                
+                    ax.scatter(x[0], y[0], color='black')
+                    ax.scatter(x[-1], y[-1], color='gray')
+                
+                    xys.append([x, y])
+
+
+    # Colormap
+    if xys:
+        if getattr(ax, 'xy_colorbar', None) is None:
+            time = [i for i in range(N)]
+            sm = matplotlib.cm.ScalarMappable(cmap=cmap)
+            sm.set_array(time)
+
+            fig = ax.get_figure()
+            ax.xy_colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
+            ax.xy_colorbar.set_label('Frame')
+        else:
+            pass
+
+    ax.set_xlabel('Displacement in X (pixels)')
+    ax.set_ylabel('Displacement in Y (pixels)')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.yaxis.set_ticks_position('left')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.set_aspect('equal', adjustable='box')
+
+    return ax, xys
+
 
 def plot_magnitude_probability(manalysers, wanted_imagefolders=None, ax=None,
         mean_repeats=False, mean_imagefolders=False,

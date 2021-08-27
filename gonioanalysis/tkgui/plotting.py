@@ -12,6 +12,7 @@ from tk_steroids.matplotlib import CanvasPlotter
 
 from gonioanalysis.drosom.plotting.basics import (
         plot_1d_magnitude,
+        plot_xy_trajectory,
         plot_3d_vectormap
         )
 
@@ -99,64 +100,19 @@ class RecordingPlotter:
 
 
 
-    def xy(self, ax):
+    def xy(self, ax, **kwargs):
         '''
         Plot (x, y) where time is encoded by color.
         '''
         self._check_recording()
         
-        self.xys = []
+        ax, self.xys = plot_xy_trajectory([self.core.analyser],
+                {self.core.analyser.name: [self.selected_recording]},
+                i_repeat=self.i_repeat,
+                ax=ax,
+                **kwargs)
 
-        for eye, movements in self.movement_data.items():
-            for repetition in range(len(movements)):
-                
-                if (self.i_repeat is not None) and self.i_repeat != repetition:
-                    continue
-
-               
-                x = movements[repetition]['x']
-                y = movements[repetition]['y']
-                 
-                N = len(movements[repetition]['x'])
-                
-                cmap = matplotlib.cm.get_cmap('inferno', N)
-               
-                for i_point in range(1, N):
-                    ax.plot([x[i_point-1], x[i_point]], [y[i_point-1], y[i_point]], color=cmap((i_point-1)/(N-1)))
-            
-                ax.scatter(x[0], y[0], color='black')
-                ax.scatter(x[-1], y[-1], color='gray')
-                
-            
-                self.xys.append([x, y])
-
-
-        # Colormap
-        if self.movement_data:
-            if not self.colorbar: 
-                time = [i for i in range(N)]
-                sm = matplotlib.cm.ScalarMappable(cmap=cmap)
-                sm.set_array(time)
-
-
-                fig = ax.get_figure()
-                self.colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
-                self.colorbar.set_label('Frame')
-            else:
-                #self.colorbar.set_clim(0, N-1)
-                pass
-
-        ax.set_xlabel('Displacement in X (pixels)')
-        ax.set_ylabel('Displacement in Y (pixels)')
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-
-        ax.yaxis.set_ticks_position('left')
-        ax.xaxis.set_ticks_position('bottom')
-        ax.set_aspect('equal', adjustable='box')
-
-
-
+    
     def ROI(self, ax):
         '''
         Plot specimen/recording image, and the ROIs and imaging parameters on top of it.

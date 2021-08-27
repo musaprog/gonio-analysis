@@ -4,6 +4,8 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import tifffile
+from scipy.spatial import cKDTree as KDTree
+import cv2
 
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 import gonioanalysis.coordinates as coordinates

@@ -380,6 +380,77 @@ def _set_analyser_attributes(analyser, skip_none=True, raise_errors=False, **kwa
                 raise AttributeError('{} has no attribute {} prior setting'.format(anlayser, key))
 
 
+def plot_2d_vectormap(manalyser,
+        ax=None):
+    '''
+    Plots a 2-dimensional vector map.
+
+    Arguments
+    ----------
+    manalyser : object
+        Instance of MAnalyser class or MAverager class (having get2DVectors method)
+    ax : object
+        Matplotlib axes object
+    '''
+    
+    if not ax:
+        fig, ax = plt.subplots(figsize=(8,16))
+
+    hmin = 99999
+    hmax = -99999
+    vmin = 99999
+    vmax = -99999
+
+    for color, eye in zip(['red', 'blue'], ['left', 'right']):
+        angles, X, Y = manalyser.get_2d_vectors(eye,
+                mirror_horizontal=False, mirror_pitch=False)
+        for angle, x, y in zip(angles, X, Y):
+           
+            horizontal, pitch = angle
+            
+            hmin = min(hmin, horizontal)
+            hmax = max(hmax, horizontal)
+            vmin = min(vmin, pitch)
+            vmax = max(vmax, pitch)
+
+            # If magnitude too small, its too unreliable to judge the orientation so skip over
+            #movement_magnitude = math.sqrt(x**2 + y**2)
+            #if movement_magnitude < 2:
+            #    continue 
+            # Scale all vectors to the same length
+            #scaler = math.sqrt(x**2 + y**2) / 5 #/ 3
+            #scaler = 0
+            #if scaler != 0:
+            #    x /= scaler
+            #    y /= scaler /2.4    # FIXME
+            scaler = np.linalg.norm([x, y]) / 8
+            x /= scaler
+            y /= scaler
+
+            #ar = matplotlib.patches.Arrow(horizontal, pitch, xc, yc)
+            ar = matplotlib.patches.FancyArrowPatch((horizontal, pitch),
+                    (horizontal-x, pitch+y), mutation_scale=10,
+                    color=color, picker=True)
+            #fig.canvas.mpl_connect('pick_event', self.on_pick)
+            ax.add_patch(ar)
+
+            ax.scatter(horizontal, pitch, marker='x', color='gray')
+    
+    ax.set_xlabel('Horizontal rotation (degrees)')
+    ax.set_ylabel('Vertical rotation (degrees)')
+    
+    hmin = -60
+    hmax = 40
+    vmin = -90
+    vmax = 120
+
+    ax.set_xlim(hmin-10, hmax+10)
+    ax.set_ylim(vmin-10, vmax+10)
+    ax.set_aspect('equal', adjustable='box')
+    
+    for key in ['top', 'right']:
+        ax.spines[key].set_visible(False)
+
 
 @extend_keywords(vector_plot)
 def plot_3d_vectormap(manalyser, arrow_rotations = [0],

@@ -28,7 +28,7 @@ ANALYSER_CMDS['vectormap_mayavi'] = plotter.plot_3d_vectormap_mayavi
 ANALYSER_CMDS['vectormap_video'] = lambda analyser: save_3d_animation(analyser, plot_function=basics.plot_3d_vectormap, guidance=True, i_worker=I_WORKER, N_workers=N_WORKERS) 
 ANALYSER_CMDS['vectormap_oldvideo'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)
 ANALYSER_CMDS['magtrace'] = basics.plot_1d_magnitude
-ANALYSER_CMDS['2d_vectormap'] =  plotter.plotDirection2D
+ANALYSER_CMDS['2d_vectormap'] =  basics.plot_2d_vectormap
 ANALYSER_CMDS['trajectories'] = plotter.plot_2d_trajectories
 ANALYSER_CMDS['2dmagnitude'] = plotter.plotMagnitude2D
 

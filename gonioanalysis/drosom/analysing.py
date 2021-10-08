@@ -26,6 +26,7 @@ import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.spatial import cKDTree as KDTree
 
 from gonioanalysis.drosom.loading import load_data, angles_from_fn, arange_fns
 from gonioanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector, optimal_sampling
@@ -1563,6 +1564,57 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         '''
 
         self.intp_step = (horizontal_step, vertical_step)
+
+    
+    def get_2d_vectors(self, eye, **kwargs):
+        '''
+        Get's the 2D movement vectors (in the camera coordinate system)
+        using N_nearest neighbour interpolation and averaging.
+        '''
+        #Modified from get_3d_vectors
+        
+        interpolated = [[],[],[]]
+        
+        points_2d = []
+        vectors_2d = []
+
+        for analyser in self.manalysers:
+            angles, X, Y = analyser.get_2d_vectors(eye, mirror_horizontal=False, mirror_pitch=False)
+            vecs = [[x,y] for x,y in zip(X, Y)]
+            points_2d.append(np.array(angles))
+            vectors_2d.append( np.array(vecs) )
+        
+        vectors_2d = np.array(vectors_2d)
+        
+        kdtrees = [KDTree(points) for points in points_2d]
+
+        hmin, hmax = (-90, 90)
+        vmax, hmax = (-180, 180)
+       
+        intp_points = []
+        for h in np.arange(hmin, hmax+0.01, 10):
+            for v in np.arange(hmin, hmax+0.1, 10):
+                intp_points.append((h,v))
+        
+        for intp_point in intp_points:
+            
+            nearest_vectors = []
+
+            for kdtree, vectors in zip(kdtrees, vectors_2d):
+                distance, index = kdtree.query(intp_point)
+                
+                if distance < math.sqrt(self.intp_step[0]**2+self.intp_step[1]**2):
+                    nearest_vectors.append(vectors[index])
+
+            if len(nearest_vectors) > len(vectors_2d)/2:
+                avec = np.mean(nearest_vectors, axis=0)
+                avec /= np.linalg.norm(avec)
+                interpolated[0].append(np.array(intp_point))
+                interpolated[1].append(avec[0])
+                interpolated[2].append(avec[1])
+
+        angles, x, y = interpolated
+        return angles, x, y
 
 
     def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1,

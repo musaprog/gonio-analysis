@@ -214,9 +214,13 @@ class SpecimenCommands(ModifiedMenuMaker):
 
         name = ask_string('Active analysis', 'Give new or existing analysis name (empty for default)', self.tk_root)
         
-        self.core.analyser.active_analysis = name
-        self.tk_root.status_active_analysis.config(text='Active analysis: {}'.format(self.core.analyser.active_analysis))
-    
+        self.core.active_analysis = name
+        if self.core.analyser:
+            self.core.analyser.active_analysis = name
+        self.tk_root.status_active_analysis.config(text='Active analysis: {}'.format(self.core.active_analysis))
+        
+        self.core.update_gui(changed_specimens=True) 
+
 
     def set_vector_rotation(self):
 

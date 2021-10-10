@@ -260,10 +260,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         self.manalysers = [self]
         self.eyes = ("left", "right")
         self.vector_rotation = None
+        
+        self._rois_skelefn = 'rois_{}{}.json' # specimen_name active_analysis
         self._movements_skelefn = 'movements_{}_{}{}.json' # specimen_name, eye, active_analysis
         
         self.skiplist_savefn = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'imagefolder_skiplist.json')
-        self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'rois_{}.json'.format(folder))
+        self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._rois_skelefn.format(folder, ''))
         self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._movements_skelefn.format(folder, '{}', ''))
 
         self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
@@ -351,10 +353,19 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             name = ''
 
         if name == '':
+            self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._rois_skelefn.format(self.folder, ''))
             self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', ''))
         else:
+            self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._rois_skelefn.format(self.folder, '_'+name))
             self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', '_'+name))
     
+        if self.are_rois_selected():
+            self.load_ROIs()
+        else:
+            try:
+                del self.ROIs
+            except AttributeError:
+                pass
         if self.is_measured():
             self.load_analysed_movements()
         else:
@@ -364,7 +375,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 pass
 
         self.__active_analysis = name
-    
+        
 
 
 

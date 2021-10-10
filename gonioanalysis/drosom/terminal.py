@@ -128,7 +128,10 @@ def main(custom_args=None):
 
     parser.add_argument('--reverse-directions', action='store_true',
             help='Reverse movement directions')
-    
+
+    parser.add_argument('--active-analysis', nargs='1',
+            help='Name of the analysis')
+
     # Other settings
     parser.add_argument('--tk_waiting_window', action='store_true',
             help='(internal) Launches a tkinter waiting window')
@@ -233,8 +236,12 @@ def main(custom_args=None):
                 
                 path, folder_name = os.path.split(directory)
                 analyser = Analyser(path, folder_name) 
+                
+                if args.active_analysis:
+                    analyser.active_analysis = active_analysis
+                
                 analysers.append(analyser)
-
+ 
         # Ask ROIs if not selected
         for analyser in analysers:
             if analyser.are_rois_selected() == False or args.reselect_rois:
@@ -252,7 +259,7 @@ def main(custom_args=None):
             for analyser in analysers:
                 analyser.receptive_fields = True
         
-        
+       
 
         if args.average:
             

@@ -29,6 +29,8 @@ class Core:
         Class of the new analysers to create (MAnalyser or OAnalyser)
     analyser_classes: list of classes
         List of available analyser classes for reference
+    active_analysis : string or None
+        Name of the active analysis
     '''
 
     def __init__(self):
@@ -41,6 +43,8 @@ class Core:
         self.analyser_class = MAnalyser
         self.analyser_classes = [MAnalyser, OAnalyser]
         
+        self.active_analysis = None
+
         self._folders = {}
 
         self.groups = SpecimenGroups()
@@ -134,6 +138,12 @@ class Core:
         raise ValueError("no specimen with name {}".format(specimen_name))
 
 
+    def _configure_analyser(self, analyser):
+        if self.active_analysis:
+            analyser.active_analysis = self.active_analysis
+        return analyser
+
+
     def get_manalyser(self, specimen_name, **kwargs):
         '''
         Gets manalyser for the specimen specified by the given name.
@@ -143,7 +153,8 @@ class Core:
                 break
 
         analyser = self.analyser_class(directory, specimen_name, **kwargs)
-        return analyser
+
+        return self._configure_analyser(analyser)
     
 
     def get_manalysers(self, specimen_names, **kwargs):
@@ -166,7 +177,8 @@ class Core:
             if ans is []:
                 raise FileNotFoundError('Cannot find specimen {}'.format(name))
             
-            analysers.extend(ans)
+            for an in ans:
+                analysers.append( self._configure_analyser(an) )
 
         return analysers
 
@@ -207,6 +219,9 @@ class Core:
             if not ':' in specimen_names:
                 specimen_names += ':'
         
+        if self.active_analysis:
+            terminal_args += '--active-analysis '+ self.active_analysis
+
         arguments = '-D "{}" -S "{}" {}'.format(self.data_directory[0], specimen_names, terminal_args)
         
         # FIXME for general use

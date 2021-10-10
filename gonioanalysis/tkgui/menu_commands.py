@@ -160,8 +160,11 @@ class ImageFolderCommands(ModifiedMenuMaker):
    
     def _force_order(self):
         return ['select_ROIs', 'measure_movement',
+                'measure_movement_DASH_in_absolute_coordinates',
                 '.',
-                'max_of_the_mean_response']
+                'max_of_the_mean_response',
+                'half_rise_time',
+                'latency']
 
     def max_of_the_mean_response(self):
         
@@ -169,11 +172,15 @@ class ImageFolderCommands(ModifiedMenuMaker):
         prompt_result(self.tk_root, result)
     
 
-    def latency_by_sigmoidal_fit(self):
-
+    def half_rise_time(self):
         result = kinematics.sigmoidal_fit(self.core.analyser, self.core.selected_recording)[2]
         prompt_result(self.tk_root, str(np.mean(result)))
-    
+   
+
+    def latency(self):
+        result = kinematics.latency(self.core.analyser, self.core.selected_recording)
+        prompt_result(self.tk_root, str(np.mean(result)))
+
 
     def select_ROIs(self):
         self.core.analyser.select_ROIs(callback_on_exit=self.core.update_gui,

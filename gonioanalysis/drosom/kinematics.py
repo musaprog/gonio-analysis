@@ -6,6 +6,8 @@ import scipy.optimize
 
 import matplotlib.pyplot as plt
 
+
+
 def _logistic_function(t, k, L, t0):
     '''
     The sigmoidal function.
@@ -22,6 +24,7 @@ def _logistic_function(t, k, L, t0):
     See https://en.wikipedia.org/wiki/Logistic_function
     '''
     return L / (1+np.exp(-k*(t-t0)))
+
 
 
 def mean_max_response(manalyser, image_folder, maxmethod='max'):
@@ -47,6 +50,8 @@ def mean_max_response(manalyser, image_folder, maxmethod='max'):
     else:
         raise ValueError
 
+
+
 def magstd_over_repeats(manalyser, image_folder, maxmethod='max'):
     '''
     Standard deviation in responses
@@ -65,7 +70,8 @@ def magstd_over_repeats(manalyser, image_folder, maxmethod='max'):
     return np.std(displacements)
 
 
-def _simple_latencies(displacements, fs):
+
+def _simple_latencies(displacements, fs, threshold=0.1):
     '''
     Interpolate and take when goes over 1/10th
     ''' 
@@ -77,11 +83,56 @@ def _simple_latencies(displacements, fs):
     for displacement in displacements:
         y = np.interp(newx, timepoints, displacement)
         
-        index = np.where(y>(np.max(y)/10))[0][0]
+        index = np.where(y>(np.max(y)*threshold))[0][0]
         
         latencies.append(newx[index])
         
     return latencies
+
+
+
+def latency(manalyser, image_folder, threshold=0.05, method='sigmoidal'):
+    '''
+    Response latency ie. when the response exceedes by default 5% of
+    its maximum value.
+    
+    Arguments
+    ---------
+    threshold : float
+        Between 0 and 1
+    method : string
+        Either "sigmoidal" (uses the sigmoidal fit) or
+        "simple" (uses the data directly).
+    
+    Returns
+    -------
+    latency : float
+        The time duration in seconds that it takes for the response
+        to reach (by default) 5% of its maximum value
+    '''    
+    fs = manalyser.get_imaging_frequency(image_folder)
+    
+    if method == 'simple':
+        # Take the mean response of the image_folder's data
+        displacements = manalyser.get_displacements_from_folder(image_folder)    
+        trace = np.mean(displacements, axis=0)    
+    elif method == 'sigmoidal':
+        # Make a sigmoidal fit and use the sigmoidal curve
+        params = sigmoidal_fit(manalyser, image_folder)
+        N = len(manalyser.get_displacements_from_folder(image_folder)[0])
+        time = np.linspace(0, N/fs, N)
+        trace = _logistic_function(time,
+                np.mean(params[1]),
+                np.mean(params[0]),
+                np.mean(params[2]))
+    else:
+        raise ValueError("method has to be 'sigmoidal' or 'simple', not {}".format(
+            method))
+
+    # Check when climbs over the threshold
+    latency = _simple_latencies([trace], fs, threshold)
+    return latency
+
 
 
 def _sigmoidal_fit(displacements, fs):

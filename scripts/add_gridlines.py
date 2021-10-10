@@ -1,5 +1,6 @@
 '''
-Add grid lines to the selected GHS-DPP images
+Add grid lines to the selected GHS-DPP images.
+Usefull for example still-image series illustrations.
 '''
 import os
 
@@ -10,13 +11,13 @@ import cv2
 def main():
 
     fns = filedialog.askopenfilenames()
-    
+   
     if fns:
 
         print(fns)
 
         pixel_size = 0.817
-        every = 20
+        every = 10
 
         directory = os.path.dirname(fns[0])
         
@@ -30,19 +31,28 @@ def main():
             for i_line, j in enumerate(np.arange(0, image.shape[0]-1, every/pixel_size)):
                 j = int(j)
                 
-                if i_line == 13:    
+                if True:    
                     image[j:j+1, :, 2] = 255
+                    image[j:j+1, :, 0] = 0
+                    image[j:j+1, :, 1] = 0
                 else:
                     image[j:j+1, :, 0] = 255
+                    image[j:j+1, :, 1] = 0
+                    image[j:j+1, :, 2] = 0
+                    
             
             for i_line, i in enumerate(np.arange(0, image.shape[1]-1, every/pixel_size)):
                 i = int(i)
 
-                if i_line == 10: 
+                if True: 
                     image[:, i:i+1, 2] = 255
+                    image[:, i:i+1, 0] = 0
+                    image[:, i:i+1, 1] = 0
                 else:
                     image[:, i:i+1, 0] = 255
-
+                    image[:, i:i+1, 1] = 0
+                    image[:, i:i+1, 2] = 0
+                    
             cv2.imwrite(os.path.join(newdir, os.path.basename(fn)), image)
 
 

@@ -59,7 +59,7 @@ def left_right_displacements(manalysers, group_name,
         stimuli={'uv': ['uv', ')'], 'green': ['green'], 'NA': []},
         strong_weak_division=False, divide_threshold=3,
         wanted_imagefolders=None,
-        microns=True, phase=False):
+        microns=True, phase=False, mean_lr=False):
     '''
     Saves CSV files of left and right eye movements and ERGs.
     
@@ -93,6 +93,8 @@ def left_right_displacements(manalysers, group_name,
         Convert pixel movement values to microns
     phase : bool
         If True, return phase (vector direction) instead of the magnitude.
+    mean_lr : bool
+        If True, average the left and right eye data together.
     '''
     
     # each "file" is a list of columns
@@ -111,8 +113,9 @@ def left_right_displacements(manalysers, group_name,
         
         # Left eye
         for eye, condition in zip(['left', 'right'], conditions):
-
-            eyedata = {stim: [] for stim in stimuli.keys()}
+            
+            if eye=="left" or mean_lr == False:
+                eyedata = {stim: [] for stim in stimuli.keys()}
 
             for image_folder in manalyser.list_imagefolders(horizontal_condition=condition): 
                 
@@ -152,13 +155,13 @@ def left_right_displacements(manalysers, group_name,
                         trace = trace[0][0]
                         eyedata[stim].append(trace)
        
+            if eye == "right" or mean_lr == False:
+                for stim in stimuli.keys():
+                    if eyedata[stim]:
+                        column_name = '{}_mean_{}'.format(manalyser.name, eye)
 
-            for stim in stimuli.keys():
-                if eyedata[stim]:
-                    column_name = '{}_mean_{}'.format(manalyser.name, eye)
-
-                    csv_files[stim].append( np.mean(eyedata[stim], axis=0).tolist() )
-                    csv_files[stim][-1].insert(0, column_name)
+                        csv_files[stim].append( np.mean(eyedata[stim], axis=0).tolist() )
+                        csv_files[stim][-1].insert(0, column_name)
 
 
         if "ERGs" in manalyser.linked_data:

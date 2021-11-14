@@ -22,6 +22,7 @@ from gonioanalysis.antenna_level import AntennaLevelFinder
 from gonioanalysis.drosom.analysing import MAnalyser, MAverager
 from gonioanalysis.drosom.orientation_analysis import OAnalyser
 from gonioanalysis.drosom.optic_flow import FAnalyser
+from gonioanalysis.drosom.transmittance_analysis import TAanalyser
 from gonioanalysis.drosom import plotting
 from gonioanalysis.drosom.plotting.plotter import MPlotter
 from gonioanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
@@ -35,7 +36,8 @@ if '--tk_waiting_window' in sys.argv:
 
 
 
-Analysers = {'orientation': OAnalyser, 'motion': MAnalyser, 'flow': FAnalyser}
+Analysers = {'orientation': OAnalyser, 'motion': MAnalyser, 'flow': FAnalyser,
+        'transmittance': TAnalyser}
 
 analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS, **MULTIANALYSER_CMDS}
 

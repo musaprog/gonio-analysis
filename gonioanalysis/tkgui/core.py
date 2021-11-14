@@ -8,6 +8,7 @@ from gonioanalysis.droso import SpecimenGroups
 from gonioanalysis.directories import CODE_ROOTDIR
 from gonioanalysis.drosom.analysing import MAnalyser
 from gonioanalysis.drosom.orientation_analysis import OAnalyser
+from gonioanalysis.drosom.transmittance_analysis import TAnalyser
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 
 
@@ -41,7 +42,7 @@ class Core:
         self.selected_recording = None
         
         self.analyser_class = MAnalyser
-        self.analyser_classes = [MAnalyser, OAnalyser]
+        self.analyser_classes = [MAnalyser, OAnalyser, TAnalyser]
         
         self.active_analysis = None
 

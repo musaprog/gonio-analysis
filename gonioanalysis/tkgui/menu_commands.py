@@ -271,11 +271,11 @@ class SpecimenCommands(ModifiedMenuMaker):
         
         func = lambda stop: self.core.analyser.measure_both_eyes(absolute_coordinates=absolute_coordinates, stop_event=stop)
         
-        if self.core.analyser.__class__.__name__ == 'MAnalyser':
+        if self.core.analyser.__class__.__name__ != 'OAnalyser':
             MeasurementWindow(self.tk_root, [func], title='Measure movement', callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
         else:
             # OAnalyser; Threading in MeasurementWindow would cause problems for plotting
-            func()
+            func(stop=None)
             self.core.update_gui(changed_specimens=True)
 
 
@@ -380,7 +380,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         targets = [lambda stop, specimen=specimen: self.core.get_manalyser(specimen).measure_both_eyes(absolute_coordinates=absolute_coordinates, stop_event=stop) for specimen in specimens]
     
 
-        if self.core.analyser_class.__name__ == 'MAnalyser':
+        if self.core.analyser_class.__name__ != 'OAnalyser':
             MeasurementWindow(self.parent_menu.winfo_toplevel(), targets, title='Measure movement',
                     callback_on_exit=lambda: self.core.update_gui(changed_specimens=True))
         else:

@@ -77,7 +77,7 @@ class MeasurementWindow:
         Reschedule every 1000 ms.
         '''
         if not self.exit:
-            if not all(self.alives()) or self.processes == []:
+            if not any(self.alives()):
                 targets_left = self._run_next_target()
             else:
                 targets_left = True
@@ -88,7 +88,6 @@ class MeasurementWindow:
                 self.cancel_button.config(text='Ok')
                 self.all_run = True
 
-            print(self.alives())
 
     def on_cancel(self):
         self.exit = True

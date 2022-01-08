@@ -1064,10 +1064,14 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
     
 
 
-    def get_time_ordered(self, angles_in_degrees=True, first_frame_only=False):
+    def get_time_ordered(self, angles_in_degrees=True, first_frame_only=False,
+            exclude_imagefolders=[]):
         '''
         Get images, ROIs and angles, ordered in recording time for movie making.
         
+        exclude_imagefolders : list
+            Imagefolders to exclude
+
         Returns 3 lists: image_fns, ROIs, angles
                 image_fns
         '''
@@ -1079,6 +1083,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         for eye in self.movements:
             for angle in self.movements[eye]:
                 
+                if 'pos'+angle in exclude_imagefolders:
+                    continue
+
                 if not angle in seen_angles: 
                     time = self.movements[eye][angle][0]['time']
                     

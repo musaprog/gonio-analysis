@@ -58,21 +58,35 @@ class TAnalyser(MAnalyser):
                     try:
                         _roi = manalyser.get_moving_ROIs(eye, angle, i_repeat)
                     except AttributeError:
-                        _roi = [roi] * len(repeat)
+                        _roi = None
                     
                     i_frame = 0
+
                     for fn in repeat:
-                        images = tifffile.imread(fn)
-                        if len(images.shape) == 2:
-                            images = [images]
                         
-                        for image in images:
-                            x,y,w,h = [int(round(z)) for z in _roi[i_frame]]
+                        tiff = tifffile.TiffFile(fn)
+                        
+                        for i_page in range(len(tiff.pages)):
                             
-                            intensity = np.mean(image[y:y+h,x:x+w])
-                            ints.append(intensity)
+                            images = tiff.asarray(key=i_page)
+                            if len(images.shape) == 2:
+                                images = [images]
                             
-                            i_frame += 1
+                            for image in images:
+                                if _roi is None:
+                                    x,y,w,h = roi
+                                else:
+                                    try:
+                                        x,y,w,h = [int(round(z)) for z in _roi[i_frame]]
+                                    except IndexError:
+                                        # No ROI movement, skip
+                                        break
+                                
+                                intensity = np.mean(image[y:y+h,x:x+w])
+                                ints.append(intensity)
+                                
+                                i_frame += 1
+                                print("fn {}: {}/{}".format(os.path.basename(fn), i_frame+1, len(tiff.pages)))
 
                     intensities[angle].append({'x': ints, 'y':ints})
 

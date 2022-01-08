@@ -1382,7 +1382,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return magnitude_traces
 
     
-    def get_moving_ROIs(self, eye, angle):
+    def get_moving_ROIs(self, eye, angle, i_repeat=0):
         '''
         Returns a list of ROIs how they move over time.
         Useful for visualizing.
@@ -1393,7 +1393,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         if not self.ROIs:
             self.load_ROIs()
 
-        movements = self.movements[eye][angle][0]
+        movements = self.movements[eye][angle][i_repeat]
         rx,ry,rw,rh = self.ROIs[eye][angle]
         
         for i in range(len(movements['x'])):

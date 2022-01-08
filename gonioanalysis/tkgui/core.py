@@ -220,10 +220,10 @@ class Core:
             if not ':' in specimen_names:
                 specimen_names += ':'
         
-        if self.active_analysis:
-            terminal_args += '--active-analysis '+ self.active_analysis
+        if self.active_analysis not in ['default', '', None]:
+            terminal_args += ' --active-analysis '+ self.active_analysis
 
-        arguments = '-D "{}" -S "{}" {}'.format(self.data_directory[0], specimen_names, terminal_args)
+        arguments = '-D "{}" -S "{}" {}'.format(' '.join(self.data_directory), specimen_names, terminal_args)
         
         # FIXME for general use
         if self.analyser_class is not MAnalyser:

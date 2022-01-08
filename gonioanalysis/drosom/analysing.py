@@ -299,9 +299,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 self.load_analysed_movements()
 
             self.antenna_level_correction = self._getAntennaLevelCorrection(folder)
-            if self.antenna_level_correction == False:
-                print('No antenna level correction value for fly {}'.format(folder))
-
 
             self.load_linked_data()
             
@@ -579,6 +576,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         absolute_path       If true, return filenames with absolute path instead of relative
 
         '''
+
         fns = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')]
         
         fns = arange_fns(fns)
@@ -626,9 +624,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         if self.antenna_level_correction != False:
             for i in range(len(angles)):
-                #print('Before correcting {}'.format(angles[i]))
                 angles[i][1] -= self.antenna_level_correction
-                #print('Before correcting {}'.format(angles[i]))
 
         return angles
 
@@ -828,8 +824,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         self.N_folders_having_rois = len(marker_markings)
         
-        print('ROIs left: {}'.format(len(self.ROIs['left'])))
-        print('ROIs right: {}'.format(len(self.ROIs['right'])))
         
 
     def select_ROIs(self, **kwargs):
@@ -896,7 +890,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         Returns (True, True) if analyseMovement results can be found for the fly and bot eyes.
         '''
-        print(self.MOVEMENTS_SAVEFN)
         return all((os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right'))))
 
 
@@ -982,7 +975,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         if not self.ROIs[eye] == {}:
 
-            #print(self.ROIs)
             for angle in self.stacks:
                 #if angle in str(self.ROIs[eye].keys()):
                 
@@ -1709,8 +1701,6 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
             points = np.array(newpoints)
             vectors = np.array(newvecs)
 
-        for point in points:
-            print(point)
         
         # Vertical/horizontal angle limiting
         booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],

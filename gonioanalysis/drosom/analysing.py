@@ -797,7 +797,10 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             ROIs = good_rois
 
             pos = self.get_imagefolder(image_fn)
-            horizontal, pitch = angles_from_fn(pos)
+            try:
+                horizontal, pitch = angles_from_fn(pos)
+            except:
+                horizontal, pitch = (0, 0)
             pos = pos[3:]
 
             # ROI belonging to the eft/right eye is determined solely by
@@ -819,7 +822,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     self.ROIs['left'][pos]= ROIs[1]
                     self.ROIs['right'][pos] = ROIs[0]
             
-            else:
+            elif len(ROIs) > 2:
                 print('Warning. len(ROIs) == {} for {}'.format(len(ROIs), image_fn))
 
         self.N_folders_having_rois = len(marker_markings)
@@ -1035,8 +1038,15 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     self.movements[angle] = []
                 
                 tags = meter.get_metadata(stack_i)['Image ImageDescription'].values.split('"')
-                time = tags[tags.index('start_time') + 2]
+                
+                # GonioImsoft start time tag in the images
+                if 'start_time' in tags:
+                    time = tags[tags.index('start_time') + 2]
+                else:
+                    time = None
+
                 self.movements[angle].append({'x': x, 'y':y, 'time': time})
+
         else:
             self.movements = {}
             
@@ -1470,7 +1480,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         for eye in ['left', 'right']:
             try:
                 return self.movements[eye][angle][i_rep]['time']
-            except KeyError:
+            except (KeyError, IndexError):
                 pass
             except AttributeError:
                 print('No time for {} because movements not analysed'.format(image_folder))

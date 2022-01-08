@@ -17,7 +17,11 @@ from matplotlib.patches import FancyArrowPatch, CirclePolygon
 from mpl_toolkits.mplot3d import proj3d, art3d
 from matplotlib import cm
  
-from gonioanalysis.coordinates import nearest_neighbour, get_rotation_matrix
+from gonioanalysis.coordinates import (
+        nearest_neighbour,
+        get_rotation_matrix,
+        rotate_points
+        )
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 
 CURRENT_ARROW_LENGTH = 1
@@ -305,8 +309,50 @@ def plot_guidance(ax, camerapos=None, r=1,
 
     return arrows
 
+
+def plot_vrot_lines(ax, vrots, n_verts=16, camerapos=None):
+    '''
+    Plot vetical rotation lines
+
+    Arguments
+    ---------
+    vrots:  list of floats
+        Vertical rotations in degrees
+    verts : int
+        How many vertices per a half cirle. Higher values give
+        smoother and more round results.
+    '''
+    
+    horizontals = np.radians(np.linspace(-70, 70, n_verts))
+    points = np.vstack( (np.sin(horizontals), np.cos(horizontals)) )
+    points = np.vstack( (points, np.zeros(n_verts)) ).T
+    
+    points = points * 0.95
+
+    print(points.shape)
+
+    for vrot in vrots:
+        pnts = rotate_points(points, 0, math.radians(vrot), 0)
+        if -1 < vrot < 1:
+            color = (0.2,0.2,0.2)
+            style = '-'
+        else:
+            color = (0.2,0.2,0.2)
+            style = '--'
+        
+        if camerapos:
+            visible = [p for p in pnts if not is_behind_sphere(*camerapos, p)]
+            
+            if not visible:
+                continue
+            pnts = np.array(visible)
+
+        ax.plot(pnts[:,0], pnts[:,1], pnts[:,2], style, lw=1, color=color)
+
+
 def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_length=1,
         i_pulsframe=None, guidance=False, camerapos=None, draw_sphere=True,
+        vrot_lines=False,
         hide_axes=False, hide_text=False,
         **kwargs):
     '''
@@ -380,6 +426,11 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
         Y = r * np.sin(theta) * np.sin(phi)
         Z = r * np.cos(theta)
         ax.plot_surface(X, Y, Z, color='lightgray')
+
+    
+    if vrot_lines:
+        plot_vrot_lines(ax, np.arange(-120, 120.1, 20), n_verts=16,
+                camerapos=camerapos)
 
 
     if i_pulsframe:

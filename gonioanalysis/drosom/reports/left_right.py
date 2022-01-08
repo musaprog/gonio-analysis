@@ -59,7 +59,8 @@ def left_right_displacements(manalysers, group_name,
         stimuli={'uv': ['uv', ')'], 'green': ['green'], 'NA': []},
         strong_weak_division=False, divide_threshold=3,
         wanted_imagefolders=None,
-        microns=True, phase=False, mean_lr=False):
+        microns=True, phase=False, mean_lr=False,
+        reference_frame=False):
     '''
     Saves CSV files of left and right eye movements and ERGs.
     
@@ -95,6 +96,10 @@ def left_right_displacements(manalysers, group_name,
         If True, return phase (vector direction) instead of the magnitude.
     mean_lr : bool
         If True, average the left and right eye data together.
+    reference_frame : False or int
+        If an interger (between 0 and N_frames-1), use the corresponding
+        frame as a reference zero point.
+
     '''
     
     # each "file" is a list of columns
@@ -153,6 +158,10 @@ def left_right_displacements(manalysers, group_name,
                             raise ValueError('Analysers with multiple fs!')
 
                         trace = trace[0][0]
+                        
+                        if reference_frame is not False:
+                            trace = [val - trace[reference_frame] for val in trace]
+
                         eyedata[stim].append(trace)
        
             if eye == "right" or mean_lr == False:

@@ -3,6 +3,7 @@ import math
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Arrow, Circle
 import tifffile
 from scipy.spatial import cKDTree as KDTree
 import cv2
@@ -73,8 +74,14 @@ def _crop(image, roi, factor):
 
     return np.array(new_image)
 
+
+
+
+
 def moving_rois(manalyser, roi_color='red,blue', lw=3, e=50,
-        rel_rotation_time=1, crop_factor=0.5):
+        rel_rotation_time=1, crop_factor=0.5,
+        _exclude_imagefolders=[], _order=None,
+        _draw_arrow=False):
     '''
     Visualization video how the ROI boxes track the analyzed features,
     drawn on top of the original video frames.
@@ -93,28 +100,53 @@ def moving_rois(manalyser, roi_color='red,blue', lw=3, e=50,
         transition
     crop_factor : int
         If smaller than 1 then cropped in Y.
+    
+    RETURNS
+    -------
+    None
     '''
     savedir = os.path.join(ANALYSES_SAVEDIR, 'illustrate_experiments', 'moving_rois', manalyser.get_specimen_name())
     os.makedirs(savedir, exist_ok=True)
-    
+    if _draw_arrow:
+        os.makedirs(os.path.join(savedir, 'inset'), exist_ok=True)
+
     colors = roi_color.split(',')
     
     image_fns, ROIs, angles = manalyser.get_time_ordered()
     N = len(image_fns)
-    
     i_frame = 0
 
-    aangles = []
-    
     crop_roi = ROIs[0]
+    
+
+    if _draw_arrow:
+        # Create and setup figure
+        fig, ax = plt.subplots(figsize=(10,10))
+        ax._myarrow = None
+        ax.set_xlim(-1.5, 1.5)
+        ax.set_ylim(-1.5, 1.5)
+        ax.set_axis_off()
+        
+        # vector normalisation values
+        normalisations = {fol: manalyser.get_displacements_from_folder(fol)[0][-1] for fol in manalyser.list_imagefolders(only_measured=True)}
+        
+        ax.add_patch( Circle((0,0), 1, fill=False, lw=3, color="gray") )
+        
+
+    def draw_arrow_inset(savefn, vx, vy, **kwargs):
+        if ax._myarrow:
+            ax._myarrow.remove()
+
+        ax._myarrow = Arrow(0,0,vx,vy, width=0.5, **kwargs)
+        ax.add_patch(ax._myarrow)
+        fig.savefig(savefn, transparent=True)
+
 
     for i_fn, (fn, roi, angle) in enumerate(zip(image_fns, ROIs, angles)):
 
         if i_fn+1 < len(image_fns) and angle != angles[i_fn-1]:
-            aangles.append(angle)
             crop_roi = roi
-        #continue
-
+        
         print("{}/{}".format(i_fn+1, N))
 
         image = _load_image(fn, roi, e)
@@ -125,10 +157,19 @@ def moving_rois(manalyser, roi_color='red,blue', lw=3, e=50,
             color = (0,0,255)
 
         image = _box(image, roi, lw, color=color)
+        
         image = _crop(image, crop_roi, crop_factor)
+
         savefn = os.path.join(savedir, 'image_{:08d}.png'.format(i_frame))
         tifffile.imsave(savefn, image.astype(np.uint8))
         i_frame += 1
+
+        if _draw_arrow:
+            vx, vy = (roi[0] - crop_roi[0], roi[1] - crop_roi[1])
+            vx, vy = np.array([vx, -vy]) / normalisations[os.path.basename(os.path.dirname(fn))]
+            draw_arrow_inset(os.path.join(savedir, 'inset', 'image_{:08d}.png'.format(i_frame)), vx, vy,
+                    color='white')
+            
 
         if rel_rotation_time and angle != angles[i_fn+1]:
             next_image = _load_image(image_fns[i_fn+1], roi, e)

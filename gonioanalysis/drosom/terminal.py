@@ -22,7 +22,7 @@ from gonioanalysis.antenna_level import AntennaLevelFinder
 from gonioanalysis.drosom.analysing import MAnalyser, MAverager
 from gonioanalysis.drosom.orientation_analysis import OAnalyser
 from gonioanalysis.drosom.optic_flow import FAnalyser
-from gonioanalysis.drosom.transmittance_analysis import TAanalyser
+from gonioanalysis.drosom.transmittance_analysis import TAnalyser
 from gonioanalysis.drosom import plotting
 from gonioanalysis.drosom.plotting.plotter import MPlotter
 from gonioanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
@@ -100,7 +100,7 @@ def main(custom_args=None):
     
     
     # DATA ARGUMENTS
-    parser.add_argument('-D', '--data_directory', nargs=1,
+    parser.add_argument('-D', '--data_directory', nargs='+',
             help='Data directory')
 
     parser.add_argument('-S', '--specimens', nargs='+',
@@ -131,7 +131,7 @@ def main(custom_args=None):
     parser.add_argument('--reverse-directions', action='store_true',
             help='Reverse movement directions')
 
-    parser.add_argument('--active-analysis', nargs='1',
+    parser.add_argument('--active-analysis', nargs='?', default='',
             help='Name of the analysis')
 
     # Other settings
@@ -165,13 +165,14 @@ def main(custom_args=None):
     if args.data_directory:
         print('Using data directory {}'.format(args.data_directory[0]))
         
-        data_directory = args.data_directory[0]
+        data_directories = args.data_directory
     else:
-        data_directory = input('Data directory >> ')
+        data_directories = input('Data directory >> ')
     
     # Check that the data directory exists
-    if not os.path.isdir(data_directory):
-        raise ValueError("{} is not a directory".format(data_directory))
+    for directory in data_directories:
+        if not os.path.isdir(directory):
+            raise ValueError("{} is not a directory".format(directory))
 
     # {specimen name : [image_folder_1, ...]}
     wanted_imagefolders = {}
@@ -206,12 +207,15 @@ def main(custom_args=None):
             
             # dont commit me
             group = group.replace(':', ',')
-
-            selector = DrosoSelect(datadir=data_directory)
-            directories = selector.parse_specimens(group)
+            
+            
+            directories = []
+            for directory in data_directories:
+                selector = DrosoSelect(datadir=directory)
+                directories.extend( selector.parse_specimens(group) )
             directory_groups.append(directories)
     else:
-        selector = DrosoSelect(datadir=data_directory)
+        selector = DrosoSelect(datadir=data_directories[0])
         directories = selector.ask_user()
      
             
@@ -240,7 +244,7 @@ def main(custom_args=None):
                 analyser = Analyser(path, folder_name) 
                 
                 if args.active_analysis:
-                    analyser.active_analysis = active_analysis
+                    analyser.active_analysis = args.active_analysis
                 
                 analysers.append(analyser)
  

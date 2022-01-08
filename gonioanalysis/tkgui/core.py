@@ -225,9 +225,14 @@ class Core:
 
         arguments = '-D "{}" -S "{}" {}'.format(' '.join(self.data_directory), specimen_names, terminal_args)
         
-        # FIXME for general use
-        if self.analyser_class is not MAnalyser:
+        if self.analyser_class is MAnalyser:
+            pass
+        elif self.analyser_class is OAnalyser:
             arguments = '--type orientation ' + arguments
+        elif self.analyser_class is TAnalyser:
+            arguments = '--type transmittance ' + arguments
+        else:
+            raise NotImplementedError
 
         command = '{} {} {} &'.format(python, pyfile, arguments)
         

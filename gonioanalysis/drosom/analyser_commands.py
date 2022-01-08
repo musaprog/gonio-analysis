@@ -80,3 +80,5 @@ for animation_type in ['rotate_plot', 'rotate_arrows', 'pitch_rot', 'yaw_rot', '
 # Functions that take in a list of manalysers (first positional argument)
 MULTIANALYSER_CMDS = {}
 MULTIANALYSER_CMDS['magnitude_probability'] = basics.plot_magnitude_probability
+MULTIANALYSER_CMDS['moving_rois_mosaic'] = illustrate_experiments.moving_rois_mosaic
+

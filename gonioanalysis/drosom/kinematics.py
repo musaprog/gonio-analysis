@@ -38,6 +38,7 @@ def mean_max_response(manalyser, image_folder, maxmethod='max'):
         Method how the determine the maximum displacement
         'max': Take the furthest point
         'mean_latterhalf': final 50% mean discplacement
+        'final' : Use the final value
     '''
     
     displacements = manalyser.get_displacements_from_folder(image_folder)
@@ -47,6 +48,8 @@ def mean_max_response(manalyser, image_folder, maxmethod='max'):
         return np.max(mean)
     elif maxmethod == 'mean_latterhalf':
         return np.mean(mean[int(len(mean)/2):])
+    elif maxmethod == 'final':
+        return mean[-1]
     else:
         raise ValueError
 

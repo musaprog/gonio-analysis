@@ -6,7 +6,11 @@ import os
 import csv
 import numpy as np
 
-from gonioanalysis.drosom.kinematics import mean_max_response
+from gonioanalysis.drosom.kinematics import (
+        mean_max_response,
+        _sigmoidal_fit,
+        _simple_latencies,
+        )
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 
 LR_SAVEDIR = os.path.join(ANALYSES_SAVEDIR, 'LR_exports')
@@ -52,8 +56,11 @@ def read_CSV_cols(fn):
 def left_right_displacements(manalysers, group_name,
         fn_prefix='LR-displacements',
         savedir=LR_SAVEDIR,
-        stimuli={'uv': ['uv', ')'], 'green': ['green']},
-        strong_weak_division=True, divide_threshold=3):
+        stimuli={'uv': ['uv', ')'], 'green': ['green'], 'NA': []},
+        strong_weak_division=False, divide_threshold=3,
+        wanted_imagefolders=None,
+        microns=True, phase=False, mean_lr=False,
+        reference_frame=False):
     '''
     Saves CSV files of left and right eye movements and ERGs.
     
@@ -80,54 +87,90 @@ def left_right_displacements(manalysers, group_name,
         Related to the strong_weak_divison argument. For some specimen there may be
         recordings only from one eye, and divide_threshold or more is required
         to in total to do the division.
+    wanted_imagefolders: None or a dict
+        Keys specimen names, items a sequence of wanted imagefolders
+        Relaxes horizontal conditions.
+    microns : bool
+        Convert pixel movement values to microns
+    phase : bool
+        If True, return phase (vector direction) instead of the magnitude.
+    mean_lr : bool
+        If True, average the left and right eye data together.
+    reference_frame : False or int
+        If an interger (between 0 and N_frames-1), use the corresponding
+        frame as a reference zero point.
+
     '''
     
     # each "file" is a list of columns
-    csv_files = {stim: [] for stim in stimuli.keys()}
     
     fs = None
     efs = None
-
+    
+    if wanted_imagefolders:
+        conditions = [None, None] 
+        csv_files = {'NA': []}
+    else:
+        conditions = [lambda h: h>10, lambda h: h<-10]
+        csv_files = {stim: [] for stim in stimuli.keys()}
 
     for manalyser in manalysers:
         
         # Left eye
-        for eye, condition in zip(['left', 'right'], [lambda h: h>10, lambda h: h<-10]):
-
-            eyedata = {stim: [] for stim in stimuli.keys()}
+        for eye, condition in zip(['left', 'right'], conditions):
+            
+            if eye=="left" or mean_lr == False:
+                eyedata = {stim: [] for stim in stimuli.keys()}
 
             for image_folder in manalyser.list_imagefolders(horizontal_condition=condition): 
                 
-                for stim in stimuli.keys():
-                    if any([image_folder.endswith(match) for match in stimuli[stim]]):
-                        
-                        trace = manalyser.get_magnitude_traces(eye,
-                                image_folder=image_folder,
-                                mean_repeats=True)
+                if wanted_imagefolders and image_folder not in wanted_imagefolders.get(manalyser.name, []):
+                    # Skip image_folder if not in wanted_imagefolders (if it's not None)
+                    continue
+                
+                if wanted_imagefolders is None:
+                    # look for match
+                    stims = []
+                    for _stim in stimuli.keys():
+                        if any([image_folder.endswith(match) for match in stimuli[_stim]]):
+                            stims.append( _stim )
+                else:
+                    stims = ['NA']
+                
+                for stim in stims:
+
+                    trace = manalyser.get_magnitude_traces(eye,
+                            image_folder=image_folder,
+                            mean_repeats=True, microns=microns,
+                            _phase=phase)
+                
+                    trace = list(trace.values())
+                    if len(trace) >= 2:
+                        raise NotImplementedError('mistake in implementation')
                     
-                        trace = list(trace.values())
-                        if len(trace) >= 2:
-                            raise NotImplementedError('mistake in implementation')
+
+                    if trace:
+                        # Check that fs matches
+                        nfs = manalyser.get_imaging_frequency(image_folder=image_folder)
+                        if fs is None:
+                            fs = nfs
+                        elif fs != nfs:
+                            raise ValueError('Analysers with multiple fs!')
+
+                        trace = trace[0][0]
                         
+                        if reference_frame is not False:
+                            trace = [val - trace[reference_frame] for val in trace]
 
-                        if trace:
-                            # Check that fs matches
-                            nfs = manalyser.get_imaging_frequency(image_folder=image_folder)
-                            if fs is None:
-                                fs = nfs
-                            elif fs != nfs:
-                                raise ValueError('Analysers with multiple fs!')
+                        eyedata[stim].append(trace)
+       
+            if eye == "right" or mean_lr == False:
+                for stim in stimuli.keys():
+                    if eyedata[stim]:
+                        column_name = '{}_mean_{}'.format(manalyser.name, eye)
 
-                            trace = trace[0][0]
-                            eyedata[stim].append(trace)
-           
-
-            for stim in stimuli.keys():
-                if eyedata[stim]:
-                    column_name = '{}_mean_{}'.format(manalyser.name, eye)
-
-                    csv_files[stim].append( np.mean(eyedata[stim], axis=0).tolist() )
-                    csv_files[stim][-1].insert(0, column_name)
+                        csv_files[stim].append( np.mean(eyedata[stim], axis=0).tolist() )
+                        csv_files[stim][-1].insert(0, column_name)
 
 
         if "ERGs" in manalyser.linked_data:
@@ -241,8 +284,8 @@ def left_right_displacements(manalysers, group_name,
                 print(csv_files[csv_file])
                 raise ValueError("No ERGs, check linking the ERG data")
             else:
-                raise e
-            
+                #raise e
+                continue
 
         if csv_file.startswith('ERGs_'):
             ufs = efs
@@ -330,9 +373,12 @@ def lrfiles_summarise(lrfiles, point_type='mean', ab=(None, None)):
 
         # First column is time, the last is the mean, skip these
         for col in coldata[1:-1]:
-
-            if a is not None and b is not None:
-                numerical_col = [float(num) for num in col[a+1:b]]
+            
+            if point_type != 'kinematics':
+                if a is not None and b is not None:
+                    numerical_col = [float(num) for num in col[a+1:b]]
+                else:
+                    numerical_col = [float(num) for num in col[1:]]
             else:
                 numerical_col = [float(num) for num in col[1:]]
 
@@ -340,8 +386,28 @@ def lrfiles_summarise(lrfiles, point_type='mean', ab=(None, None)):
                 value = np.mean(numerical_col)
             elif point_type.startswith('min-start'):
                 value = np.min(numerical_col) - float(col[1])
+            
+            elif point_type == 'kinematics':
+                fs = 1/(float(coldata[0][2]) - float(coldata[0][1]))
+                value = _sigmoidal_fit([numerical_col], fs)
+                
+                if value is None:
+                    continue
 
-            csv_rows[specimen_name].append(value)
+                value = [value[0][0], value[1][0], value[2][0]]
+                #value = _simple_latencies([numerical_col], fs)[0]
+            
+            if len(lrfiles)==1 and point_type == "kinematics":
+                # expand CSV rows
+                for name, val in zip(['displacement', 'logistic growth rate', '1/2-risetime'], value):
+                    try:
+                        csv_rows[specimen_name+'_'+name]
+                    except:
+                        csv_rows[specimen_name+'_'+name] = []
+                    csv_rows[specimen_name+'_'+name].append(val)
+
+            else:
+                csv_rows[specimen_name].append(value)
 
 
         csv_files[stim] = csv_rows

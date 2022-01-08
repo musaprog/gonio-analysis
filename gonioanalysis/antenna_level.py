@@ -9,29 +9,31 @@ import ast
 import numpy as np
 import matplotlib.pyplot as plt
 
-from gonioanalysis.directories import ANALYSES_SAVEDIR, CODE_ROOTDIR
+from gonioanalysis.directories import ANALYSES_SAVEDIR, CODE_ROOTDIR, PROCESSING_TEMPDIR
 from gonioanalysis.droso import DrosoSelect
 from gonioanalysis.drosom.loading import load_data
 from gonioanalysis.image_tools import ImageShower
 from gonioanalysis.binary_search import binary_search_middle
 from gonioanalysis.rotary_encoders import to_degrees
 
+ZERO_CORRECTIONS_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'vectical_corrections')
 
-def load_reference_fly(folder):
+
+def load_reference_fly(reference_name):
     '''
     Returns the reference fly data, dictionary with pitch angles as keys and
     image filenames as items.
     '''
     pitches = []
-    root_dir = os.path.dirname
-    with open(os.path.join(CODE_ROOTDIR, folder, 'pitch_angles.txt'), 'r') as fp:
+    with open(os.path.join(ZERO_CORRECTIONS_SAVEDIR, reference_name, 'pitch_angles.txt'), 'r') as fp:
         for line in fp:
             pitches.append(line)
 
-    images = [os.path.join(CODE_ROOTDIR, folder, fn) for fn in os.listdir(os.path.join(CODE_ROOTDIR, folder)) if fn.endswith('.tif') or fn.endswith('.tiff')]
+    images = [os.path.join(ZERO_CORRECTIONS_SAVEDIR, reference_name, fn) for fn in os.listdir(
+        os.path.join(ZERO_CORRECTIONS_SAVEDIR, reference_name)) if fn.endswith('.tif') or fn.endswith('.tiff')]
+
     images.sort() 
     return {pitch: fn for pitch,fn in zip(pitches, images)}
-
 
 
 
@@ -66,11 +68,12 @@ def load_drosom(folder):
 
     return pitches, images
 
+
 def save_antenna_level_correction(fly_name, result):
     '''
     Saves the antenna level correction that should be a float
     '''
-    directory = os.path.join(ANALYSES_SAVEDIR, 'antenna_levels') 
+    directory = ZERO_CORRECTIONS_SAVEDIR
     os.makedirs(directory, exist_ok=True)
     with open(os.path.join(directory, fly_name+'.txt'), 'w') as fp:
         fp.write(str(float(result)))
@@ -178,7 +181,7 @@ class AntennaLevelFinder:
         '''
         pitches, images = self._drosox_load(folder, True)
         
-        with open(os.path.join(ANALYSES_SAVEDIR, 'antenna_levels', fly+'.txt'), 'r') as fp:
+        with open(os.path.join(ZERO_CORRECTIONS_SAVEDIR, fly+'.txt'), 'r') as fp:
             offset = float(fp.read())
 
         return {image: pitch-offset for image, pitch in zip(images, pitches)}

@@ -6,6 +6,7 @@ import os
 import math
 import copy
 import multiprocessing
+import datetime
 
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
@@ -16,7 +17,11 @@ from matplotlib.patches import FancyArrowPatch, CirclePolygon
 from mpl_toolkits.mplot3d import proj3d, art3d
 from matplotlib import cm
  
-from gonioanalysis.coordinates import nearest_neighbour, get_rotation_matrix
+from gonioanalysis.coordinates import (
+        nearest_neighbour,
+        get_rotation_matrix,
+        rotate_points
+        )
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 
 CURRENT_ARROW_LENGTH = 1
@@ -268,79 +273,165 @@ def is_behind_sphere(elev, azim, point):
         return False
 
 
-
-    
-
-
-
-
-def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
-        i_pulsframe=False, guidance=False, camerapos=None, draw_sphere=True,
-        **kwargs):
+def plot_guidance(ax, camerapos=None, r=1,
+        mutation_scale=6, hide_text=False):
     '''
-    Plot vectors on ax.
-
-    ax              Matplotlib ax (axes) instance
-    points          Starting points 
-    vectors
-    color           Color of the arrows
-    mutation_scale  Size of the arrow head basically
-    i_pulsframe    Index of the pulsation animation frame, sets the length of the arrows
-    guidance    Add help elements to point left,right,front,back etc. and hide axe
-    camerapos       (elev, axzim). Supply so vectors bending the visible himspehere can be hidden 
-    draw_sphere     If true draw a gray sphere
-    **kwargs        To matplotlib FancyArrowPatch
+    Plot help elements to point left,right,front,back
     '''
-    
-    global CURRENT_ARROW_DIRECTION
-    
-    arrow_artists = []
+    arrows = []
+    guidances = {'Right': ((r,0,0), (0.2,0,0)),
+            'Left': ((-r,0,0),(-0.2,0,0)),
+            '  Ventral': ((0,0,-r),(0,0,-0.3)),
+            '  Dorsal': ((0,0,r),(0,0,0.3))}
+       
+    for name, (point, vector) in guidances.items():
+        point = np.array(point)
+        vector = np.array(vector)
 
-    #ax.scatter([x for (x,y,z) in points], [y for (x,y,z) in points],
-    #        [z for (x,y,z) in points], color='black')
+        if is_behind_sphere(*camerapos, point):
+            zorder = 1
+        else:
+            zorder = 8
 
-    # With patches limits are not automatically adjusted
-    ax.set_xlim(-1, 1)
-    ax.set_ylim(-1,1)
-    ax.set_zlim(-1, 1)
-     
-    if guidance:
-        ax.set_axis_off()
+        ar = Arrow3D(*point, *(point+vector), mutation_scale=mutation_scale,
+                lw=0.2, color='black', zorder=zorder)
+        ax.add_artist(ar)
+        arrows.append(ar)
         
-        r = 0.9
-        
-        guidances = {'Right': ((r,0,0), (0.2,0,0)),
-                'Left': ((-r,0,0),(-0.2,0,0)),
-                '  Ventral': ((0,0,-r),(0,0,-0.3)),
-                '  Dorsal': ((0,0,r),(0,0,0.3))}
-        #'Antenna': ((0,0.7,0),(0,0.4,0))}
-
-        
-        for name, (point, vector) in guidances.items():
-            point = np.array(point)
-            vector = np.array(vector)
-
-            if is_behind_sphere(*camerapos, point):
-                zorder = 1
-            else:
-                zorder = 8
-
-            ar = Arrow3D(*point, *(point+vector), mutation_scale=mutation_scale, lw=0.2, color='black', zorder=zorder)
-            ax.add_artist(ar)
-            
+        if not hide_text:
             if name in ('Left', 'Right'):
                 ha = 'center'
             else:
                 ha = 'left'
-            ax.text(*(point+vector/1.05), name, color='black', fontsize='xx-large', va='bottom', ha=ha, linespacing=1.5, zorder=zorder+1)
+            ax.text(*(point+vector/1.05), name, color='black',
+                    fontsize='xx-large', va='bottom', ha=ha,
+                    linespacing=1.5, zorder=zorder+1)
+
+    return arrows
+
+
+def plot_vrot_lines(ax, vrots, n_verts=16, camerapos=None):
+    '''
+    Plot vetical rotation lines
+
+    Arguments
+    ---------
+    vrots:  list of floats
+        Vertical rotations in degrees
+    verts : int
+        How many vertices per a half cirle. Higher values give
+        smoother and more round results.
+    '''
+    
+    horizontals = np.radians(np.linspace(-70, 70, n_verts))
+    points = np.vstack( (np.sin(horizontals), np.cos(horizontals)) )
+    points = np.vstack( (points, np.zeros(n_verts)) ).T
+    
+    points = points * 0.95
+
+    print(points.shape)
+
+    for vrot in vrots:
+        pnts = rotate_points(points, 0, math.radians(vrot), 0)
+        if -1 < vrot < 1:
+            color = (0.2,0.2,0.2)
+            style = '-'
+        else:
+            color = (0.2,0.2,0.2)
+            style = '--'
         
-        if draw_sphere:
-            N = 75
-            phi, theta = np.meshgrid(np.linspace(0, 2*np.pi, N), np.linspace(0, np.pi, N))
-            X = r * np.sin(theta) * np.cos(phi)
-            Y = r * np.sin(theta) * np.sin(phi)
-            Z = r * np.cos(theta)
-            ax.plot_surface(X, Y, Z, color='lightgray')
+        if camerapos:
+            visible = [p for p in pnts if not is_behind_sphere(*camerapos, p)]
+            
+            if not visible:
+                continue
+            pnts = np.array(visible)
+
+        ax.plot(pnts[:,0], pnts[:,1], pnts[:,2], style, lw=1, color=color)
+
+
+def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_length=1,
+        i_pulsframe=None, guidance=False, camerapos=None, draw_sphere=True,
+        vrot_lines=False,
+        hide_axes=False, hide_text=False,
+        **kwargs):
+    '''
+    Plot vectors on a 3D matplotlib Axes object as arrows.
+
+    ax : object
+        Matplotlib ax (axes) instance
+    points : array_like
+        Sequence of arrow starting/tail (x,y,z) points 
+    vectors : array_like
+        Arrow lengts and directions, sequence of (x,y,z)
+    color : string
+        Matplotlib valid color for the drawn arrows
+    mutation_scale : float
+        Size of the arrow head basically
+    i_pulsframe : int
+        Index of the pulsation frame, setting the arrow length. For animation.
+    guidance : bool
+        Add help elements to point left,right,front,back
+    camerapos : tuple or None
+        Values of (elev, axzim) to hide vectors behind the sphere. If none,
+        use values from ax.elev and ax.azim.
+    draw_sphere : bool
+        If true draw a gray sphere
+    hide_axes : bool
+        Call set_axis_off
+    hide_text : bool
+        Omit from drawing any text
+    kwargs : dict
+        Passed to matplotlib FancyArrowPatch
+    
+    Returns
+    -------
+    arrow_artists : list
+        All ArrowArtists added to the ax
+
+    '''
+    global CURRENT_ARROW_DIRECTION
+    r = 0.9
+
+    arrow_artists = []
+
+
+    if hide_axes:
+        ax.set_axis_off()
+    
+    if hide_text:
+        ax.axes.xaxis.set_ticklabels([])
+        ax.axes.yaxis.set_ticklabels([]) 
+        ax.axes.zaxis.set_ticklabels([]) 
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.set_zlabel('')
+    else:
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+
+
+    if not camerapos:
+        camerapos = (ax.elev, ax.azim)
+ 
+    if guidance:
+        plot_guidance(ax, camerapos=camerapos, hide_text=hide_text)
+
+    if draw_sphere:
+        N = 75
+        phi, theta = np.meshgrid(np.linspace(0, 2*np.pi, N), np.linspace(0, np.pi, N))
+        X = r * np.sin(theta) * np.cos(phi)
+        Y = r * np.sin(theta) * np.sin(phi)
+        Z = r * np.cos(theta)
+        ax.plot_surface(X, Y, Z, color='lightgray')
+
+    
+    if vrot_lines:
+        plot_vrot_lines(ax, np.arange(-120, 120.1, 20), n_verts=16,
+                camerapos=camerapos)
+
 
     if i_pulsframe:
         global CURRENT_ARROW_LENGTH
@@ -348,35 +439,23 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
     else:
         scaler = 1.1
 
+    scaler *= scale_length
+
     for point, vector in zip(points, vectors):
 
         if camerapos:
-            #elev, azim = camerapos
-            #cx = np.sin(np.radians(90-elev)) * np.cos(np.radians(azim))
-            #cy = np.sin(np.radians(90-elev)) * np.sin(np.radians(azim))
-            #cz = np.cos(np.radians(90-elev))
-            
-            #if elev < 0:
-            #    cz = -cz
-
-
-            #vec_cam = (cx,cy,cz)
             vec_arr = point
-            #angle = np.arccos(np.inner(vec_cam, vec_arr)/(np.linalg.norm(vec_cam)*np.linalg.norm(vec_arr)))
     
-
             if is_behind_sphere(*camerapos, vec_arr):
                 alpha = 0
             else:
                 alpha = 1
                 zorder = 10
-
         else:
             alpha = 1
             zorder = 10
-
         
-        if CURRENT_ARROW_DIRECTION > 0 or i_pulsframe == False:
+        if CURRENT_ARROW_DIRECTION > 0 or i_pulsframe is None:
             A = point
             B = point+scaler*vector
         else:
@@ -388,29 +467,16 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
         ax.add_artist(ar)
         arrow_artists.append(ar)
 
-    #try:
-    #    ar = Arrow3D(*(0,0,0), *vec_cam, arrowstyle="-|>", lw=1,
-    #        mutation_scale=mutation_scale, color='green', zorder=11)
-    #    
-    #    ax.add_artist(ar)
-    #except:
-    #    pass
-    
-           
+
     ax.set_xlim(-1.1, 1.1)
     ax.set_ylim(-1.1,1.1)
     ax.set_zlim(-1.1, 1.1)
-    
-
    
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    
     return arrow_artists
 
 
-def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=None):
+def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=None,
+        colormap='own'):
     '''
     3D surface plot of the error between the optic flow vectors and the actual
     eye-movements vector map.
@@ -419,6 +485,17 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
 
     points
     values
+
+    Arguments
+    ---------
+    ax : object
+        Matplolib Axes object
+    points : list
+        List of x,y,z coordinates
+    values : list of scalars
+        List of scalar values at the given points, in the same order.
+    colormap : string
+        "own", "own-diverge" or any matplotlib colormap name
     '''
 
     if len(points) != len(values):
@@ -481,12 +558,17 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
         return errs
 
 
-
     colors = color_function_optimized(theta, phi)
     
-    culurs = [(0.2, 0.1, 0),(1,0.55,0),(1,1,0.4)]
+    if colormap == 'own':
+        culurs = [(0.2, 0.1, 0),(1,0.55,0),(1,1,0.4)]
+    elif colormap == 'own-diverge':
+        culurs = [(0,(0,0,0)),(0.001,(1,0,0)), (0.5,(1,1,1)), (1,(0,0,1))]
+    else:
+        # Must be Matplotlib colormap othewise
+        culurs = matplotlib.cm.get_cmap(colormap).colors
+
     ownmap = matplotlib.colors.LinearSegmentedColormap.from_list('ownmap', culurs, 100)
-    
     ax.plot_surface(X, Y, Z, facecolors=ownmap(colors), linewidth=0, vmin=0, vmax=1)
 
     
@@ -554,7 +636,7 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
     optimal_ranges = []
     
     # FIXME No predetermined optimal ranges
-    if len(manalysers) > 1:
+    if len(manalysers) > 1 and animation_type not in['rotate_plot']:
         
         if manalysers[0].manalysers[0].__class__.__name__ == 'MAnalyser':
             optimal_ranges = [[24.3-3, 24.3+3, 'Typical photoreceptor\nmovement axis']]
@@ -629,7 +711,7 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
    
     title = plot_function.__name__ + '_{}_'.format(animation_type) + '_'.join([ma.manalysers[0].__class__.__name__ for ma in manalysers])
     
-    savedir = os.path.join(ANALYSES_SAVEDIR, 'videos', title)
+    savedir = os.path.join(ANALYSES_SAVEDIR, 'videos', title+'_'+str(datetime.datetime.now()))
     os.makedirs(savedir, exist_ok=True)
 
 
@@ -689,8 +771,8 @@ def save_3d_animation(manalyser, ax=None, plot_function=None,interframe_callback
                 video_writer.grab_frame()
                 doublegrab_next = False
         
-        axes[0].figure.savefig(os.path.join(savedir, 'frame_{0:07d}.png'.format(i_frame)))
-
+        ax.dist=7
+        axes[0].figure.savefig(os.path.join(savedir, 'frame_{0:07d}.png'.format(i_frame)), transparent=True, dpi=300)
         #except Exception as e:
         #    print('Could not make a frame, error message on the next line')
         #    print(e)

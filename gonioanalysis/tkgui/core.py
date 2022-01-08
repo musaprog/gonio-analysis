@@ -8,6 +8,7 @@ from gonioanalysis.droso import SpecimenGroups
 from gonioanalysis.directories import CODE_ROOTDIR
 from gonioanalysis.drosom.analysing import MAnalyser
 from gonioanalysis.drosom.orientation_analysis import OAnalyser
+from gonioanalysis.drosom.transmittance_analysis import TAnalyser
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 
 
@@ -29,6 +30,8 @@ class Core:
         Class of the new analysers to create (MAnalyser or OAnalyser)
     analyser_classes: list of classes
         List of available analyser classes for reference
+    active_analysis : string or None
+        Name of the active analysis
     '''
 
     def __init__(self):
@@ -39,8 +42,10 @@ class Core:
         self.selected_recording = None
         
         self.analyser_class = MAnalyser
-        self.analyser_classes = [MAnalyser, OAnalyser]
+        self.analyser_classes = [MAnalyser, OAnalyser, TAnalyser]
         
+        self.active_analysis = None
+
         self._folders = {}
 
         self.groups = SpecimenGroups()
@@ -113,6 +118,31 @@ class Core:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction() is not False]
 
         return sorted(specimens)
+    
+
+    def get_specimen_fullpath(self, specimen_name=None):
+        '''
+        Returns the full path of a specimen (datadir + specimen_patch)
+        
+        Arguments
+        ---------
+        specimen_namse : string or None
+            If None use self.current_specimen
+        '''
+        if specimen_name is None:
+            specimen_name = self.current_specimen
+
+        for directory in self.data_directory:
+            if specimen_name in self._folders[directory]:
+                return os.path.join(directory, specimen_name)
+
+        raise ValueError("no specimen with name {}".format(specimen_name))
+
+
+    def _configure_analyser(self, analyser):
+        if self.active_analysis:
+            analyser.active_analysis = self.active_analysis
+        return analyser
 
 
     def get_manalyser(self, specimen_name, **kwargs):
@@ -124,7 +154,8 @@ class Core:
                 break
 
         analyser = self.analyser_class(directory, specimen_name, **kwargs)
-        return analyser
+
+        return self._configure_analyser(analyser)
     
 
     def get_manalysers(self, specimen_names, **kwargs):
@@ -147,7 +178,8 @@ class Core:
             if ans is []:
                 raise FileNotFoundError('Cannot find specimen {}'.format(name))
             
-            analysers.extend(ans)
+            for an in ans:
+                analysers.append( self._configure_analyser(an) )
 
         return analysers
 
@@ -184,13 +216,23 @@ class Core:
         if specimens == 'current':
             specimen_names = self.analyser.folder
         else:
-            specimen_names = ','.join(specimens)
+            specimen_names = ':'.join(specimens)
+            if not ':' in specimen_names:
+                specimen_names += ':'
         
-        arguments = '-D {} -S {} {}'.format(self.data_directory[0], specimen_names, terminal_args)
+        if self.active_analysis not in ['default', '', None]:
+            terminal_args += ' --active-analysis '+ self.active_analysis
+
+        arguments = '-D "{}" -S "{}" {}'.format(' '.join(self.data_directory), specimen_names, terminal_args)
         
-        # FIXME for general use
-        if self.analyser_class is not MAnalyser:
+        if self.analyser_class is MAnalyser:
+            pass
+        elif self.analyser_class is OAnalyser:
             arguments = '--type orientation ' + arguments
+        elif self.analyser_class is TAnalyser:
+            arguments = '--type transmittance ' + arguments
+        else:
+            raise NotImplementedError
 
         command = '{} {} {} &'.format(python, pyfile, arguments)
         

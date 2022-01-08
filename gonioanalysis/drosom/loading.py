@@ -1,8 +1,14 @@
 '''
 Functions related to DrosoM data loading.
 
-TODO
-- clean the code
+MODULE LEVEL VARIABLES
+----------------------
+REPETITION_INDICATOR : str
+    In filenames, the text preceding the repetition value
+POSITION_INDICATOR : str
+    In filenames, the text preceding the imaging location value
+IMAGE_NAME_EXTENSIONS : str
+    File name extensions that are treated as image files.
 '''
 
 import os
@@ -10,19 +16,22 @@ import ast
 
 from gonioanalysis.rotary_encoders import to_degrees
 
+
 REPETITION_INDICATOR  = 'rep'
 POSITION_INDICATOR = 'pos'
+
+IMAGE_NAME_EXTENSIONS = ('.tiff', '.tif')
 
 
 def arange_fns(fns):
     '''
     Arange filenames based on REPETITION_INDICATOR and POSITION_INDICATOR
-    in the time order (repeat 1, image1,2,3,4, repeat 2, image1,2,3,4, ...).
+    in their time order (repeat 1, image1,2,3,4, repeat 2, image1,2,3,4, ...).
     
     If no indicators are found in the filenames then the ordering is
     at least alphabetical.
     '''
-    
+
     # Sort by i_frame
     try:
         fns.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
@@ -31,9 +40,46 @@ def arange_fns(fns):
         pass
     
     # Sort by i_repeat
-    fns.sort(key=lambda x: int(x.split('_')[-2][3:]))
-    
+    try:
+        fns.sort(key=lambda x: int(x.split('_')[-2][3:]))
+    except ValueError:
+        fns.sort()
+
     return fns
+
+
+def split_to_repeats(fns):
+    '''
+    Split a list of filenames into repeats (sublists) based on the
+    REPETITION_INDICATOR
+
+    Arguments
+    ---------
+    fns : list
+        1D sequence of filenames
+
+    Returns
+    --------
+    splitted_fns : list
+        A list where each item is a sublist of filenames (or empty list
+        if there were no filenames for that repeat)
+    '''
+    
+    repeats = {}
+    
+    for fn in fns:
+        try:
+            i_repeat = str(int(fn[fn.index(REPETITION_INDICATOR)+len(REPETITION_INDICATOR):].split('_')[0]))
+        except ValueError:
+            print('Warning: Cannot determine i_repeat for {}'.format(fn))
+        
+        if i_repeat not in repeats:
+            repeats[i_repeat] = []
+        
+        repeats[i_repeat].append(fn)
+    
+    return [fns for i_repeat, fns in repeats.items()]
+
 
 
 def angleFromFn(fn):
@@ -57,17 +103,22 @@ def angles_from_fn(fn, prefix='pos'):
     '''
     Takes in a filename that somewhere contains string "pos(hor, ver)",
     for example "pos(-30, 170)" and returns tuple (-30, 170)
+    
+    Returns
+    -------
+    angle : tuple of ints
+        Rotation stage values or (0, 0) if the rotation was not found.
     '''
     try:
         i_start = fn.index(prefix) + len(prefix)
     except ValueError:
-        raise ValueError("Cannot find prefix {} from filename {}".format(fn))
-
+        #raise ValueError("Cannot find prefix {} from filename {}".format(fn))
+        return (0,0)
     try:
         i_end = fn[i_start:].index(')') + i_start + 1
     except ValueError:
-        raise ValueError("Cannot find ')' after 'pos' in filename {}".format(fn))
-    
+        #raise ValueError("Cannot find ')' after 'pos' in filename {}".format(fn))
+        return (0,0)
     return ast.literal_eval(fn[i_start:i_end])
 
 
@@ -93,7 +144,7 @@ def load_data(drosom_folder):
         where stack_rep1 = [image1_fn, image2_fn, ...].
     
     Horizontal and pitch are given in rotatry encoder steps, not degrees.
-
+    
     '''
     
     stacks_dictionary = {}
@@ -103,13 +154,13 @@ def load_data(drosom_folder):
     # Import all tif images
     for folder in pos_folders:
         
-        if not folder.startswith(POSITION_INDICATOR):
-            continue
-        
-        str_angles = folder[len(POSITION_INDICATOR):]     # Should go from "pos(0, 0)" to "(0, 0)"
-     
+        if folder.startswith(POSITION_INDICATOR):
+            str_angles = folder[len(POSITION_INDICATOR):]     # Should go from "pos(0, 0)" to "(0, 0)"
+        else:
+            str_angles = folder
+
         files = os.listdir(os.path.join(drosom_folder, folder))
-        tiff_files = [f for f in files if f.endswith('.tiff') or f.endswith('.tif')]
+        tiff_files = [f for f in files if f.endswith(IMAGE_NAME_EXTENSIONS)]
         
         if len(tiff_files) == 0:
             # Skip if no images in the folder
@@ -125,6 +176,8 @@ def load_data(drosom_folder):
                 i_repetition = int(tiff[tiff.index(REPETITION_INDICATOR)+len(REPETITION_INDICATOR):].split('_')[0])
             except ValueError:
                 print('Warning: Cannot determine i_repetition for {}'.format(tiff))
+                i_repetition = 0
+
             while i_repetition >= len(stacks_dictionary[str_angles]):
                 stacks_dictionary[str_angles].append([])
             

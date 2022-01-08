@@ -84,52 +84,7 @@ class MPlotter:
             #ax.suptitle('{} eye, {}'.format(data['eye'], data['time']))
         
         plt.show()
-    
-    def plotDirection2D(self, manalyser):
-        '''
-        manalyser       Instance of MAnalyser class or MAverager class (having get2DVectors method)
-        
-        limits          Limits for angles, [min_hor, max_hor, min_pitch, max_pitch]
-        '''
-        
-
-        fig, ax = plt.subplots()
-        
-   
-        for color, eye in zip(['red', 'blue'], ['left', 'right']):
-            angles, X, Y = manalyser.get2DVectors(eye)
-            for angle, x, y in zip(angles, X, Y):
-               
-                horizontal, pitch = angle
-                
-                # If magnitude too small, its too unreliable to judge the orientation so skip over
-                #movement_magnitude = math.sqrt(x**2 + y**2)
-                #if movement_magnitude < 2:
-                #    continue 
   
-                # Vector orientation correction due to sample orientation dependent camera rotation
-                #xc = x * np.cos(np.radians(pitch)) + y * np.sin(np.radians(pitch))
-                #yc = x * np.sin(np.radians(pitch)) + y * np.cos(np.radians(pitch))
-
-                # Scale all vectors to the same length
-                scaler = math.sqrt(x**2 + y**2) / 5 #/ 3
-                #scaler = 0
-                if scaler != 0:
-                    x /= scaler
-                    y /= scaler /2.4    # FIXME
-
-                #ar = matplotlib.patches.Arrow(horizontal, pitch, xc, yc)
-                ar = matplotlib.patches.FancyArrowPatch((horizontal, pitch), (horizontal-x, pitch+y), mutation_scale=10, color=color, picker=True)
-                #fig.canvas.mpl_connect('pick_event', self.on_pick)
-                ax.add_patch(ar)
-        
-        ax.set_xlabel('Horizontal (degrees)')
-        ax.set_ylabel('Pitch (degrees)')
-        
-        for key in ['top', 'right']:
-            ax.spines[key].set_visible(False)
-       
-   
 
     def plotMagnitude2D(self, manalyser):
         '''

@@ -26,11 +26,12 @@ import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.spatial import cKDTree as KDTree
 
 from gonioanalysis.drosom.loading import load_data, angles_from_fn, arange_fns
 from gonioanalysis.coordinates import camera2Fly, camvec2Fly, rotate_about_x, nearest_neighbour, mean_vector, optimal_sampling
 from gonioanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR
-from gonioanalysis.rotary_encoders import to_degrees, step2degree
+from gonioanalysis.rotary_encoders import to_degrees, step2degree, DEFAULT_STEPS_PER_REVOLUTION
 
 from roimarker import Marker
 from movemeter import Movemeter
@@ -259,10 +260,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         self.manalysers = [self]
         self.eyes = ("left", "right")
         self.vector_rotation = None
+        
+        self._rois_skelefn = 'rois_{}{}.json' # specimen_name active_analysis
         self._movements_skelefn = 'movements_{}_{}{}.json' # specimen_name, eye, active_analysis
         
         self.skiplist_savefn = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'imagefolder_skiplist.json')
-        self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'rois_{}.json'.format(folder))
+        self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._rois_skelefn.format(folder, ''))
         self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._movements_skelefn.format(folder, '{}', ''))
 
         self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
@@ -296,9 +299,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 self.load_analysed_movements()
 
             self.antenna_level_correction = self._getAntennaLevelCorrection(folder)
-            if self.antenna_level_correction == False:
-                print('No antenna level correction value for fly {}'.format(folder))
-
 
             self.load_linked_data()
             
@@ -350,10 +350,19 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             name = ''
 
         if name == '':
+            self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._rois_skelefn.format(self.folder, ''))
             self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', ''))
         else:
+            self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._rois_skelefn.format(self.folder, '_'+name))
             self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', '_'+name))
     
+        if self.are_rois_selected():
+            self.load_ROIs()
+        else:
+            try:
+                del self.ROIs
+            except AttributeError:
+                pass
         if self.is_measured():
             self.load_analysed_movements()
         else:
@@ -363,7 +372,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 pass
 
         self.__active_analysis = name
-    
+        
 
 
 
@@ -424,20 +433,32 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         with open(self.skiplist_savefn, 'w') as fp:
             json.dump(self.imagefolder_skiplist, fp)
 
-    
-    def list_imagefolders(self, list_special=True,
+
+
+    def list_rotations(self, list_special=True, special_separated=False,
             horizontal_condition=None, vertical_condition=None,
-            endswith='', only_measured=False):
+            _return_imagefolders=False):
         '''
-        Returns a list of the images containing folders (subfolders).
+        List all the imaged vertical-horizontal pair rotations.
         
-        list_special        Sets wheter to list also image folders with suffixes
-        horizontal_condition    A callable, that when supplied with horizontal (in steps)
-                                    returns either true (includes) or false (excludes).
-        vertical_condition
-        only_measured : bool
-            Return only image_folders with completed movement analysis
+        Arguments
+        ---------
+        list_special : bool
+            If false, include only rotations whose folders have no suffix
+        special_separated : bool
+            If true, return standard and special image folders separetly.
+        horizontal_condition : callable or None
+            A callable, that when supplied with horizontal (in steps),
+            returns either True (includes) or False (excludes).
+        vertical_condition : callable or None
+            Same as horizontal condition but for vertical rotation
+
+        Returns
+        -------
+        rotations : list of tuples
+            List of rotations.
         '''
+
         def check_conditions(vertical, horizontal):
             if callable(horizontal_condition):
                 if not horizontal_condition(horizontal):
@@ -446,9 +467,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 if not vertical_condition(vertical):
                     return False
             return True
-
-        image_folders = []
-        special_image_folders = []
+ 
+        standard = []
+        special = []
 
         for key in self.stacks.keys():
             try:
@@ -470,18 +491,56 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                             continue
                     except:
                         pass
-
-                special_image_folders.append('pos'+key)
+                
+                if _return_imagefolders:
+                    special.append('pos'+key)
+                else:
+                    special.append((horizontal, vertical))
                 continue
 
-            image_folders.append('pos'+key)
+            if _return_imagefolders:
+                standard.append('pos'+key)
+            else:
+                standard.append((horizontal, vertical))
+        
+        if not list_special:
+            special = []
 
+        if special_separated:
+            return standard, special
+        else:
+            return standard + special
+
+    
+    def list_imagefolders(self, endswith='', only_measured=False, **kwargs):
+        '''
+        Returns a list of the image folders (specimen subfolders that contain
+        the images).
+        
+        Arguments
+        ---------
+        only_measured : bool
+            Return only image_folders with completed movement analysis
+        
+        See list_rotations for other allowed keyword arguments. 
+        
+        Returns
+        -------
+        image_folders : list of strings
+        '''
+
+        image_folders, special_image_folders = self.list_rotations(
+                special_separated=True,
+                _return_imagefolders=True,
+                **kwargs)
+        
         all_folders = [fn for fn in sorted(image_folders) + sorted(special_image_folders) if fn.endswith(endswith)]
         
         if only_measured:
             all_folders = [fn for fn in all_folders if self.folder_has_movements(fn)]
 
         return all_folders
+
 
     def get_horizontal_vertical(self, image_folder, degrees=True):
         '''
@@ -517,6 +576,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         absolute_path       If true, return filenames with absolute path instead of relative
 
         '''
+
         fns = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')]
         
         fns = arange_fns(fns)
@@ -564,9 +624,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         if self.antenna_level_correction != False:
             for i in range(len(angles)):
-                #print('Before correcting {}'.format(angles[i]))
                 angles[i][1] -= self.antenna_level_correction
-                #print('Before correcting {}'.format(angles[i]))
 
         return angles
 
@@ -675,7 +733,14 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         # Based on the stage micrometer;
         # 0.8 µm in the images 979 pixels 
         return 1/1.22376
+    
 
+    def get_rotstep_size(self):
+        '''
+        Returns how many degrees one rotation encoder step was
+        (the return value * steps == rotation in degrees)
+        '''
+        return 360/DEFAULT_STEPS_PER_REVOLUTION
 
 
     def get_snap_fn(self, i_snap=0, absolute_path=True):
@@ -732,7 +797,10 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             ROIs = good_rois
 
             pos = self.get_imagefolder(image_fn)
-            horizontal, pitch = angles_from_fn(pos)
+            try:
+                horizontal, pitch = angles_from_fn(pos)
+            except:
+                horizontal, pitch = (0, 0)
             pos = pos[3:]
 
             # ROI belonging to the eft/right eye is determined solely by
@@ -754,13 +822,11 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     self.ROIs['left'][pos]= ROIs[1]
                     self.ROIs['right'][pos] = ROIs[0]
             
-            else:
+            elif len(ROIs) > 2:
                 print('Warning. len(ROIs) == {} for {}'.format(len(ROIs), image_fn))
 
         self.N_folders_having_rois = len(marker_markings)
         
-        print('ROIs left: {}'.format(len(self.ROIs['left'])))
-        print('ROIs right: {}'.format(len(self.ROIs['right'])))
         
 
     def select_ROIs(self, **kwargs):
@@ -827,7 +893,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         Returns (True, True) if analyseMovement results can be found for the fly and bot eyes.
         '''
-        print(self.MOVEMENTS_SAVEFN)
         return all((os.path.exists(self.MOVEMENTS_SAVEFN.format('left')), os.path.exists(self.MOVEMENTS_SAVEFN.format('right'))))
 
 
@@ -879,7 +944,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
 
     def measure_movement(self, eye, only_folders=None,
-            max_movement=30, absolute_coordinates=False, join_repeats=False):
+            max_movement=30, absolute_coordinates=False, join_repeats=False,
+            stop_event=None):
         '''
         Performs cross-correlation analysis for the selected ROIs (regions of interest)
         using Movemeter package.
@@ -893,6 +959,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         max_movement            Maximum total displacement in x or y expected. Lower values faster.
         absolute_coordinates    Return movement values in absolute image coordinates
         join_repeats            Join repeats together as if they were one long recording.
+        stop_event              None or threading.Event for stopping the movement measurement
+            
 
         Cross-correlation analysis is the slowest part of the DrosoM pipeline.
         '''
@@ -910,7 +978,6 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         if not self.ROIs[eye] == {}:
 
-            #print(self.ROIs)
             for angle in self.stacks:
                 #if angle in str(self.ROIs[eye].keys()):
                 
@@ -948,6 +1015,9 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             
             for stack_i, angle in enumerate(angles):
                 
+                if stop_event and stop_event.is_set():
+                    self.stop_now = True
+
                 if self.stop_now:
                     self.stop_now = False
                     self.movements = {}
@@ -968,8 +1038,15 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     self.movements[angle] = []
                 
                 tags = meter.get_metadata(stack_i)['Image ImageDescription'].values.split('"')
-                time = tags[tags.index('start_time') + 2]
+                
+                # GonioImsoft start time tag in the images
+                if 'start_time' in tags:
+                    time = tags[tags.index('start_time') + 2]
+                else:
+                    time = None
+
                 self.movements[angle].append({'x': x, 'y':y, 'time': time})
+
         else:
             self.movements = {}
             
@@ -997,10 +1074,14 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
     
 
 
-    def get_time_ordered(self):
+    def get_time_ordered(self, angles_in_degrees=True, first_frame_only=False,
+            exclude_imagefolders=[]):
         '''
         Get images, ROIs and angles, ordered in recording time for movie making.
         
+        exclude_imagefolders : list
+            Imagefolders to exclude
+
         Returns 3 lists: image_fns, ROIs, angles
                 image_fns
         '''
@@ -1012,13 +1093,18 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         for eye in self.movements:
             for angle in self.movements[eye]:
                 
+                if 'pos'+angle in exclude_imagefolders:
+                    continue
+
                 if not angle in seen_angles: 
                     time = self.movements[eye][angle][0]['time']
                     
                     fn = self.stacks[angle][0]
-                    ROI = self.getMovingROIs(eye, angle)
+                    ROI = self.get_moving_ROIs(eye, angle)
                     deg_angle = [list(ast.literal_eval(angle.split(')')[0]+')' ))]
-                    to_degrees(deg_angle)
+                    
+                    if angles_in_degrees:
+                        to_degrees(deg_angle)
                     
                     deg_angle = [deg_angle[0] for i in range(len(fn))]
 
@@ -1031,11 +1117,17 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         image_fns = []
         ROIs = []
         angles = []
-
-        for time, fns, ROI, angle in times_and_data:
-            image_fns.extend(fns)
-            ROIs.extend(ROI)
-            angles.extend(angle)
+        
+        if not first_frame_only:
+            for time, fns, ROI, angle in times_and_data:
+                image_fns.extend(fns)
+                ROIs.extend(ROI)
+                angles.extend(angle)
+        else:
+            for time, fns, ROI, angle in times_and_data:
+                image_fns.append(fns[0])
+                ROIs.append(ROI[0])
+                angles.append(angle[0])
         
         return image_fns, ROIs, angles
 
@@ -1186,7 +1278,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
             
     def get_magnitude_traces(self, eye, image_folder=None,
-            mean_repeats=False, mean_imagefolders=False):
+            mean_repeats=False, mean_imagefolders=False,
+            microns=False, _phase=False, _derivative=False):
         '''
         Get all movement magnitudes (sqrt(x**2+y**2)) from the specified eye.
         The results are returned as a dictionary where the keys are the
@@ -1204,6 +1297,11 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             Only makes sense when image_folder is None
         mean_eyes : bool
             Only makes sense when eye is None
+        microns : bool
+            Call self.get_pixel_size(image_folder) to convert from
+            pixel units to micrometers.
+        _phase: bool
+            If true return phase in degrees instead.
 
         Returns
             if mean_repeats == True
@@ -1240,7 +1338,14 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     x = self.movements[eye][angle][i_repeat]['x']
                     y = self.movements[eye][angle][i_repeat]['y']
 
-                    mag = np.sqrt(np.asarray(x)**2 + np.asarray(y)**2)
+                    if _phase:
+                        mag = np.degrees(np.arctan2(y, -np.asarray(x)))
+                    else:
+                        mag = np.sqrt(np.asarray(x)**2 + np.asarray(y)**2)
+                    
+                    if _derivative:
+                        mag = np.diff(mag)
+
                     magnitude_traces[angle].append( mag )
                 
                 if mean_repeats:
@@ -1278,10 +1383,16 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
             magnitude_traces = merge
 
+        if microns and not _phase:
+            for image_folder in magnitude_traces:
+                pixel_size = self.get_pixel_size(image_folder)
+                magnitude_traces[image_folder] = [t*pixel_size for t in magnitude_traces[image_folder]]
+
+
         return magnitude_traces
 
     
-    def get_moving_ROIs(self, eye, angle):
+    def get_moving_ROIs(self, eye, angle, i_repeat=0):
         '''
         Returns a list of ROIs how they move over time.
         Useful for visualizing.
@@ -1292,7 +1403,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         if not self.ROIs:
             self.load_ROIs()
 
-        movements = self.movements[eye][angle][0]
+        movements = self.movements[eye][angle][i_repeat]
         rx,ry,rw,rh = self.ROIs[eye][angle]
         
         for i in range(len(movements['x'])):
@@ -1369,7 +1480,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         for eye in ['left', 'right']:
             try:
                 return self.movements[eye][angle][i_rep]['time']
-            except KeyError:
+            except (KeyError, IndexError):
                 pass
             except AttributeError:
                 print('No time for {} because movements not analysed'.format(image_folder))
@@ -1443,9 +1554,14 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         self.va_limits = [None, None]
         self.ha_limits = [None, None]
         self.alimits_reverse = False
+
+        self.intp_step = (5, 5)
         
         self.eyes = manalysers[0].eyes
         self.vector_rotation = None
+
+        self.interpolated_raw= {}
+
 
     def get_N_specimens(self):
         return len(self.manalysers)
@@ -1469,11 +1585,68 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
 
         self.intp_step = (horizontal_step, vertical_step)
 
+    
+    def get_2d_vectors(self, eye, **kwargs):
+        '''
+        Get's the 2D movement vectors (in the camera coordinate system)
+        using N_nearest neighbour interpolation and averaging.
+        '''
+        #Modified from get_3d_vectors
+        
+        interpolated = [[],[],[]]
+        
+        points_2d = []
+        vectors_2d = []
 
-    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1, recalculate=False, strict=False, vertical_hardborder=False, **kwargs):
+        for analyser in self.manalysers:
+            angles, X, Y = analyser.get_2d_vectors(eye, mirror_horizontal=False, mirror_pitch=False)
+            vecs = [[x,y] for x,y in zip(X, Y)]
+            points_2d.append(np.array(angles))
+            vectors_2d.append( np.array(vecs) )
+        
+        vectors_2d = np.array(vectors_2d)
+        
+        kdtrees = [KDTree(points) for points in points_2d]
+
+        hmin, hmax = (-90, 90)
+        vmax, hmax = (-180, 180)
+       
+        intp_points = []
+        for h in np.arange(hmin, hmax+0.01, 10):
+            for v in np.arange(hmin, hmax+0.1, 10):
+                intp_points.append((h,v))
+        
+        for intp_point in intp_points:
+            
+            nearest_vectors = []
+
+            for kdtree, vectors in zip(kdtrees, vectors_2d):
+                distance, index = kdtree.query(intp_point)
+                
+                if distance < math.sqrt(self.intp_step[0]**2+self.intp_step[1]**2):
+                    nearest_vectors.append(vectors[index])
+
+            if len(nearest_vectors) > len(vectors_2d)/2:
+                avec = np.mean(nearest_vectors, axis=0)
+                avec /= np.linalg.norm(avec)
+                interpolated[0].append(np.array(intp_point))
+                interpolated[1].append(avec[0])
+                interpolated[2].append(avec[1])
+
+        angles, x, y = interpolated
+        return angles, x, y
+
+
+    def get_3d_vectors(self, eye, correct_level=True, normalize_length=0.1,
+            recalculate=False, strict=False, vertical_hardborder=False,
+            repeats_separately=False, **kwargs):
         '''
         Equivalent to MAnalysers get_3d_vectors but interpolates with N-nearest
         neughbours.
+
+        repeats_separately : bool
+            If True, return underlying MAnalyser vectors separetly
+            (same points get repeated many times)
         '''
 
         cachename = ';'.join([str(item) for item in [self.vector_rotation, correct_level, normalize_length, strict, vertical_hardborder]])
@@ -1482,7 +1655,8 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         if self.interpolation.get(eye, {}).get(cachename) is None or recalculate:
 
             interpolated = [[],[]]
-            
+            self.interpolated_raw[eye] = [] # key points str, value list of vectors
+
             R = 1
             intp_dist = (2 * R * np.sin(math.radians(self.intp_step[0])))
             
@@ -1522,7 +1696,9 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
                     avec = mean_vector(intp_point, nearest_vectors)
                     interpolated[0].append(np.array(intp_point))
                     interpolated[1].append(avec)
-            
+                    
+                    self.interpolated_raw[eye].append(nearest_vectors)
+
             self.interpolation[eye] = {}
             self.interpolation[eye][cachename] = np.array(interpolated[0]), np.array(interpolated[1])
             
@@ -1531,13 +1707,24 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
         
         
         points, vectors = self.interpolation[eye][cachename]
+        
+        if repeats_separately:
+            newpoints = []
+            newvecs = []
+            for i_point, point in enumerate(points):
+                for vec in self.interpolated_raw[eye][i_point]:
+                    newpoints.append(point)
+                    newvecs.append(vec)
+            points = np.array(newpoints)
+            vectors = np.array(newvecs)
 
+        
         # Vertical/horizontal angle limiting
         booleans = vertical_filter_points(points, vertical_lower=self.va_limits[0],
                 vertical_upper=self.va_limits[1], reverse=self.alimits_reverse)
         points = points[booleans]
         vectors = vectors[booleans]
-
+        
 
         return points, vectors
 

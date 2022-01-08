@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import proj3d
 import mpl_toolkits.axes_grid1
 import matplotlib.image
+import matplotlib.colors
+import matplotlib.cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.ndimage import rotate
 import PIL
 
@@ -19,11 +22,13 @@ from .common import (
         surface_plot,
         add_rhabdomeres,
         add_line,
-        plot_2d_opticflow
+        plot_2d_opticflow,
+        plot_guidance
         )
 from gonioanalysis.directories import CODE_ROOTDIR
-from gonioanalysis.drosom.optic_flow import field_error
+from gonioanalysis.drosom.optic_flow import field_error, field_pvals
 from gonioanalysis.coordinates import rotate_vectors
+from tk_steroids.routines import extend_keywords
 
 plt.rcParams.update({'font.size': 12})
 
@@ -37,8 +42,10 @@ DEFAULT_FIGSIZE = (16,9)
 
 def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
         mean_repeats=False, mean_imagefolders=False, mean_eyes=False,
-        color_eyes=False, gray_repeats=False, show_mean=False, show_std=False,
+        color_eyes=False, gray_repeats=False, progressive_colors=False,
+        show_mean=False, show_std=False,
         show_label=True, milliseconds=False, microns=False,
+        phase=False, derivative=False,
         label="EYE-ANGLE-IREPEAT", ax=None):
     '''
     Plots 1D displacement magnitude over time, separately for each eye.
@@ -103,17 +110,24 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
     N_repeats = 0
     traces = []
-   
+    
+
 
     for eye in eyes:
         magtraces = manalyser.get_magnitude_traces(eye, image_folder=image_folder,
-                mean_repeats=mean_repeats, mean_imagefolders=mean_imagefolders)
+                mean_repeats=mean_repeats, mean_imagefolders=mean_imagefolders,
+                _phase=phase, _derivative=derivative)
         
         for angle, repeat_mags in magtraces.items():
             
             if X is None or yscaler is None:
                 X, yscaler = get_x_yscaler(repeat_mags[0])
-
+            
+            if progressive_colors:
+                if gray_repeats:
+                    cmap = matplotlib.cm.get_cmap('binary', len(repeat_mags))
+                else:
+                    cmap = matplotlib.cm.get_cmap('viridis', len(repeat_mags))
 
             for _i_repeat, mag_rep_i in enumerate(repeat_mags):
                 
@@ -136,10 +150,14 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
 
                 if color_eyes:
                     ax.plot(X, Y, label=_label, color=EYE_COLORS.get(eye, 'green'))
-                elif gray_repeats:
-                    ax.plot(X, Y, label=_label, color='gray')
+                elif progressive_colors:
+                    color = cmap(_i_repeat)
+                    ax.plot(X, Y, label=_label, color=color)
                 else:
-                    ax.plot(X, Y, label=_label)
+                    if gray_repeats:
+                        ax.plot(X, Y, label=_label, color='gray')
+                    else:
+                        ax.plot(X, Y, label=_label)
                 
                 traces.append(Y)
     
@@ -172,6 +190,180 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
     return ax, traces, N_repeats
 
 
+def plot_xy_trajectory(manalysers, wanted_imagefolders=None, i_repeat=None,
+        mean_repeats=True,
+        ax=None):
+    '''
+    A (x,y) 2D plot of the movement trajectory where time is encoded
+    in color.
+
+    manalysers : list
+    wanted_imagefolders : dict
+        {specimen_name: [image_folder1, ...]}
+    i_repeat : int
+    mean_repeats : bool
+    '''
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    xys = []
+
+    
+    for manalyser in manalysers:
+
+        if wanted_imagefolders:
+            image_folders = wanted_imagefolders[manalyser.name]
+        else:
+            image_folders = manalyser.list_imagefolders()
+        
+        for image_folder in image_folders:
+
+            movement_data = manalyser.get_movements_from_folder(image_folder)
+
+            for eye, movements in movement_data.items():
+                
+                N_repeats = len(movements)
+                X = [[-x for x in movements[i]['x']] for i in range(N_repeats) if not (
+                    (i_repeat is not None) and i_repeat != i)]
+
+                Y = [movements[i]['y'] for i in range(N_repeats) if not (
+                    (i_repeat is not None) and i_repeat != i)]
+
+                if mean_repeats:
+                    X = [np.mean(X, axis=0)]
+                    Y = [np.mean(Y, axis=0)]
+
+                for x, y in zip(X, Y):  
+                    N = len(x) 
+                    cmap = matplotlib.cm.get_cmap('tab20', N)
+                    for i_point in range(1, N):
+                        ax.plot([x[i_point-1], x[i_point]], [y[i_point-1], y[i_point]], color=cmap((i_point-1)/(N-1)))
+                
+                    ax.scatter(x[0], y[0], color='black')
+                    ax.scatter(x[-1], y[-1], color='gray')
+                
+                    xys.append([x, y])
+
+
+    # Colormap
+    if xys:
+        if getattr(ax, 'xy_colorbar', None) is None:
+            time = [i for i in range(N)]
+            sm = matplotlib.cm.ScalarMappable(cmap=cmap)
+            sm.set_array(time)
+
+            fig = ax.get_figure()
+            ax.xy_colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
+            ax.xy_colorbar.set_label('Frame')
+        else:
+            pass
+
+    ax.set_xlabel('Displacement in X (pixels)')
+    ax.set_ylabel('Displacement in Y (pixels)')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    ax.yaxis.set_ticks_position('left')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.set_aspect('equal', adjustable='box')
+
+    return ax, xys
+
+
+def plot_magnitude_probability(manalysers, wanted_imagefolders=None, ax=None,
+        mean_repeats=False, mean_imagefolders=False,
+        microns=True, milliseconds=True, xpoints=100):
+    '''
+    With many analysers and image folders, calculate probablity of the magnitude
+    response (2D histogram).
+
+    Arguments
+    ---------
+    manalysers : list of objs
+        Analyser objects
+    wanted_imagefolders : None or dict
+        Keys are analyser names, items lists of image folder names
+        to incldue. If None, use all image folders.
+    '''
+    print(wanted_imagefolders)
+
+    for logaritmic in [False, True]:
+
+        N_real = None
+
+        all_magtraces = []
+
+        for manalyser in manalysers:
+            for eye in manalyser.eyes:
+                
+                if wanted_imagefolders:
+                    image_folders = wanted_imagefolders[manalyser.name]
+                else:
+                    image_folders = manalyser.list_imagefolders()
+                
+                for image_folder in image_folders:
+                    magtraces = manalyser.get_magnitude_traces(eye, image_folder=image_folder,
+                            mean_repeats=mean_repeats, mean_imagefolders=mean_imagefolders)
+
+                    magtraces = list(magtraces.values())
+                    
+                    if len(magtraces) == 0:
+                        continue
+
+                    magtraces = magtraces[0]
+                    
+                    if N_real is None:
+                        N_real = len(magtraces[0])
+                    elif N_real != len(magtraces[0]):
+                        raise ValueError('All magtrace not the same length')
+
+                    # Interpolate
+                    magtraces = [np.interp(np.linspace(0,1,xpoints), np.linspace(0,1,len(magtrace)), magtrace) for magtrace in magtraces]
+                    
+                    all_magtraces.extend(magtraces)
+        
+        all_magtraces = np.array(all_magtraces, dtype=np.float)
+
+        limits = (min(0, np.min(all_magtraces)), np.max(all_magtraces)*1.5)
+        tmax = len(all_magtraces[0]) * (N_real/xpoints)
+        
+
+        #if ax is None:
+        fig, ax = plt.subplots()
+        
+        if microns:
+            pixel_size = manalyser.get_pixel_size(image_folder)
+            limits = [z*pixel_size for z in limits]
+        ax.set_ylabel('Displacement (µm)')
+        
+        if milliseconds:
+            tmax *= 1000 / manalyser.get_imaging_frequency(image_folder) 
+            ax.set_xlabel('Time (ms)')
+        else:
+            ax.set_xlabel('i_frame')
+        
+        prob = []
+
+        for points_t in all_magtraces.T:
+            hist = np.histogram(points_t, range=limits, bins=25)[0]
+            prob.append(hist/np.sum(hist))
+        
+        if logaritmic:
+            norm = matplotlib.colors.LogNorm()
+        else:
+            norm = None
+
+        im = ax.imshow(np.array(prob).T, origin='lower', cmap='binary',
+                norm=norm,
+                extent=[0, tmax,limits[0], limits[1]],
+                aspect='auto')# interpolation='lanczos')
+        
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes('right', size='5%', pad=0.05) 
+        ax.figure.colorbar(im, cax)
+
+    return ax, prob
+
 
 def _set_analyser_attributes(analyser, skip_none=True, raise_errors=False, **kwargs):
     '''
@@ -188,34 +380,123 @@ def _set_analyser_attributes(analyser, skip_none=True, raise_errors=False, **kwa
                 raise AttributeError('{} has no attribute {} prior setting'.format(anlayser, key))
 
 
+def plot_2d_vectormap(manalyser,
+        ax=None):
+    '''
+    Plots a 2-dimensional vector map.
+
+    Arguments
+    ----------
+    manalyser : object
+        Instance of MAnalyser class or MAverager class (having get2DVectors method)
+    ax : object
+        Matplotlib axes object
+    '''
+    
+    if not ax:
+        fig, ax = plt.subplots(figsize=(8,16))
+
+    hmin = 99999
+    hmax = -99999
+    vmin = 99999
+    vmax = -99999
+
+    for color, eye in zip(['red', 'blue'], ['left', 'right']):
+        angles, X, Y = manalyser.get_2d_vectors(eye,
+                mirror_horizontal=False, mirror_pitch=False)
+        for angle, x, y in zip(angles, X, Y):
+           
+            horizontal, pitch = angle
+            
+            hmin = min(hmin, horizontal)
+            hmax = max(hmax, horizontal)
+            vmin = min(vmin, pitch)
+            vmax = max(vmax, pitch)
+
+            # If magnitude too small, its too unreliable to judge the orientation so skip over
+            #movement_magnitude = math.sqrt(x**2 + y**2)
+            #if movement_magnitude < 2:
+            #    continue 
+            # Scale all vectors to the same length
+            #scaler = math.sqrt(x**2 + y**2) / 5 #/ 3
+            #scaler = 0
+            #if scaler != 0:
+            #    x /= scaler
+            #    y /= scaler /2.4    # FIXME
+            scaler = np.linalg.norm([x, y]) / 8
+            x /= scaler
+            y /= scaler
+
+            #ar = matplotlib.patches.Arrow(horizontal, pitch, xc, yc)
+            ar = matplotlib.patches.FancyArrowPatch((horizontal, pitch),
+                    (horizontal-x, pitch+y), mutation_scale=10,
+                    color=color, picker=True)
+            #fig.canvas.mpl_connect('pick_event', self.on_pick)
+            ax.add_patch(ar)
+
+            ax.scatter(horizontal, pitch, marker='x', color='gray')
+    
+    ax.set_xlabel('Horizontal rotation (degrees)')
+    ax.set_ylabel('Vertical rotation (degrees)')
+    
+    hmin = -60
+    hmax = 40
+    vmin = -90
+    vmax = 120
+
+    ax.set_xlim(hmin-10, hmax+10)
+    ax.set_ylim(vmin-10, vmax+10)
+    ax.set_aspect('equal', adjustable='box')
+    
+    for key in ['top', 'right']:
+        ax.spines[key].set_visible(False)
+
+
+@extend_keywords(vector_plot)
 def plot_3d_vectormap(manalyser, arrow_rotations = [0],
-        guidance=False, draw_sphere=False, hide_behind=True, rhabdomeres=True,
-        elev=None, azim=None, color=None, repeats_separately=False, vertical_hardborder=True,
-        i_frame=0,
+        rhabdomeres=False, repeats_separately=False, vertical_hardborder=False,
+        elev=None, azim=None,
         pitch_rot=None, roll_rot=None, yaw_rot=None,
-        animation=None, animation_type=None, animation_variable=None,
+        animation=None, animation_type=None, animation_variable=None, i_frame=0,
         ax=None, **kwargs):
     '''
-    Plot a 3D vectormap, where the arrows point the movement or feature directions.
+    Plot a 3D vectormap, where the arrows point movement (MAnalyser, FAnalyser) or
+    feature (OAnalyser) directions.
     
+    Arguments
+    ---------
+    manalyser : object
+        Analyser object
     arrow_rotations : list of int
-        Radial rotation of the vectors
-    guidance : bool
-        Draw ventral/dorsal/left/right axes
-    draw_sphere : bool
-        Draw a 
-
-    arrows : bool
-        If False, draw lines instead (only OAnalyser)
+        Rotation of arrows in the plane of the arrows (ie. radially).
     rhabdomeres : bool
-        If True, draw rhadbomeres (only OAnalyser)
+        If True, draw rhabdomere pattern where the arrows are.
+    repeats_separately : bool
+        If True, and repeat data exists, draw each repeat
+        with it's own arrow.
+    vertical_hardborder : bool
+        For MAverager, interpolate dorsal and ventral separetly
+    elev, azim : float or None
+        Plot elevation and azim
+    animation : None
+    animation_type : None
+    animation_variable : None
+    i_frame : int
+    ax : object
+        Maptlotlib ax object. If not specified, creates a new figure.
+    kwargs : dict
+        Variable keyword arguments are passed to vector_plot function.
 
-    **kwargs to vector_plot
+    Returns
+    -------
+    ax : object
+        Matplotlib Axes object
+    vectors : list of objects
+        List of arrow artist drawn on the figure.
     '''
-
     colors = EYE_COLORS
-    plot_rhabdomeres = True
     
+    # Work out MAnalyser type
     manalyser_type = 'MAnalyser'
 
     if manalyser.__class__.__name__ == 'OAnalyser' and len(arrow_rotations) == 1 and arrow_rotations[0] == 0:
@@ -252,10 +533,10 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
     if animation_type == 'rotate_plot':
         elev, azim = animation_variable
 
-    if hide_behind and azim is not None and elev is not None:
+    if azim is not None and elev is not None:
         camerapos = (elev, azim)
     else:
-        camerapos = False
+        camerapos = None
     
     # For OAnalyser, when rhabdomeres is set True,
     # plot the rhabdomeres also
@@ -278,8 +559,6 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
                         camerapos=camerapos,
                         resolution=9, edgecolor=None, facecolor='gray')
 
-
-
     for i_rotation, rotation in enumerate(arrow_rotations):
 
         for eye in manalyser.eyes:
@@ -299,13 +578,9 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
             if manalyser_type == 'OAnalyser' and rhabdomeres:
                 
                 for point, vector in zip(*vectors_3d):
-                    add_line(ax, *point, *vector, camerapos=camerapos, color=REPEAT_COLORS[i_rotation])
+                    add_line(ax, *point, *vector, color=REPEAT_COLORS[i_rotation])
             else:
                 vector_plot(ax, *vectors_3d, color=colr,
-                        guidance=guidance,
-                        draw_sphere=draw_sphere,
-                        camerapos=camerapos,
-                        i_pulsframe=i_frame,
                         **kwargs
                         )
                
@@ -319,23 +594,21 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
     ax.set_zlim3d((-1,1))
     ax.set_box_aspect((1, 1, 1)) 
     
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    
     if azim is None and elev is None:
         ax.view_init(elev=DEFAULT_ELEV, azim=DEFAULT_AZIM)
     else:
         ax.view_init(elev=elev, azim=azim)
 
+
     return ax, vectors
 
 
-def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
-        elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True,
+def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=False,
+        elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True, direction=False,
         colorbar=True, colorbar_text=True, colorbar_ax=None, reverse_errors=False,
         colorbar_text_positions=[[1.1,0.95,'left', 'top'],[1.1,0.5,'left', 'center'],[1.1,0.05,'left', 'bottom']],
-        i_frame=0, arrow_rotations=[0], pitch_rot=None, yaw_rot=None, roll_rot=None):
+        i_frame=0, arrow_rotations=[0], pitch_rot=None, yaw_rot=None, roll_rot=None,
+        hide_axes=False, hide_text=False, guidance=False, **kwargs):
     '''
     Plots 3d heatmap presenting the diffrerence in the vector orientations
     for two analyser objects, by putting the get_3d_vectors of both analysers
@@ -349,6 +622,8 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         Analyser objects to plot the difference with 3d vectors
     ax : object or None
         Matplotlib Axes object
+    stats_map : bool
+        If true, plot p-vals.
     colorbar : bool
         Whether to add the colors explaining colorbar
     colorbar_text: bool
@@ -359,6 +634,9 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         Arrow rotations, for the second manalyser
     i_frame : int
         Neglected here
+    hide_axes : bool
+    hide_text : bool
+    guidance : bool
     '''
     
     if ax is None:
@@ -379,6 +657,24 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
     if roll_rot is not None:
         manalyser2.roll_rot = roll_rot
     
+    if guidance:
+        plot_guidance(ax, camerapos=(ax.elev, ax.azim), hide_text=hide_text)
+    
+    if hide_axes:
+        ax.set_axis_off()
+
+    if hide_text:
+        ax.axes.xaxis.set_ticklabels([])
+        ax.axes.yaxis.set_ticklabels([])
+        ax.axes.zaxis.set_ticklabels([]) 
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.set_zlabel('')      
+    else:   
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+    
 
     all_errors = []
     for eye in manalyser1.eyes:
@@ -388,14 +684,19 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         for manalyser in [manalyser1, manalyser2]:
             
             vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True,
-                repeats_separately=False,
+                repeats_separately=stats_map,
                 strict=True, vertical_hardborder=True)
  
             points.append(vectors_3d[0])
             vectors.append(vectors_3d[1])
        
         # Errors at the points[0]
-        errors = field_error(points[0], vectors[0], points[1], vectors[1], colinear=colinear)
+        if stats_map:
+            points, errors = field_pvals(points[0], vectors[0], points[1], vectors[1], colinear=colinear)
+        else:
+            # regular difference map
+            errors = field_error(points[0], vectors[0], points[1], vectors[1],
+                    colinear=colinear, direction=direction)
         
         if reverse_errors:
             errors = 1-errors
@@ -405,18 +706,29 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         if eye=='left':
             all_phi_points = [np.linspace(math.pi/2, 3*math.pi/2, 50)]
         else:
-            all_phi_points = [np.linspace(0, math.pi/2, 25), np.linspace(3*math.pi/2, 2*math.pi,25)]
+            all_phi_points = [np.linspace(-math.pi/2, math.pi/2, 50)]
+            #all_phi_points = [np.linspace(0, math.pi/2, 25), np.linspace(3*math.pi/2, 2*math.pi,25)]
+
+        if direction:
+            colormap = 'own-diverge'
+        else:
+            colormap = 'own'
+
+        print('{} eye, mean error {}'.format(eye, np.mean(errors)))
 
         for phi_points in all_phi_points:
-            m = surface_plot(ax, points[0], errors, phi_points=phi_points)
+            m = surface_plot(ax, points[0], errors, phi_points=phi_points,
+                    colormap=colormap)
     
     errors = np.concatenate(all_errors)
 
     ax.view_init(elev=elev, azim=azim)
 
     # COLORBAR
-    if colorbar and getattr(ax, 'differencemap_colorbar', None) is None:
-
+    cax = getattr(ax, 'differencemap_colorbar_ax', None)
+    colorbar_obj = getattr(ax, 'differencemap_colorbar', None)
+    if colorbar and (cax is None or colorbar_obj is None): 
+        
         if colorbar_ax is None:
             cbox = ax.get_position()
             cbox.x1 -= abs(cbox.x1 - cbox.x0)/10
@@ -426,14 +738,27 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
         else:
             cax = colorbar_ax
         
-        ax.differencemap_colorbar = [cax, plt.colorbar(m, cax)]
+        ax.differencemap_colorbar_ax = cax
+        ax.differencemap_colorbar = plt.colorbar(m, cax)
     
         # COLORBAR INFO TEXT
         if colorbar_text:
-            cax = ax.differencemap_colorbar[0]
             #text_x = 1+0.1
             #ha = 'left'
-            if colinear:
+            if direction:
+                cax.text(colorbar_text_positions[0][0], colorbar_text_positions[0][1],
+                        'Counterclockwise +90',
+                        ha=colorbar_text_positions[0][2], va=colorbar_text_positions[0][3],
+                        transform=cax.transAxes)
+                cax.text(colorbar_text_positions[1][0], colorbar_text_positions[1][1],
+                        'Perpendicular',
+                        ha=colorbar_text_positions[1][2], va=colorbar_text_positions[1][3],
+                        transform=cax.transAxes)
+                cax.text(colorbar_text_positions[2][0], colorbar_text_positions[2][1], 
+                        'Clockwise -90',
+                        ha=colorbar_text_positions[2][2], va=colorbar_text_positions[2][3],
+                        transform=cax.transAxes)
+            elif colinear:
                 cax.text(colorbar_text_positions[0][0], colorbar_text_positions[0][1],
                         'Collinear',
                         ha=colorbar_text_positions[0][2], va=colorbar_text_positions[0][3],
@@ -457,6 +782,9 @@ def plot_3d_differencemap(manalyser1, manalyser2, ax=None,
                         transform=cax.transAxes)
             
             cax.set_axis_off()
+    elif colorbar is False and colorbar_obj is not None:
+        ax.differencemap_colorbar.remove()
+        ax.differencemap_colorbar = None
 
     if arrow_rotations:
         manalyser2.vector_rotation = original_rotation
@@ -759,13 +1087,14 @@ def compare_3d_vectormaps(manalyser1, manalyser2, axes=None,
             text = text.format(formatting).format(float(animation_variable))
             ax.text(0.1, 1, text, transform=ax.transAxes, va='bottom', ha='left',fontsize=12)
         
-        if np.min(animation) < -100 and np.max(animation) > 100:
-            ax.set_xticks([-90,0,90])
-            ax.set_xticklabels(['-90$^\circ$', '0$^\circ$','90$^\circ$'])   
-        else:
-            ax.set_xticks([-45, 0, 45])
-            ax.set_xticklabels(['-45$^\circ$', '0$^\circ$','45$^\circ$'])   
-        
+        if animation:
+            if np.min(animation) < -100 and np.max(animation) > 100:
+                ax.set_xticks([-90,0,90])
+                ax.set_xticklabels(['-90$^\circ$', '0$^\circ$','90$^\circ$'])   
+            else:
+                ax.set_xticks([-45, 0, 45])
+                ax.set_xticklabels(['-45$^\circ$', '0$^\circ$','45$^\circ$'])   
+            
         if biphasic:
             if getattr(ax, 'pupil_compare_reverse_errors', None) is None:
                 ax.pupil_compare_reverse_errors = []

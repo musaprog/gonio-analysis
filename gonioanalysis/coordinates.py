@@ -377,6 +377,13 @@ def rotate_along_arbitrary(P1, points, rot):
 
     Implemented from here:
     http://paulbourke.net/geometry/rotate/
+    
+    Arguments
+    ---------
+    P1 : np.ndarray
+    points : np.ndarray
+    rot : float or int
+        Rotation in radians (not degres!)
     '''
 
     a,b,c = P1 / np.linalg.norm(P1)
@@ -400,6 +407,11 @@ def rotate_along_arbitrary(P1, points, rot):
 def rotate_points(points, yaw, pitch, roll):
     '''
     Just as rotate_vectors but only for points.
+    
+    Arguments
+    ---------
+    yaw, pitch, roll : float or int
+        Rotations in radians (not degrees!)
     '''
     yaw_ax = (0,0,1)
     pitch_ax = (1,0,0)

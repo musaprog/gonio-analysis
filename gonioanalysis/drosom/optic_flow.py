@@ -6,6 +6,7 @@ from math import cos, sin, radians
 
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
+from scipy.stats import mannwhitneyu
 
 import gonioanalysis.coordinates as coordinates
 from gonioanalysis.drosom.analysing import MAnalyser
@@ -97,19 +98,80 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colin
                 else:
                     error = 1
             
-            if direction and vecB[2] > vecA[2]:
-                error = -error
+            if direction:
+                counter = coordinates.rotate_along_arbitrary(points_A[i], vecB, angle) 
+                clock = coordinates.rotate_along_arbitrary(points_A[i], vecB, -angle)
+                
+                if np.sum(counter - vecB) > np.sum(clock - vecB):
+                    error = -error
 
             vec_errors.append(error)
 
         errors[i] = np.average(vec_errors, weights=vecB_weights)
-
-    if colinear:
-        errors = 2 * np.abs(errors - 0.5)
+    
+    if direction:
+        if colinear:
+            errors *= 2
+        errors = (errors + 1)/2
     else:
-        errors = 1 - errors
+        if colinear:
+            errors = 2 * np.abs(errors - 0.5)
+        else:
+            errors = 1 - errors
 
     return errors
+
+
+def _find_unique_points(points):
+    '''
+    Returns
+    -------
+    points : list
+    indices : dict of int
+    '''
+
+    unique_points = list({p for p in points})
+    indices = [[] for i in range(unique_points)]
+    for i_point, point in enumerate(points):
+        indices[unique_points.index(point)].append(i_point)
+    
+    return unique_points, indices
+
+
+def _angle(self, vecA, vecB):
+    return np.arccos(np.inner(vecA, vecB)/(np.linalg.norm(vecA) * np.linalg.norm(vecB)))
+
+def field_pvals(points_A, vectors_A, points_B, vectors_B, direction=False, colinear=False):
+    '''
+    Assuming 
+    '''
+    # same points are repeated many times (otherwise it would make sense
+    # to do statistical testing. Find the these "unique" points
+    un_points_A, un_indices_A = _find_unique_points(points_A)
+    un_points_B, un_indices_B = _find_unique_points(points_B)
+
+    kdtree = KDTree(points_B)
+    
+    for point, indices_A in zip(un_points_A, un_indices_A):
+        # Closest point
+        distance_B, index_B = kdtree.query(point, k=1, n_jobs=-1)
+        
+        Avecs = [vectors_A[i] for i in indices_A]
+        Bvecs = [vectors_B[i] for i in un_indices_B[index_B]]
+        
+        # Mean of Avecs
+        mean_Avec = np.mean(Avecs, axis=0)
+        
+        # Relative rotations of vectors with respect to the mean Avec
+        Adirs = [_angle(vec, mean_Avec) for vec in Avecs]
+        Bdirs = [_angle(vec, mean_Avec) for vec in Avecs]
+
+        u_stats, pval = mannwhitneyu(Adirs, Bdirs)
+        
+        pvals.append(pval)
+
+    return un_points_A, pvals
+
 
 
 class FAnalyser(MAnalyser):

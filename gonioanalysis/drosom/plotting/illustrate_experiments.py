@@ -52,8 +52,18 @@ def _crop(image, roi, factor):
     
     if factor < 1:
         h2 = int(round(factor*image.shape[1]/2))
+        a = cp[1]-h2
+        b = cp[1]+h2
+
+        if a < 0:
+            a = 0
+            b = h2*2
+        if b > image.shape[1]:
+            a = image.shape[1] - h2*2
+            b = image.shape[1]
+
         for i in range(len(image)):
-            new_image.append( image[i, cp[1]-h2:cp[1]+h2, :] )
+            new_image.append( image[i, a:b, :] )
     elif factor > 1:
         w2 = int(round(image.shape[2]/2/factor))
         for i in range(len(image)):

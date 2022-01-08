@@ -284,8 +284,8 @@ def left_right_displacements(manalysers, group_name,
                 print(csv_files[csv_file])
                 raise ValueError("No ERGs, check linking the ERG data")
             else:
-                raise e
-            
+                #raise e
+                continue
 
         if csv_file.startswith('ERGs_'):
             ufs = efs
@@ -390,12 +390,16 @@ def lrfiles_summarise(lrfiles, point_type='mean', ab=(None, None)):
             elif point_type == 'kinematics':
                 fs = 1/(float(coldata[0][2]) - float(coldata[0][1]))
                 value = _sigmoidal_fit([numerical_col], fs)
+                
+                if value is None:
+                    continue
+
                 value = [value[0][0], value[1][0], value[2][0]]
                 #value = _simple_latencies([numerical_col], fs)[0]
             
             if len(lrfiles)==1 and point_type == "kinematics":
                 # expand CSV rows
-                for name, val in zip(['displacement', 'speed', '1/2-risetime'], value):
+                for name, val in zip(['displacement', 'logistic growth rate', '1/2-risetime'], value):
                     try:
                         csv_rows[specimen_name+'_'+name]
                     except:

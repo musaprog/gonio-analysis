@@ -73,6 +73,19 @@ def magstd_over_repeats(manalyser, image_folder, maxmethod='max'):
     return np.std(displacements)
 
 
+def mean_topspeed(manalyser, image_folder):
+    '''
+    Returns the top speed of the mean response.
+    '''
+    mean = np.mean(manalyser.get_displacements_from_folder(image_folder), axis=0)
+    
+    # FIXME: Replace the loop with numpy routines
+    top = 0
+    for i in range(len(mean)-1):
+        top = max(top, mean[i+1] - mean[i])
+    
+    return top
+
 
 def _simple_latencies(displacements, fs, threshold=0.1):
     '''

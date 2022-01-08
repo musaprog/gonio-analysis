@@ -1,8 +1,14 @@
 '''
 Functions related to DrosoM data loading.
 
-TODO
-- clean the code
+MODULE LEVEL VARIABLES
+----------------------
+REPETITION_INDICATOR : str
+    In filenames, the text preceding the repetition value
+POSITION_INDICATOR : str
+    In filenames, the text preceding the imaging location value
+IMAGE_NAME_EXTENSIONS : str
+    File name extensions that are treated as image files.
 '''
 
 import os
@@ -12,6 +18,8 @@ from gonioanalysis.rotary_encoders import to_degrees
 
 REPETITION_INDICATOR  = 'rep'
 POSITION_INDICATOR = 'pos'
+
+IMAGE_NAME_EXTENSIONS = ('.tiff', '.tif')
 
 
 def arange_fns(fns):
@@ -143,7 +151,7 @@ def load_data(drosom_folder):
         str_angles = folder[len(POSITION_INDICATOR):]     # Should go from "pos(0, 0)" to "(0, 0)"
      
         files = os.listdir(os.path.join(drosom_folder, folder))
-        tiff_files = [f for f in files if f.endswith('.tiff') or f.endswith('.tif')]
+        tiff_files = [f for f in files if f.endswith(IMAGE_NAME_EXTENSIONS)]
         
         if len(tiff_files) == 0:
             # Skip if no images in the folder

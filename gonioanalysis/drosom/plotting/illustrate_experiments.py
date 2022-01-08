@@ -1,5 +1,6 @@
 import os
 import math
+import multiprocessing as mp
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,6 +12,7 @@ import cv2
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 import gonioanalysis.coordinates as coordinates
 from gonioanalysis.drosom.plotting.common import vector_plot
+from gonioanalysis.drosom.loading import angles_from_fn
 
 
 def _load_image(fn, roi, e):
@@ -113,6 +115,36 @@ def moving_rois(manalyser, roi_color='red,blue', lw=3, e=50,
     colors = roi_color.split(',')
     
     image_fns, ROIs, angles = manalyser.get_time_ordered()
+
+    # ------------------
+    # For mosaic
+    if _exclude_imagefolders:
+        
+        newdata = []
+        for fn, ROI, angle in zip(image_fns, ROIs, angles):
+            if not angles_from_fn(os.path.basename(os.path.dirname(fn))) in _exclude_imagefolders:
+                newdata.append([fn, ROI, angle])
+            else:
+                pass
+        image_fns, ROIs, angles = list(zip(*newdata))
+
+    if _order:
+        image_fns = list(image_fns)
+        ROIs = list(ROIs)
+        angles = list(angles)
+        newdata = []
+
+        for o in _order:
+            
+            indices = [i for i in range(len(image_fns)) if angles_from_fn(os.path.basename(os.path.dirname((image_fns[i])))) == o]
+            
+            for i in indices:
+                newdata.append([image_fns[i], ROIs[i], angles[i]])
+
+        image_fns, ROIs, angles = list(zip(*newdata))
+    # End for mosaic
+    # ------------------
+
     N = len(image_fns)
     i_frame = 0
 
@@ -180,13 +212,107 @@ def moving_rois(manalyser, roi_color='red,blue', lw=3, e=50,
             next_image = _box(next_image, ROIs[i_fn+1], lw, color=color)
             
             for blend in np.zeros(5).tolist() + np.linspace(0, 1, 25).tolist():
-                
                 im = image*(1-blend) + _crop(next_image, ROIs[i_fn+1], crop_factor)*(blend)
                 savefn = os.path.join(savedir, 'image_{:08d}.png'.format(i_frame))
                 tifffile.imsave(savefn, im.astype(np.uint8))
+                
+                if _draw_arrow:
+                    draw_arrow_inset(os.path.join(savedir, 'inset', 'image_{:08d}.png'.format(i_frame)), vx, vy,
+                            color='white')
+
                 i_frame += 1
 
-    np.savetxt('aangles.txt', aangles)
+
+def _get_closest(folder_a, folders_b, index=False):
+    '''
+    pos
+
+    returns closets_folder, distance
+    '''
+
+    dists = []
+
+    A = np.array( folder_a )
+    for b in folders_b:
+        B = np.array( b )
+        dists.append( np.linalg.norm(A-B) )
+    
+    if index:
+        return np.argmin(dists), np.min(dists)
+    else:
+        return folders_b[np.argmin(dists)], np.min(dists)
+
+
+
+def moving_rois_mosaic(manalysers, common_threshold=7.5, **kwargs):
+    '''
+    Uses moving_rois() to make a mosaic video of the experiments, in which
+    the specimens move in sync.
+
+    The first specimen (manalyser[0]) determines the rotation order (in the
+    order as it was recorded).
+
+
+    ARGUMENTS
+    ---------
+    common_threshold : int
+        In rotation stage steps, how close the recordings of different
+        analysers have to be classified as the same.
+    kwargs : dict
+        Passed to moving_rois
+    
+    RETURNS
+    -------
+    None
+    '''
+
+    orders = {manalyser.name: [] for manalyser in manalysers}
+    excludes = {}
+
+    folders = [angles_from_fn(os.path.basename(os.path.dirname(fn))) for fn in manalysers[0].get_time_ordered(first_frame_only=True)[0]]
+
+    has_matches = {fol: 0 for fol in folders}
+    conversion = {manalyser.name: {} for manalyser in manalysers}
+
+    for folder in folders:
+        for manalyser in manalysers[1:]:
+            fols = [angles_from_fn(fol) for fol in manalyser.list_imagefolders(only_measured=True)] 
+            closest, distance = _get_closest(folder, fols)
+            
+            if distance < common_threshold:
+                orders[manalyser.name].append(closest)
+                has_matches[folder] += 1
+                conversion[manalyser.name][closest] = folder
+    
+    orders[manalysers[0].name] = folders.copy()
+    orders[manalysers[0].name] = [fol for fol in orders[manalysers[0].name] if has_matches[fol] == len(manalysers)-1]   
+    fols = [angles_from_fn(fol) for fol in manalysers[0].list_imagefolders(only_measured=True)]
+    excludes[manalysers[0].name] = [fol for fol in fols if not fol in orders[manalysers[0].name]]
+    
+    for manalyser in manalysers[1:]:
+        orders[manalyser.name] = [fol for fol in orders[manalyser.name] if has_matches[conversion[manalyser.name][fol]] == len(manalysers)-1]
+       
+        fols = [angles_from_fn(fol) for fol in manalyser.list_imagefolders(only_measured=True)]
+        excludes[manalyser.name] = [fol for fol in fols if not fol in orders[manalyser.name]]
+ 
+    
+    # FIXME Starts too many processes with many specimens, possibly leading to
+    # out of RAM
+
+    processes = []
+    
+    for manalyser in manalysers:
+        p = mp.Process(target=moving_rois, args=[manalyser],
+                kwargs={ **{"_exclude_imagefolders": excludes[manalyser.name],
+                    "_order": orders[manalyser.name],
+                    "_draw_arrow": True}, **kwargs})
+        p.start()
+        
+        processes.append(p)
+        
+    for p in processes:
+        p.join()
+
 
 
 def illustrate_experiments(manalyser, rel_rotation_time=1):

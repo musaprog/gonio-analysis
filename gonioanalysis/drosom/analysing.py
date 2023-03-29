@@ -600,13 +600,13 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         return self.folder
   
 
-    @staticmethod
-    def get_imagefolder(image_fn):
-        '''
-        Gets the name of the folder where an image lies, for example
-        /a/b/c/image -> c
+    def get_imagefolder(self, image_fn):
+        '''Gets the image containing folder (for example, /a/b/c/image -> c).
 
-        based on the image filename.
+        Arguments
+        ---------
+        image_fn : string
+            Full path to the image.
         '''
         return os.path.split(os.path.dirname(image_fn))[1]
     

@@ -577,12 +577,18 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
         '''
 
-        fns = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')]
+        #fns = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')]
+        #fns = arange_fns(fns)
+        #if absolute_path:
+        #    fns = [os.path.join(self.data_path, self.folder, image_folder, fn) for fn in fns]
         
-        fns = arange_fns(fns)
+        fns = []
+        # Flatten out the i_repeat structure
+        for repetitions_images in self.stacks[image_folder.removeprefix('pos')]:
+            fns.extend(repetitions_images)
 
-        if absolute_path:
-            fns = [os.path.join(self.data_path, self.folder, image_folder, fn) for fn in fns]
+        if not absolute_path:
+            fns = [os.path.basename(fn) for fn in fns]
 
         return fns
 
@@ -802,6 +808,10 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
             except:
                 horizontal, pitch = (0, 0)
             pos = pos[3:]
+
+            if '_cam' in image_fn:
+                i_camera = int(image_fn[image_fn.index('_cam') + 4])
+                pos += f'_cam{i_camera}'
 
             # ROI belonging to the eft/right eye is determined solely by
             # the horizontal angle when only 1 ROI exists for the position

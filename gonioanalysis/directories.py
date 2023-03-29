@@ -11,7 +11,7 @@ USER_HOMEDIR = os.path.expanduser('~')
 if platform.system() == "Windows":
     GONIODIR = os.path.join(USER_HOMEDIR, 'GonioAnalysis')
 else:
-    GONIODIR = os.path.join(USER_HOMEDIR, '.Gonioanalysis')
+    GONIODIR = os.path.join(USER_HOMEDIR, '.gonioanalysis')
 
 
 ANALYSES_SAVEDIR = os.path.join(GONIODIR, 'final_results')

@@ -20,9 +20,12 @@ PROCESSING_TEMPDIR_BIGFILES = os.path.join(GONIODIR, 'intermediate_bigfiles')
 
 
 # DIRECTORIES THAT HAVE TO BE CREATED
-ALLDIRS= {'ANALYSES_SAVEDIR': ANALYSES_SAVEDIR,
+ALLDIRS= {
+        'GONIODIR': GONIODIR,
+        'ANALYSES_SAVEDIR': ANALYSES_SAVEDIR,
         'PROCESSING_TEMPDIR': PROCESSING_TEMPDIR,
-        'PROCESSING_TEMPDIR_BIGFILES': PROCESSING_TEMPDIR_BIGFILES}
+        'PROCESSING_TEMPDIR_BIGFILES': PROCESSING_TEMPDIR_BIGFILES
+        }
 
 
 def print_directories():
@@ -63,19 +66,19 @@ def cli_ask_creation(needed_directories):
 
 
 def directories_check(ui=cli_ask_creation):
-    '''
-    Perform a check that the saving directories exist.
+    '''Checks if the save directories exists, and creates if not.
     
-    ui      Callable that returns True if user wants to create
-                the directories or False if not.
-                As the first argument it gets the list of to be created directories
-
-                If ui is not callable, raise an error.
+    ARGUMENTS
+    ---------
+    ui : None or callable
+        A callable that returns True if selects yes (wants to create the
+        directories or False if not. The callable receives a list as its
+        first (and only) argument that contains the to-be-created
+        directories.
     '''
     non_existant = []
     
     for key, item in ALLDIRS.items():
-
         if not os.path.exists(item):
             non_existant.append(item)
 

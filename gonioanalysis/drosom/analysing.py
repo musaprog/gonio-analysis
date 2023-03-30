@@ -236,12 +236,15 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
 
     '''
 
-    def __init__(self, data_path, folder, clean_tmp=False, no_data_load=False):
+    def __init__(self, data_path, folder, clean_tmp=False, no_data_load=False,
+                 active_analysis=''):
         '''
         INPUT ARGUMENTS     DESCRIPTION 
         data_path           directory where DrosoM folder lies
         folder              Name of the DrosoM folder, for example "DrosoM1"
         no_data_load        Skip loading data in the constructor
+        active_analysis : string
+            Name of the activated analysis
         '''
         super().__init__()
         #Discardeable().__init__()
@@ -833,6 +836,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                     self.ROIs['right'][pos] = ROIs[0]
             
             elif len(ROIs) > 2:
+
+                # With drift_correction, many ROIs are possible
+                #if self.active_analysis == 'drift_correction':
+                #    for i_roi, roi in enumerate(ROIs):
+                #        self.ROIs[f'roi{i_roi}'] = roi
+
                 print('Warning. len(ROIs) == {} for {}'.format(len(ROIs), image_fn))
 
         self.N_folders_having_rois = len(marker_markings)
@@ -930,6 +939,21 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         with open(self.MOVEMENTS_SAVEFN.format('left'), 'r') as fp:
             self.movements['left'] = json.load(fp)
         
+        # Special analysis name: "drift_correction". If present, subtracted
+        # from all the active analysis
+        if 'drift_correction' in self.list_analyses() and self.active_analysis != 'drift_correction':
+            dc_analyser = MAnalyser(
+                    self.data_path, self.folder, active_analysis='drift_correction')
+            
+            for eye in ['left', 'right']:
+                for image_folder, data in dc_analyser.movements[eye].items():
+                    for i_repeat in range(data):
+                        A = self.movements[eye][image_folder][i_repeat]
+                        B = data[i_repeat]
+                        corrected = [a-b for a, b in zip(A, B)]
+                        self.movements[eye][image_folder][i_repeat] = corrected
+
+
         if self.imagefolder_skiplist:
             
             for image_folder, skip_repeats in self.imagefolder_skiplist.items():
@@ -949,7 +973,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         '''
         Wrapper to self.measure_movement() for both left and right eyes.
         '''
-        for eye in ['left', 'right']:
+        for eye in self.ROIs:
             self.measure_movement(eye, **kwargs)
 
 

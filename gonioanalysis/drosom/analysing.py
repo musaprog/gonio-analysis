@@ -274,7 +274,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         self.LINK_SAVEDIR = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
         
 
-        self.active_analysis = ''
+        self.active_analysis = active_analysis
 
 
 
@@ -352,6 +352,8 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         if name == 'default':
             name = ''
 
+        self.__active_analysis = name
+        
         if name == '':
             self.CROPS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._rois_skelefn.format(self.folder, ''))
             self.MOVEMENTS_SAVEFN = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', self.folder, self._movements_skelefn.format(self.folder, '{}', ''))
@@ -373,15 +375,12 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
                 del self.movements
             except AttributeError:
                 pass
-
-        self.__active_analysis = name
         
 
 
 
     def list_analyses(self):
-        '''
-        Returns a list of analysis names that exist.
+        '''Returns a list of existing analysis names.
         '''
         
         manalyser_dir = os.path.dirname(self.MOVEMENTS_SAVEFN)
@@ -389,7 +388,7 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         if os.path.isdir(manalyser_dir):
             fns = [fn for fn in os.listdir(manalyser_dir) if
                     self._movements_skelefn.split('{')[0] in fn and
-                    self.eyes[0] in ''.join(fn.split('_')[-2:])]
+                    self.eyes[0] in fn]
         else:
             fns = []
 
@@ -399,12 +398,11 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         for fn in fns:
             secondlast, last = fn.split('.')[0].split('_')[-2:]
             
-            if secondlast in self.eyes and last not in self.eyes:
-                names.append(last)
-            elif secondlast not in self.eyes and last in self.eyes:
+            if fn.split('.')[0].split('_')[-1] in self.eyes:
                 names.append('default')
             else:
-                RuntimeWarning('Fixme list_analyses in MAnalyser')
+                analysis = fn.split(self.eyes[0])[1].split('.')[0].removeprefix('_')
+                names.append(analysis)
 
         return names
 
@@ -939,19 +937,30 @@ class MAnalyser(VectorGettable, SettingAngleLimits, ShortNameable):
         with open(self.MOVEMENTS_SAVEFN.format('left'), 'r') as fp:
             self.movements['left'] = json.load(fp)
         
+        if self.__active_analysis == 'drift_correction':
+            for key in self.movements['right']:
+                if key not in self.movements['left']:
+                    self.movements['left'] = self.movements['right']
+
         # Special analysis name: "drift_correction". If present, subtracted
         # from all the active analysis
-        if 'drift_correction' in self.list_analyses() and self.active_analysis != 'drift_correction':
+        if 'drift_correction' in self.list_analyses() and self.__active_analysis != 'drift_correction':
             dc_analyser = MAnalyser(
                     self.data_path, self.folder, active_analysis='drift_correction')
             
             for eye in ['left', 'right']:
                 for image_folder, data in dc_analyser.movements[eye].items():
-                    for i_repeat in range(data):
+                    if image_folder not in self.movements[eye]:
+                        continue
+                    for i_repeat in range(len(data)):
                         A = self.movements[eye][image_folder][i_repeat]
                         B = data[i_repeat]
-                        corrected = [a-b for a, b in zip(A, B)]
-                        self.movements[eye][image_folder][i_repeat] = corrected
+                        for key in ['x', 'y']:
+                            dcx = np.array(list(range(len(B[key]))))
+                            fit = np.polynomial.polynomial.Polynomial.fit(dcx, B[key],1)
+                            corrected = (np.array(A[key]) - fit(dcx) ).tolist()
+                            #corrected = [a-b for a, b in zip(A[key], B[key])]
+                            self.movements[eye][image_folder][i_repeat][key] = corrected
 
 
         if self.imagefolder_skiplist:

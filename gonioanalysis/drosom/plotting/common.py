@@ -425,8 +425,8 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
 
 
 
-    if not camerapos:
-        camerapos = (ax.elev, ax.azim)
+    #if not camerapos:
+    #    camerapos = (ax.elev, ax.azim)
  
     if guidance:
         plot_guidance(ax, camerapos=camerapos, hide_text=hide_text)

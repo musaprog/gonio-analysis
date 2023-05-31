@@ -8,7 +8,6 @@ import numpy as np
 from gonioanalysis.drosom import plotting
 from gonioanalysis.drosom.plotting.common import save_3d_animation
 from gonioanalysis.drosom.plotting import basics, illustrate_experiments
-from gonioanalysis.drosom.plotting.plotter import MPlotter
 from gonioanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
 from gonioanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
 from gonioanalysis.drosom.special.paired import cli_group_and_compare
@@ -18,26 +17,18 @@ import gonioanalysis.drosom.export as export
 I_WORKER = None
 N_WORKERS = None
 
-plotter = MPlotter()
-
 
 # Functions that take only one input argument that is the MAnalyser
 ANALYSER_CMDS = {}
 ANALYSER_CMDS['pass'] = print
 ANALYSER_CMDS['vectormap'] = basics.plot_3d_vectormap
-ANALYSER_CMDS['vectormap_mayavi'] = plotter.plot_3d_vectormap_mayavi
 ANALYSER_CMDS['vectormap_video'] = lambda analyser: save_3d_animation(analyser, plot_function=basics.plot_3d_vectormap, guidance=True, i_worker=I_WORKER, N_workers=N_WORKERS) 
-ANALYSER_CMDS['vectormap_oldvideo'] = lambda analyser: plotter.plot_3d_vectormap(analyser, animation=True)
 ANALYSER_CMDS['export_vectormap'] = export.export_vectormap
 ANALYSER_CMDS['magtrace'] = basics.plot_1d_magnitude
 ANALYSER_CMDS['2d_vectormap'] =  basics.plot_2d_vectormap
-ANALYSER_CMDS['trajectories'] = plotter.plot_2d_trajectories
-ANALYSER_CMDS['2dmagnitude'] = plotter.plotMagnitude2D
-
+ANALYSER_CMDS['trajectories'] = basics.plot_xy_trajectory
 
 # Analyser + image_folder
-#ANALYSER_CMDS['1dmagnitude'] = plotter.plot_1d_magnitude_from_folder
-
 ANALYSER_CMDS['moving_rois_video'] = illustrate_experiments.moving_rois
 ANALYSER_CMDS['illustrate_experiments_video'] = illustrate_experiments.illustrate_experiments
 ANALYSER_CMDS['rotation_mosaic'] = illustrate_experiments.rotation_mosaic

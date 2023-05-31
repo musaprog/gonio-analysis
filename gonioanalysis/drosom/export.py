@@ -8,7 +8,7 @@ import json
 import numpy as np
 
 from gonioanalysis.coordinates import get_rotation_matrix
-
+from .optic_flow import field_error
 
 # Available export filetypes
 FILETYPES = [('JSON', '.json'), ('Numpy binary', '.npy')]
@@ -54,6 +54,16 @@ def vectors_to_yxz_rotations(points, vectors):
     return [[yr,xr,zr] for yr,xr,zr in zip(yrots, xrots, zrots)]
 
 
+def _date():
+    return str(datetime.datetime.now())
+
+
+def _export_data(data, save_fn):
+    if save_fn.endswith('.json'):
+        with open(save_fn, 'w') as fp:
+            json.dump(data, fp)
+    else:
+        raise ValueError(f'Unsupported filetype: {save_fn}')
 
 def export_vectormap(analyser, save_fn=None):
     '''Exports 3D vectors
@@ -63,8 +73,7 @@ def export_vectormap(analyser, save_fn=None):
     '''
 
     if save_fn is None:
-        date = datetime.datetime.now()
-        saven_fn = f'vectormap_{analyser.name}_{date}.npy'
+        saven_fn = f'vectormap_{analyser.name}_{_date()}.npy'
 
     if save_fn.endswith('.npy'):
         base = save_fn.removesuffix('.npy')
@@ -88,4 +97,37 @@ def export_vectormap(analyser, save_fn=None):
         raise ValueError(f'Unkown file ending: {save_fn}')
 
 
+
+
+def export_differencemap(analyser1, analyser2, save_fn=None):
+    '''Exports the comparision between two analysers' vectormaps.
+
+    The differences (aka. errors) range between 0 and 1 and are
+    in the points of the analyser1.
+    '''
+    
+    data = {}
+    
+    for eye in analyser1.eyes:
+        p1, v1 = analyser1.get_3d_vectors(eye)
+        p2, v2 = analyser2.get_3d_vectors(eye)
+        errors = field_error(p1, v1, p2, v2)
+        
+        print(len(p1))
+        print(len(p2))
+
+        data[eye] = {
+                'points1': p1.tolist(),
+                'points2': p2.tolist(),
+                'vectors1': v1.tolist(),
+                'vectors2': v2.tolist(),
+                'yxz_rotations1': vectors_to_yxz_rotations(p1, v1),
+                'yxz_rotations2': vectors_to_yxz_rotations(p2, v2),
+                'errors': errors.tolist()
+                }
+
+    if save_fn is None:
+        save_fn = f'differencemap_{analyser1.name}_{analyser2.name}_{_date()}.json'
+
+    _export_data(data, save_fn)
 

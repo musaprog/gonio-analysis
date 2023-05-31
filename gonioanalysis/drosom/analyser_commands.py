@@ -71,6 +71,8 @@ DUALANALYSER_CMDS['compare_manyviews'] = basics.compare_3d_vectormaps_manyviews
 DUALANALYSER_CMDS['difference_video'] = lambda analyser1, analyser2: save_3d_animation([analyser1, analyser2],
         plot_function=basics.plot_3d_differencemap, guidance=False, hide_axes=True, colorbar=False, hide_text=True,
         i_worker=I_WORKER, N_workers=N_WORKERS) 
+DUALANALYSER_CMDS['export_differencemap'] = export.export_differencemap
+
 
 # Manyviews videos
 for animation_type in ['rotate_plot', 'rotate_arrows', 'pitch_rot', 'yaw_rot', 'roll_rot']:

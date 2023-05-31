@@ -22,7 +22,7 @@ setuptools.setup(
     name="gonio-analysis",
     version=__version__,
     author="Joni Kemppainen",
-    author_email="jjtkemppainen1@sheffield.ac.uk",
+    author_email="joni.kemppainen@windowslive.com",
     description="Spatial motion analysis program",
     long_description=long_description,
     long_description_content_type="text/markdown",

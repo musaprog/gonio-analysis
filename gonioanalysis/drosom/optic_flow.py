@@ -237,7 +237,7 @@ class FAnalyser(MAnalyser):
             points = [points[i] for i in indices]
             vectors = [vectors[i] for i in indices]
         
-        return points, vectors
+        return np.array(points), np.array(vectors)
 
     
     def is_measured(self, *args, **kwargs):

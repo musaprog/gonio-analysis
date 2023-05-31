@@ -1771,27 +1771,3 @@ class MAverager(VectorGettable, ShortNameable, SettingAngleLimits):
 
         return points, vectors
 
-
-    def export_3d_vectors(self, *args, **kwargs):
-        '''
-        Exports the 3D vectors in json format.
-
-        optic_flow          If true, export optic flow instead of the fly vectors
-        '''
-        
-        folder = os.path.join(ANALYSES_SAVEDIR, 'exported_3d_vectors')
-        os.makedirs(folder, exist_ok=True)
-        
-        if optic_flow:
-            fn = '3d_optic_flow_vectors_{}_{}.json'.format(self.get_specimen_name(), datetime.datetime.now())
-        else:
-            fn = '3d_vectors_{}_{}.json'.format(self.get_specimen_name(), datetime.datetime.now())
-        
-        data = {}
-        for eye in ['left', 'right']:
-            points, vectors = self.get_3d_vectors(eye, *args, *kwargs)
-            
-            data[eye] = {'points': points.tolist(), 'vectors': vectors.tolist()}
-        
-        with open(os.path.join(folder, fn), 'w') as fp:
-            json.dump(data, fp)

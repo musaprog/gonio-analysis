@@ -134,6 +134,12 @@ def main(custom_args=None):
     parser.add_argument('--active-analysis', nargs='?', default='',
             help='Name of the analysis')
 
+    
+    # Other settings
+    parser.add_argument(
+            '-o', '--output', help='Output filename for export analysis options')
+
+
     # Other settings
     parser.add_argument('--tk_waiting_window', action='store_true',
             help='(internal) Launches a tkinter waiting window')
@@ -294,6 +300,8 @@ def main(custom_args=None):
     kwargs = {}
     if wanted_imagefolders:
         kwargs['wanted_imagefolders'] = wanted_imagefolders
+    if args.output:
+        kwargs['save_fn'] = args.output
     
     if function in MULTIANALYSER_CMDS.values():
         for analysers in analyser_groups:

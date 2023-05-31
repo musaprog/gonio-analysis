@@ -139,6 +139,9 @@ class MAnalyser(SettingAngleLimits):
     
         # No data load to affect only this constructor
         self._no_data_load = False
+        
+        # Info data about available UI options
+        self.ui_options = {}
     
 
     @property
@@ -1388,6 +1391,30 @@ class MAnalyser(SettingAngleLimits):
                     data = json.load(fp)
                     self.linked_data[dfile.replace('.json', '')] = data
         
+
+    # Exposing ui options
+    def get_ui_options(self):
+        '''Lists UI options for the analyser: Their values, help and convert.
+        '''
+        dictionary = []
+        for key in self.ui_options:
+            dictionary[key] = {}
+            dictionary[key]['value'] = getattr(self, key, None)
+            dictionary[key]['help'] = self.ui_options[key]['help']
+            dictionary[key]['type'] = self.ui_options[key]['type']
+        
+        return dictionary
+
+    def set_ui_options(self, dictionary):
+        '''
+        '''
+        for key, item in dictionary.items():
+            if key in self.ui_options:
+                convert = self.ui_options[key].get('type', str)
+                setattr(self, key, convert(item))
+            else:
+                valid_keys = list(self.ui_options.keys())
+                raise KeyError(f'Key "{key}" not valid. Valid keys are {valid_keys}')
 
 
 class MAverager(SettingAngleLimits):

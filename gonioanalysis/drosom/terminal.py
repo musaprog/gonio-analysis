@@ -121,7 +121,11 @@ def main(custom_args=None):
 
     parser.add_argument('-t', '--type', nargs='+',
             help='Analyser type, either "motion" or "orientation". Space separate gor groups')
-    
+   
+    parser.add_argument(
+            '--analyser-options', nargs='+',
+            help='Extra arguments to ui options. Space separate for groups')
+
     parser.add_argument('-r', '--reselect-rois', action='store_true',
             help='Reselect ROIs')
  
@@ -239,7 +243,7 @@ def main(custom_args=None):
         Analyser = Analysers[args.type[i_group]]
         
         print('Using {}'.format(Analyser.__name__))
-        
+
         if directories is None:
             analysers.append(Analyser(None, None))
         else:
@@ -253,7 +257,18 @@ def main(custom_args=None):
                     analyser.active_analysis = args.active_analysis
                 
                 analysers.append(analyser)
- 
+         
+        if args.analyser_options:
+            print(f'  Setting options {args.analyser_options[i_group]}')
+            for analyser in analysers:
+                # Special empty ones to sign that for analysers in i_group
+                # we don't want to set any options
+                if args.analyser_options[i_group].lower() in ['na', 'none']:
+                    continue
+                # Parse analyser options
+                opts = {opt.split('=')[0]: opt.split('=')[1] for opt in args.analyser_options[i_group].split(',')}
+                analyser.set_ui_options(opts)
+
         # Ask ROIs if not selected
         for analyser in analysers:
             if analyser.are_rois_selected() == False or args.reselect_rois:

@@ -195,7 +195,7 @@ class FAnalyser(MAnalyser):
         self.folder = 'optic_flow'
         self.eyes = ['left', 'right']
         self.vector_rotation = 0
-
+        
 
         # FAnalyser specific
         self.pitch_rot = 0
@@ -205,6 +205,14 @@ class FAnalyser(MAnalyser):
                 'left': coordinates.optimal_sampling(np.arange(-60, 0, 5), np.arange(-100, 100, 5))}
         
         self.constant_points = False
+        
+
+        self.ui_options = {
+                'pitch_rot': {'help': 'Pitch rotation', 'type': float},
+                'roll_rot': {'help': 'Roll rotation', 'type': float},
+                'yaw_rot': {'help': 'Yaw rotation', 'type': float},
+                }
+
 
     def get_3d_vectors(self, eye, constant_points=None, *args, **kwargs):
         '''
@@ -255,4 +263,5 @@ class FAnalyser(MAnalyser):
 
     def load_analysed_movements(self, *args, **kwargs):
         return None
+
 

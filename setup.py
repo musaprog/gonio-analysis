@@ -34,5 +34,11 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3) ",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.0',
+    # Used language features that require Python 3.6 or newer
+    #   - fstrings
+    #
+    #
+    # Python 3.8 final version supporting Windows 7
+    # Python 3.4 final version supporting Windows XP
+    python_requires='>=3.6',
 )

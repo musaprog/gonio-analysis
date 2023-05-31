@@ -290,14 +290,10 @@ class MPlotter:
                     
                         
                     style = 'normal'
-                    title_string = manalyser.get_short_name()
+                    title_string = manalyser.get_specimen_name()
                     
                     if ';' in title_string:
                         title_string, style = title_string.split(';')
-
-                    if title_string is '':
-                        # Use full name if short name is not set
-                        title_string = manalyser.get_specimen_name()
 
                     #axes[0].text2D(0.5, 0.85, title_string, transform=ax.transAxes,
                     #        ha='center', va='center', fontsize=38, fontstyle=style)

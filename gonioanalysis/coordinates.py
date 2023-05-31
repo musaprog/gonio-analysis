@@ -6,6 +6,56 @@ from math import sin, cos, tan, radians, pi, acos, atan, sqrt, degrees, atan2
 
 import numpy as np
 
+
+def where_vertical_between(points_3d, lower=None, upper=None, reverse=False):
+    ''''Returns a boolean array based on points' vertical angle.
+
+    Takes in 3D points and returns an 1D True/False array of length points_3d
+    
+    Arguments
+    ---------
+    points_3d : sequence
+        A sequence of (x,y,z) points
+    lower : float
+        Lower vertical angle degree in degrees
+    upper : float
+    reverse : bool
+        If True, inverses the returned array (True -> False and vice versa).
+
+    Returns
+    -------
+    booleans : ndarray
+        1D True/False array
+    '''
+    
+    # Calculate each point's vertical angle in degrees
+    verticals = np.degrees(np.arcsin(points_3d[:,2]/ np.cos(points_3d[:,0]) ))
+
+    # Check each point's y coordinate; If it is negative, we
+    # have to fix its angle
+    # FIXME: Do this in numpy for better performance
+    for i_point in range(len(points_3d)):
+        if points_3d[i_point][1] < 0:
+            if verticals[i_point] > 0:
+                verticals[i_point] = 180-verticals[i_point]
+            else:
+                verticals[i_point] = -180-verticals[i_point]
+
+    booleans = np.ones(len(points_3d), dtype=bool)
+    if lower is not None:
+        booleans = booleans * (verticals > lower)
+    if upper is not None:
+        booleans = booleans * (verticals < upper)
+    
+    if reverse:
+        booleans = np.invert(booleans)
+
+    return booleans
+ 
+
+
+
+
 def to_spherical(x,y,z, return_degrees=False):
     '''
     Transform to spherical coordinates (ISO)

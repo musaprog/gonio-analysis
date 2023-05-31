@@ -13,7 +13,7 @@ from gonioanalysis.directories import ANALYSES_SAVEDIR
 import gonioanalysis.coordinates as coordinates
 from gonioanalysis.drosom.plotting.common import vector_plot
 from gonioanalysis.drosom.loading import angles_from_fn
-
+from gonioanalysis.version import used_scipy_version
 
 def _load_image(fn, roi, e):
 
@@ -519,7 +519,10 @@ def rotation_mosaic(manalyser, imsize=(512,512),
     for i_v, vrot in enumerate(intp_v):
         for i_h, hrot in enumerate(intp_h):
             
-            distance, i_point = kdtree.query( (hrot, vrot), n_jobs=-1)
+            if used_scipy_version < (1,6,0):
+                distance, i_point = kdtree.query( (hrot, vrot), n_jobs=-1)
+            else:
+                distance, i_point = kdtree.query( (hrot, vrot), workers=-1)
             
             if distance > math.sqrt((hstep/1.5)**2 + (vstep/1.5)**2):
                 continue

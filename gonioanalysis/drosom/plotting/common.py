@@ -23,6 +23,8 @@ from gonioanalysis.coordinates import (
         rotate_points
         )
 from gonioanalysis.directories import ANALYSES_SAVEDIR
+from gonioanalysis.version import used_scipy_version
+
 
 CURRENT_ARROW_LENGTH = 1
 
@@ -547,9 +549,12 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
         
         errs = np.empty_like(x)
         positions = [[x.flat[i], y.flat[i], z.flat[i]] for i in range(x.size)]
-
-        distances, i_points = kdtree.query( positions, n_jobs=-1 )
         
+        if used_scipy_version < (1,6,0):
+            distances, i_points = kdtree.query( positions, n_jobs=-1 )
+        else:
+            distances, i_points = kdtree.query( positions, workers=-1 )
+
         for i in range(errs.size):
             if distances[i] < intp_dist:
                 errs.flat[i] = values[i_points[i]]

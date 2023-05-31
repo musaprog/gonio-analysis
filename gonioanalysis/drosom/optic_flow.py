@@ -5,11 +5,13 @@ Estimating optic flow field
 from math import cos, sin, radians
 
 import numpy as np
+import scipy
 from scipy.spatial import cKDTree as KDTree
 from scipy.stats import mannwhitneyu
 
 import gonioanalysis.coordinates as coordinates
 from gonioanalysis.drosom.analysing import MAnalyser
+from gonioanalysis.version import used_scipy_version
 
 
 def flow_direction(point, xrot=0):
@@ -69,8 +71,10 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colin
 
     kdtree = KDTree(points_B)
     
-
-    distances, indices = kdtree.query(points_A, k=10, n_jobs=-1)
+    if used_scipy_version < (1,6,0):
+        distances, indices = kdtree.query(points_A, k=10, n_jobs=-1)
+    else:
+        distances, indices = kdtree.query(points_A, k=10, workers=-1)
     weights = 1/(np.array(distances)**2)
     
     # Check for any inf
@@ -154,7 +158,10 @@ def field_pvals(points_A, vectors_A, points_B, vectors_B, direction=False, colin
     
     for point, indices_A in zip(un_points_A, un_indices_A):
         # Closest point
-        distance_B, index_B = kdtree.query(point, k=1, n_jobs=-1)
+        if used_scipy_version < (1,6,0):
+            distance_B, index_B = kdtree.query(point, k=1, n_jobs=-1)
+        else:
+            distance_B, index_B = kdtree.query(point, k=1, workers=-1)
         
         Avecs = [vectors_A[i] for i in indices_A]
         Bvecs = [vectors_B[i] for i in un_indices_B[index_B]]

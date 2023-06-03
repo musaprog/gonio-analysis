@@ -39,6 +39,7 @@ REPEAT_COLORS = ['green', 'orange', 'pink']
 DEFAULT_ELEV = 10
 DEFAULT_AZIM = 70
 DEFAULT_FIGSIZE = (16,9)
+DEFAULT_DPI = 100
 
 def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
         mean_repeats=False, mean_imagefolders=False, mean_eyes=False,
@@ -523,7 +524,7 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
             arrow_rotations.append(29)
 
     if ax is None:
-        fig = plt.figure(figsize=DEFAULT_FIGSIZE)
+        fig = plt.figure(figsize=kwargs.pop('figsize', DEFAULT_FIGSIZE), dpi=kwargs.pop('dpi', DEFAULT_DPI))
         ax = fig.add_subplot(111, projection='3d')
     
     vectors = {}

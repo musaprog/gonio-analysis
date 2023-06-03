@@ -33,9 +33,26 @@ analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS, **MULTIANALYSER_CMDS}
 
 
 
-def parse_key_value_pairs(string):
-    return {opt.split('=')[0]: opt.split('=')[1] for opt in string.split(',')}
+def parse_key_value_pairs(string, splitchar=','):
+    return {opt.split('=')[0]: opt.split('=')[1] for opt in string.split(splitchar)}
 
+
+def convert_kwarg(key, value):
+    '''Take good guesses to converte kwargs to right type for analyser_cmds.
+
+    Originally all items are strings.
+    '''
+    if key in ['elev', 'azim', 'dpi']:
+        value = float(value)
+    elif value.lower()  == 'true':
+        value = True
+    elif value.lower() == 'false':
+        value = False
+    elif ',' in value:
+        value = value.split(',')
+        if all([val.replace('.', '', 1).removeprefix('-').isdigit() for val in value]):
+            value = [float(val) for val in value]
+    return value
 
 
 def main(custom_args=None):
@@ -91,7 +108,10 @@ def main(custom_args=None):
     parser.add_argument('-A', '--analysis', nargs=1,
             choices=analyses.keys(),
             help='The performed analysis or action')
-    
+   
+    parser.add_argument('--analysis-options', nargs='+',
+            help='Keyword arguments to the analysis function')
+
     # Other settings
     parser.add_argument('-o', '--output',
             help='Output filename for export analysis options')
@@ -251,7 +271,11 @@ def main(custom_args=None):
         kwargs['wanted_imagefolders'] = wanted_imagefolders
     if args.output:
         kwargs['save_fn'] = args.output
-    
+    if args.analysis_options:
+        for aopts in args.analysis_options:
+            for key, value in parse_key_value_pairs(aopts, splitchar=';;;').items():
+                kwargs[key] = convert_kwarg(key, value)
+
     if function in MULTIANALYSER_CMDS.values():
         for analysers in analyser_groups:
             function(analysers, **kwargs)

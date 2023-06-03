@@ -83,6 +83,8 @@ def main(custom_args=None):
             help='(internal) Launches a tkinter waiting window')
     parser.add_argument('--dont-show', action='store_true',
             help='Skips showing the plots')
+    parser.add_argument('--savefig', action='store_true',
+            help='Saves the matplotlib figure if the analysis it produces')
 
     # Different analyses for separate specimens
 
@@ -255,9 +257,15 @@ def main(custom_args=None):
 
     if args.tk_waiting_window:
         waiting_window.close()
-
-    if not args.dont_show:
-        plt.show()
+    
+    if args.savefig:
+        if args.output:
+            plt.savefig(args.output, transparent=True)
+        else:
+            plt.savefig('figure.png', transparent=True)
+    else:
+        if not args.dont_show:
+            plt.show()
 
 
 if __name__ == "__main__":

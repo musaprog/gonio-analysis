@@ -111,7 +111,11 @@ def main(custom_args=None):
         
         data_directories = args.data_directory
     else:
-        data_directories = input('Data directory >> ')
+        # If all FAnalysers, data directoy not needed
+        if isinstance(args.type, list) and all([t=='flow' for t in args.type]):
+            data_directories = []
+        else:
+            data_directories = input('Data directory >> ')
     
     # Check that the data directory exists
     for directory in data_directories:
@@ -126,9 +130,14 @@ def main(custom_args=None):
     directory_groups = []
     if args.specimens:
         
-        for group in args.specimens:
+        for i_group, group in enumerate(args.specimens):
             print('Using specimens {}'.format(group))
             
+            # For flow analysers give fake folders
+            if isinstance(args.type, list) and args.type[i_group] == 'flow':
+                directory_groups.append( ['none/none'] )
+                continue
+                
             if group == 'none':
                 directory_groups.append(None)
                 continue

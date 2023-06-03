@@ -28,12 +28,56 @@ from roimarker import Marker
 from movemeter import Movemeter
 
 
-class SettingAngleLimits:
+
+class AnalyserBase:
+    '''Common base class for all analysers.
     
+    Features
+    --------
+    - setting vertical and horizontal ange limits
+    - exposing selected attributes as UI options
+
+    Attributes
+    ----------
+    ui_options : dict
+        Info about attributes should be exposed in a user interface. Each item
+        is another dictionary with keys "help" (help string) and "type" (type
+        conversion function such as int).
+    va_limits, ha_limits : list
+        Vertical angle and horizontal angle limits for get_3d_vectors.
+    '''
+
     def __init__(self):
+        self.ui_options = {}
+        
         self.va_limits = [None, None]
         self.ha_limits = [None, None]
         self.alimits_reverse = False
+
+
+    def get_ui_options(self):
+        '''Lists UI options for the analyser: Their values, help and convert.
+        '''
+        dictionary = []
+        for key in self.ui_options:
+            dictionary[key] = {}
+            dictionary[key]['value'] = getattr(self, key, None)
+            dictionary[key]['help'] = self.ui_options[key]['help']
+            dictionary[key]['type'] = self.ui_options[key]['type']
+        
+        return dictionary
+
+    def set_ui_options(self, dictionary):
+        '''
+        '''
+        for key, item in dictionary.items():
+            if key in self.ui_options:
+                convert = self.ui_options[key].get('type', str)
+                setattr(self, key, convert(item))
+            else:
+                valid_keys = list(self.ui_options.keys())
+                raise KeyError(f'Key "{key}" not valid. Valid keys are {valid_keys}')
+            
 
     def set_angle_limits(self, va_limits=(None, None), reverse=False):
         '''
@@ -46,7 +90,7 @@ class SettingAngleLimits:
 
 
 
-class MAnalyser(SettingAngleLimits):
+class MAnalyser(AnalyserBase):
     '''Motion analysis for GonioImsoft data.
 
     Attributes
@@ -133,15 +177,14 @@ class MAnalyser(SettingAngleLimits):
         self.active_analysis = active_analysis
 
         self.stop_now = False
-        self.va_limits = [None, None]
-        self.ha_limits = [None, None]
-        self.alimits_reverse = False
     
         # No data load to affect only this constructor
         self._no_data_load = False
         
         # Info data about available UI options
-        self.ui_options = {}
+        self.ui_options = {
+                'vector_rotation': {'help': 'Vector rotation in the 2D imaging plane', 'type': float}
+                }
     
 
     @property
@@ -1392,32 +1435,7 @@ class MAnalyser(SettingAngleLimits):
                     self.linked_data[dfile.replace('.json', '')] = data
         
 
-    # Exposing ui options
-    def get_ui_options(self):
-        '''Lists UI options for the analyser: Their values, help and convert.
-        '''
-        dictionary = []
-        for key in self.ui_options:
-            dictionary[key] = {}
-            dictionary[key]['value'] = getattr(self, key, None)
-            dictionary[key]['help'] = self.ui_options[key]['help']
-            dictionary[key]['type'] = self.ui_options[key]['type']
-        
-        return dictionary
-
-    def set_ui_options(self, dictionary):
-        '''
-        '''
-        for key, item in dictionary.items():
-            if key in self.ui_options:
-                convert = self.ui_options[key].get('type', str)
-                setattr(self, key, convert(item))
-            else:
-                valid_keys = list(self.ui_options.keys())
-                raise KeyError(f'Key "{key}" not valid. Valid keys are {valid_keys}')
-
-
-class MAverager(SettingAngleLimits):
+class MAverager(AnalyserBase):
     '''
     Combining and averaging results from many MAnalyser objects.
     
@@ -1425,21 +1443,21 @@ class MAverager(SettingAngleLimits):
     but lacks the movement analysis (cross-correlation) related parts.
     '''
     def __init__(self, manalysers):
-        
+        super().__init__()
+
         self.manalysers = manalysers
 
         self.interpolation = {}
-        self.va_limits = [None, None]
-        self.ha_limits = [None, None]
-        self.alimits_reverse = False
 
         self.intp_step = (5, 5)
         
         self.eyes = manalysers[0].eyes
-        self.vector_rotation = None
+        self.vector_rotation = manalysers[0].vector_rotation
 
         self.interpolated_raw= {}
-
+        
+        # Info data about available UI options
+        self.ui_options = manalysers[0].ui_options.copy() 
 
     def get_N_specimens(self):
         return len(self.manalysers)

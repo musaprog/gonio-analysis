@@ -25,6 +25,7 @@ from gonioanalysis.droso import SpecimenGroups
 from gonioanalysis.drosom import linked_data
 from gonioanalysis.drosom import kinematics
 from gonioanalysis.drosom import sinesweep
+from gonioanalysis.drosom import export
 from gonioanalysis.drosom.reports.left_right import left_right_displacements, lrfiles_summarise
 from gonioanalysis.drosom.reports.repeats import mean_repeats, repeat_stds
 from gonioanalysis.drosom.reports.stats import response_magnitudes
@@ -37,7 +38,7 @@ from gonioanalysis.tkgui.widgets import (
         CompareVectormaps,
         ImagefolderMultisel,
         )
-        
+
 
 
 
@@ -324,15 +325,12 @@ class SpecimenCommands(ModifiedMenuMaker):
         self.core.adm_subprocess('current', '--tk_waiting_window -A vectormap_video')
 
     
-    def vectormap_DASH_export_npy(self):
+    def vectormap_DASH_export(self):
         analysername = self.core.analyser.get_specimen_name()
-        fn = tk.filedialog.asksaveasfilename(initialfile=analysername, defaultextension='.npy')
+        fn = tk.filedialog.asksaveasfilename(initialfile=analysername, defaultextension='.npy', filetypes=export.FILETYPES)
         if fn:
-            base = fn.rstrip('.npy')
-            for eye in ['left', 'right']:
-                d3_vectors = self.core.analyser.get_3d_vectors(eye)
-                np.save(base+'_'+eye+'.npy', d3_vectors)
-
+            self.core.adm_subprocess('current', f'-A export_vectormap --output "{fn}"')
+            
     
     def mean_displacement_over_time(self):
         self.core.adm_subprocess('current', '-A magtrace')
@@ -360,6 +358,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 '.',
                 'averaged_vectormap_DASH_interactive_plot', 'averaged_vectormap_DASH_rotating_video',
                 'averaged_vectormap_DASH_rotating_video_DASH_set_title',
+                'averaged_vectormap_DASH_export',
                 '.',
                 'compare_vectormaps',
                 '.',
@@ -433,7 +432,16 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
     def averaged_vectormap_DASH_rotating_video_DASH_set_title(self):
         ask_string('Set title', 'Give video title', lambda title: select_specimens(self.core, lambda specimens: self.core.adm_subprocess(specimens, '--tk_waiting_window --average --short-name {} -A vectormap_video'.format(title)), with_movements=True)) 
+ 
+
+    def averaged_vectormap_DASH_export(self):
+        def target(specimens):
+            fn = tk.filedialog.asksaveasfilename(initialfile='average', defaultextension='.npy')
+            if fn:
+                self.core.adm_subprocess(specimens, f'--average -A export_vectormap --output {fn}')
+        select_specimens(self.core, target)
         
+
 
     def compare_vectormaps(self):
         popup(self.tk_root, CompareVectormaps, args=[self.core],

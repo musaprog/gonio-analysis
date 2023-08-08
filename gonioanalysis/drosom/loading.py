@@ -19,6 +19,7 @@ from gonioanalysis.rotary_encoders import to_degrees
 
 REPETITION_INDICATOR  = 'rep'
 POSITION_INDICATOR = 'pos'
+CAMERA_INDICATOR = '_cam{}'
 
 IMAGE_NAME_EXTENSIONS = ('.tiff', '.tif')
 
@@ -124,26 +125,31 @@ def angles_from_fn(fn, prefix='pos'):
 
 
 def load_data(drosom_folder):
-    '''
-    Loads DrosoM imaging data from the following save structure
+    '''Loads GonioImsoft imaging data filenames into a dictionary.
 
-    DrosoM2
-        pos(0, 0)
-            .tif files
-        pos(20, 20)
-            .tif files
-        pos(0, 10)
-            .tif files
-        ...
+    The data has to be saved according to the folder hierarchy:
 
-    in a dictionary where the keys are str((horizontal, pitch)) and the items are
-    a list of image stacks:
-        
-        stacks_dictionary = {"(hor1, pitch1): [[stack_rep1], [stack_rep2], ...]"},
-        
-        where stack_rep1 = [image1_fn, image2_fn, ...].
+        LEVEL   Content             Examples
+        1       specimen_folder     "DrosoM2"
+        2       image_folder        "pos(0, 0)" "pos(20, 20)") "pos(0, 10)_somesuffixhere"
+        3       image files         "im_pos(0, 0)_rep0_stack.tiff", "im_pos(0, 0)_rep0_cam2_stack.tiff"
+
+    Arguments
+    ---------
+    drosom_folder : string
+        Path to the specimen folder that contains the image folders.
     
-    Horizontal and pitch are given in rotatry encoder steps, not degrees.
+    Returns
+    -------
+    stacks_dictionary : dict
+        Contains the str((horizontal, pitch)) as keys and a list of image stacks
+        as values.
+        
+            stacks_dictionary = {"(hor1, pitch1): [[stack_rep1], [stack_rep2], ...]"},
+            where stack_rep1 = [image1_fn, image2_fn, ...].
+    
+        Notice 1: The horizontal and pitch angles in the keys are in
+        rotary encoder steps (not degrees).
     
     '''
     
@@ -166,27 +172,39 @@ def load_data(drosom_folder):
             # Skip if no images in the folder
             continue
 
-        tiff_files = arange_fns(tiff_files)
+        # Detect if many cameras have been used ("_cam{i}_" in any image filenames)      
+        cameras = {}
+        for i_camera in range(10):
+            indicator = CAMERA_INDICATOR.format(i_camera)
+            matching = [fn for fn in tiff_files if indicator in fn]
+            if matching:
+                cameras[f'_cam{i_camera}'] = matching
 
-        stacks_dictionary[str_angles] = []
+        if not cameras:
+            cameras = {'': tiff_files}
 
-        # Subdivide into repetitions
-        for tiff in tiff_files:
-            try:
-                i_repetition = int(tiff[tiff.index(REPETITION_INDICATOR)+len(REPETITION_INDICATOR):].split('_')[0])
-            except ValueError:
-                print('Warning: Cannot determine i_repetition for {}'.format(tiff))
-                i_repetition = 0
-
-            while i_repetition >= len(stacks_dictionary[str_angles]):
-                stacks_dictionary[str_angles].append([])
-            
-
-                        
-            stacks_dictionary[str_angles][i_repetition].append(os.path.join(drosom_folder, folder, tiff))
         
-        # Remove empty lists, if one repetition index or more is missing from the data
-        stacks_dictionary[str_angles] = [alist for alist in stacks_dictionary[str_angles] if not alist == []]
+        for camera, images in cameras.items():
+
+            cameras_images = arange_fns(images)
+            key = str_angles + camera
+            stacks_dictionary[key] = []
+
+            # Subdivide into repetitions
+            for tiff in cameras_images:
+                try:
+                    i_repetition = int(tiff[tiff.index(REPETITION_INDICATOR)+len(REPETITION_INDICATOR):].split('_')[0])
+                except ValueError:
+                    print('Warning: Cannot determine i_repetition for {}'.format(tiff))
+                    i_repetition = 0
+
+                while i_repetition >= len(stacks_dictionary[str_angles+camera]):
+                    stacks_dictionary[key].append([])
+                
+                stacks_dictionary[key][i_repetition].append(os.path.join(drosom_folder, folder, tiff))
+            
+            # Remove empty lists, if one repetition index or more is missing from the data
+            stacks_dictionary[key] = [alist for alist in stacks_dictionary[key] if not alist == []]
 
     return stacks_dictionary
 

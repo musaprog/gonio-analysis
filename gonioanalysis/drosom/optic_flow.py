@@ -5,11 +5,13 @@ Estimating optic flow field
 from math import cos, sin, radians
 
 import numpy as np
+import scipy
 from scipy.spatial import cKDTree as KDTree
 from scipy.stats import mannwhitneyu
 
 import gonioanalysis.coordinates as coordinates
 from gonioanalysis.drosom.analysing import MAnalyser
+from gonioanalysis.version import used_scipy_version
 
 
 def flow_direction(point, xrot=0):
@@ -69,8 +71,10 @@ def field_error(points_A, vectors_A, points_B, vectors_B, direction=False, colin
 
     kdtree = KDTree(points_B)
     
-
-    distances, indices = kdtree.query(points_A, k=10, n_jobs=-1)
+    if used_scipy_version < (1,6,0):
+        distances, indices = kdtree.query(points_A, k=10, n_jobs=-1)
+    else:
+        distances, indices = kdtree.query(points_A, k=10, workers=-1)
     weights = 1/(np.array(distances)**2)
     
     # Check for any inf
@@ -154,7 +158,10 @@ def field_pvals(points_A, vectors_A, points_B, vectors_B, direction=False, colin
     
     for point, indices_A in zip(un_points_A, un_indices_A):
         # Closest point
-        distance_B, index_B = kdtree.query(point, k=1, n_jobs=-1)
+        if used_scipy_version < (1,6,0):
+            distance_B, index_B = kdtree.query(point, k=1, n_jobs=-1)
+        else:
+            distance_B, index_B = kdtree.query(point, k=1, workers=-1)
         
         Avecs = [vectors_A[i] for i in indices_A]
         Bvecs = [vectors_B[i] for i in un_indices_B[index_B]]
@@ -188,7 +195,7 @@ class FAnalyser(MAnalyser):
         self.folder = 'optic_flow'
         self.eyes = ['left', 'right']
         self.vector_rotation = 0
-
+        
 
         # FAnalyser specific
         self.pitch_rot = 0
@@ -198,6 +205,14 @@ class FAnalyser(MAnalyser):
                 'left': coordinates.optimal_sampling(np.arange(-60, 0, 5), np.arange(-100, 100, 5))}
         
         self.constant_points = False
+        
+
+        self.ui_options = {
+                'pitch_rot': {'help': 'Pitch rotation', 'type': float},
+                'roll_rot': {'help': 'Roll rotation', 'type': float},
+                'yaw_rot': {'help': 'Yaw rotation', 'type': float},
+                }
+
 
     def get_3d_vectors(self, eye, constant_points=None, *args, **kwargs):
         '''
@@ -237,7 +252,7 @@ class FAnalyser(MAnalyser):
             points = [points[i] for i in indices]
             vectors = [vectors[i] for i in indices]
         
-        return points, vectors
+        return np.array(points), np.array(vectors)
 
     
     def is_measured(self, *args, **kwargs):
@@ -248,4 +263,5 @@ class FAnalyser(MAnalyser):
 
     def load_analysed_movements(self, *args, **kwargs):
         return None
+
 

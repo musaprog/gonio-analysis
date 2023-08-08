@@ -23,6 +23,8 @@ from gonioanalysis.coordinates import (
         rotate_points
         )
 from gonioanalysis.directories import ANALYSES_SAVEDIR
+from gonioanalysis.version import used_scipy_version
+
 
 CURRENT_ARROW_LENGTH = 1
 
@@ -46,9 +48,19 @@ class Arrow3D(FancyArrowPatch):
 
     def draw(self, renderer):
         xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
         self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
         FancyArrowPatch.draw(self, renderer)
+
+    def do_3d_projection(self, renderer=None):
+        '''Fix for newer matplotlib versions.
+        See https://github.com/matplotlib/matplotlib/issues/21688
+        '''
+        xs3d, ys3d, zs3d = self._verts3d
+        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
+        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+
+        return np.min(zs)
 
 
 def add_line(ax, x0, y0, z0, x1, y1, z1, camerapos=None, **kwargs):
@@ -413,8 +425,8 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
 
 
 
-    if not camerapos:
-        camerapos = (ax.elev, ax.azim)
+    #if not camerapos:
+    #    camerapos = (ax.elev, ax.azim)
  
     if guidance:
         plot_guidance(ax, camerapos=camerapos, hide_text=hide_text)
@@ -547,9 +559,12 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
         
         errs = np.empty_like(x)
         positions = [[x.flat[i], y.flat[i], z.flat[i]] for i in range(x.size)]
-
-        distances, i_points = kdtree.query( positions, n_jobs=-1 )
         
+        if used_scipy_version < (1,6,0):
+            distances, i_points = kdtree.query( positions, n_jobs=-1 )
+        else:
+            distances, i_points = kdtree.query( positions, workers=-1 )
+
         for i in range(errs.size):
             if distances[i] < intp_dist:
                 errs.flat[i] = values[i_points[i]]

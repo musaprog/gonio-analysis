@@ -128,7 +128,7 @@ class RecordingPlotter:
             self.slider_ax = fig.add_axes([0.2, 0.01, 0.6, 0.05])
         
         # Get a list of image filenames and how many
-        image_fns = self.core.analyser.list_images(self.selected_recording)
+        image_fns = self.core.analyser.list_images(self.selected_recording, absolute_path=True)
         self.N_repeats = len(image_fns)
 
         if self.i_repeat:
@@ -136,8 +136,7 @@ class RecordingPlotter:
         else:
             i_frame = 0
         
-        image_fn = os.path.join(self.core.analyser.get_specimen_directory(), self.selected_recording, image_fns[i_frame])
-        
+        image_fn = image_fns[i_frame]
         self.image = tifffile.TiffFile(image_fn).asarray(key=0)
 
         try:

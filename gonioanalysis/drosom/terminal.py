@@ -1,36 +1,26 @@
 #!/usr/bin/env python3
+'''Command line interface for GonioAnalysis motion measurement.
 '''
-Analyse Gonio Imsoft data and output the results.
-'''
+
 import sys
 import os
-import datetime
 import argparse
 
-import numpy as np
 import matplotlib.pyplot as plt
 
-from gonioanalysis.drosom import analyser_commands
 from gonioanalysis.drosom.analyser_commands import (
         ANALYSER_CMDS,
         DUALANALYSER_CMDS,
         MULTIANALYSER_CMDS,
         )
-from gonioanalysis.directories import ANALYSES_SAVEDIR, PROCESSING_TEMPDIR_BIGFILES
 from gonioanalysis.droso import DrosoSelect
-from gonioanalysis.antenna_level import AntennaLevelFinder
+# Import analysers
 from gonioanalysis.drosom.analysing import MAnalyser, MAverager
 from gonioanalysis.drosom.orientation_analysis import OAnalyser
 from gonioanalysis.drosom.optic_flow import FAnalyser
 from gonioanalysis.drosom.transmittance_analysis import TAnalyser
-from gonioanalysis.drosom import plotting
-from gonioanalysis.drosom.plotting.plotter import MPlotter
-from gonioanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
-from gonioanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
-from gonioanalysis.drosom.special.paired import cli_group_and_compare
-import gonioanalysis.drosom.reports as reports
 
-
+# Avoid importing tkinter bits if not needed
 if '--tk_waiting_window' in sys.argv:
     from gonioanalysis.tkgui.widgets import WaitingWindow
 
@@ -42,55 +32,29 @@ Analysers = {'orientation': OAnalyser, 'motion': MAnalyser, 'flow': FAnalyser,
 analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS, **MULTIANALYSER_CMDS}
 
 
-def roimovement_video(analyser):
+
+def parse_key_value_pairs(string, splitchar=','):
+    return {opt.split('=')[0]: opt.split('=')[1] for opt in string.split(splitchar)}
+
+
+def convert_kwarg(key, value):
+    '''Take good guesses to converte kwargs to right type for analyser_cmds.
+
+    Originally all items are strings.
     '''
-    Create a video where the imaging data is played and the analysed ROI is moved on the
-    image, tracking the moving feature.
-
-    Good for confirming visually that the movment analysis works.
-    '''
-
-    print(analyser.getFolderName())
-    images, ROIs, angles = analyser.get_time_ordered()
-    
-    workdir = os.path.join(PROCESSING_TEMPDIR_BIGFILES, 'movie_{}'.format(str(datetime.datetime.now())))
-    os.makedirs(workdir, exist_ok=True)
-
-    newnames = [os.path.join(workdir, '{:>0}.jpg'.format(i)) for i in range(len(images))]
-    
-
-    adj = ROIAdjuster()
-    newnames = adj.writeAdjusted(images, ROIs, newnames, extend_factor=3, binning=1)
-    
-    enc = Encoder()
-    fps = 25
-    enc.encode(newnames, os.path.join(ANALYSES_SAVEDIR, 'movies','{}_{}fps.mp4'.format(analyser.getFolderName(), fps)), fps)
- 
-    for image in newnames:
-        os.remove(image)
-    try:
-        os.rmdir(workdir)
-    except OSError:
-        print("Temporal directory {} left behind because it's not empty".format(workdir))
-       
-
-   
-def export_optic_flow():
-    '''
-    Exports the optic flow vectors.
-    '''
-    import json
-    from gonioanalysis.coordinates import optimal_sampling
-    from gonioanalysis.drosom.optic_flow import flow_vectors
-    points = optimal_sampling(np.arange(-90, 90, 5), np.arange(-180, 180, 5))
-    vectors = flow_vectors(points)
-    
-    with open('optic_flow_vectors.json', 'w') as fp:
-        json.dump({'points': np.array(points).tolist(), 'vectors': np.array(vectors).tolist()}, fp)
-            
+    if key in ['elev', 'azim', 'dpi']:
+        value = float(value)
+    elif value.lower()  == 'true':
+        value = True
+    elif value.lower() == 'false':
+        value = False
+    elif ',' in value:
+        value = value.split(',')
+        if all([val.replace('.', '', 1).removeprefix('-').isdigit() for val in value]):
+            value = [float(val) for val in value]
+    return value
 
 
-         
 def main(custom_args=None):
     
     if custom_args is None:
@@ -98,8 +62,7 @@ def main(custom_args=None):
     
     parser = argparse.ArgumentParser(description=__doc__)
     
-    
-    # DATA ARGUMENTS
+    # DATA INPUT ARGUMENTS
     parser.add_argument('-D', '--data_directory', nargs='+',
             help='Data directory')
 
@@ -112,53 +75,54 @@ def main(custom_args=None):
                 ' semicolons, use colons (:) to separate specimens'))
     
 
-    # Analyser settings
+    # SETTINGS OR ACTIONS FOR ANALYSERS
     parser.add_argument('-a', '--average', action='store_true',
             help='Average and interpolate the results over the specimens')
     
-    parser.add_argument('--short-name', nargs=1,
-            help='Short name to set if --average is set')
-
     parser.add_argument('-t', '--type', nargs='+',
             help='Analyser type, either "motion" or "orientation". Space separate gor groups')
-    
+   
+    parser.add_argument(
+            '--analyser-options', nargs='+',
+            help='Extra arguments to ui options. Space separate for groups')
+
     parser.add_argument('-r', '--reselect-rois', action='store_true',
             help='Reselect ROIs')
  
     parser.add_argument('-R', '--recalculate-movements', action='store_true',
             help='Recalculate with Movemeter')
 
-    parser.add_argument('--reverse-directions', action='store_true',
-            help='Reverse movement directions')
-
     parser.add_argument('--active-analysis', nargs='?', default='',
-            help='Name of the analysis')
+            help="Name of the analyser's active analysis (nothing to do with the --analysis/-A option)")
 
-    # Other settings
+    # OTHER SETTINGS
     parser.add_argument('--tk_waiting_window', action='store_true',
             help='(internal) Launches a tkinter waiting window')
     parser.add_argument('--dont-show', action='store_true',
             help='Skips showing the plots')
-    parser.add_argument('--worker-info', nargs=2,
-            help='Worker id and total number of parallel workers. Only 3D video plotting now')
+    parser.add_argument('--savefig', action='store_true',
+            help='Saves the matplotlib figure if the analysis it produces')
 
     # Different analyses for separate specimens
 
     parser.add_argument('-A', '--analysis', nargs=1,
             choices=analyses.keys(),
-            help='Analysis method or action. Allowed analyses are '+', '.join(analyses.keys()))
+            help='The performed analysis or action')
+   
+    parser.add_argument('--analysis-options', nargs='+',
+            help='Keyword arguments to the analysis function')
+
+    # Other settings
+    parser.add_argument('-o', '--output',
+            help='Output filename for export analysis options')
+
 
     args = parser.parse_args(custom_args)
     
 
-
-
     if args.tk_waiting_window:
         waiting_window = WaitingWindow('terminal.py', 'When ready, this window closes.')
 
-    if args.worker_info:
-        analyser_commands.I_WORKER = int(args.worker_info[0])
-        analyser_commands.N_WORKERS = int(args.worker_info[1])
 
     # Getting the data directory
     # --------------------------
@@ -167,7 +131,11 @@ def main(custom_args=None):
         
         data_directories = args.data_directory
     else:
-        data_directories = input('Data directory >> ')
+        # If all FAnalysers, data directoy not needed
+        if isinstance(args.type, list) and all([t=='flow' for t in args.type]):
+            data_directories = []
+        else:
+            data_directories = input('Data directory >> ')
     
     # Check that the data directory exists
     for directory in data_directories:
@@ -182,9 +150,14 @@ def main(custom_args=None):
     directory_groups = []
     if args.specimens:
         
-        for group in args.specimens:
+        for i_group, group in enumerate(args.specimens):
             print('Using specimens {}'.format(group))
             
+            # For flow analysers give fake folders
+            if isinstance(args.type, list) and args.type[i_group] == 'flow':
+                directory_groups.append( ['none/none'] )
+                continue
+                
             if group == 'none':
                 directory_groups.append(None)
                 continue
@@ -233,7 +206,7 @@ def main(custom_args=None):
         Analyser = Analysers[args.type[i_group]]
         
         print('Using {}'.format(Analyser.__name__))
-        
+
         if directories is None:
             analysers.append(Analyser(None, None))
         else:
@@ -247,7 +220,18 @@ def main(custom_args=None):
                     analyser.active_analysis = args.active_analysis
                 
                 analysers.append(analyser)
- 
+         
+        if args.analyser_options:
+            print(f'  Setting options {args.analyser_options[i_group]}')
+            for analyser in analysers:
+                # Special empty ones to sign that for analysers in i_group
+                # we don't want to set any options
+                if args.analyser_options[i_group].lower() in ['na', 'none']:
+                    continue
+                # Parse analyser options
+                opts = parse_key_value_pairs(args.analyser_options[i_group]) 
+                analyser.set_ui_options(opts)
+
         # Ask ROIs if not selected
         for analyser in analysers:
             if analyser.are_rois_selected() == False or args.reselect_rois:
@@ -261,12 +245,6 @@ def main(custom_args=None):
             analyser.load_analysed_movements()
         
         
-        if args.reverse_directions:
-            for analyser in analysers:
-                analyser.receptive_fields = True
-        
-       
-
         if args.average:
             
             if len(analysers) >= 2:
@@ -274,9 +252,6 @@ def main(custom_args=None):
                 avg_analyser = MAverager(analysers)
                 avg_analyser.setInterpolationSteps(5,5)
                 
-                if args.short_name:
-                    avg_analyser.set_short_name(args.short_name[0])
-                           
                 analysers = avg_analyser
             else:
                 analysers = analysers[0]
@@ -294,7 +269,13 @@ def main(custom_args=None):
     kwargs = {}
     if wanted_imagefolders:
         kwargs['wanted_imagefolders'] = wanted_imagefolders
-    
+    if args.output:
+        kwargs['save_fn'] = args.output
+    if args.analysis_options:
+        for aopts in args.analysis_options:
+            for key, value in parse_key_value_pairs(aopts, splitchar=';;;').items():
+                kwargs[key] = convert_kwarg(key, value)
+
     if function in MULTIANALYSER_CMDS.values():
         for analysers in analyser_groups:
             function(analysers, **kwargs)
@@ -309,9 +290,15 @@ def main(custom_args=None):
 
     if args.tk_waiting_window:
         waiting_window.close()
-
-    if not args.dont_show:
-        plt.show()
+    
+    if args.savefig:
+        if args.output:
+            plt.savefig(args.output, transparent=True)
+        else:
+            plt.savefig('figure.png', transparent=True)
+    else:
+        if not args.dont_show:
+            plt.show()
 
 
 if __name__ == "__main__":

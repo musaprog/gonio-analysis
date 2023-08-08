@@ -59,7 +59,7 @@ class OAnalyser(MAnalyser):
                 rois.append(extended_roi)
 
         fig, ax = plt.subplots(num='Draw arrows for the {} eye'.format(eye))
-        marker = Marker(fig, ax, images, self.MOVEMENTS_SAVEFN.format(eye),
+        marker = Marker(fig, ax, images, self._movements_savefn.format(eye),
                 relative_fns_from=os.path.join(self.data_path, self.folder),
                 drop_imagefn=True,
                 selection_type='arrow',
@@ -76,7 +76,7 @@ class OAnalyser(MAnalyser):
         Edits Marker output to be Movemeter like output.
         '''
 
-        with open(self.MOVEMENTS_SAVEFN.format(eye), 'r') as fp:
+        with open(self._movements_savefn.format(eye), 'r') as fp:
             marker_data = json.load(fp)
 
         edited_data = {}
@@ -95,13 +95,13 @@ class OAnalyser(MAnalyser):
                 edited_data[image_folder[3:]] = repeats
        
 
-        with open(self.MOVEMENTS_SAVEFN.format(eye), 'w') as fp:
+        with open(self._movements_savefn.format(eye), 'w') as fp:
             json.dump(edited_data, fp)
 
    
     
     def is_measured(self):
-        fns = [self.MOVEMENTS_SAVEFN.format(eye) for eye in self.eyes]
+        fns = [self._movements_savefn.format(eye) for eye in self.eyes]
         return all([os.path.exists(fn) for fn in fns])
 
 

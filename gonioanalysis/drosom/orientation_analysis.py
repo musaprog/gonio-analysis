@@ -86,9 +86,14 @@ class OAnalyser(MAnalyser):
             repeats = []
 
             for arrow in arrows:
-                x1, y1, x2, y2 = arrow 
-                
-                repeats.append( {'x': [0, x1-x2], 'y': [0, y1-y2]} )
+
+                if len(arrow) == 2:
+                    # Already edited, arrow is a dict we earlier made below
+                    repeats.append( arrow )
+                else:
+                    # Needs hotediting
+                    x1, y1, x2, y2 = arrow
+                    repeats.append( {'x': [0, x1-x2], 'y': [0, y1-y2]} )
 
             # drop pos prefix [3:]
             if repeats != []:

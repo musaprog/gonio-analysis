@@ -23,7 +23,7 @@ class TAnalyser(MAnalyser):
 
         super().__init__(*args, **kwargs)
         
-        self._real_movements_savefn = self.MOVEMENTS_SAVEFN
+        self._real_movements_savefn = self._movements_savefn
 
         self._movements_skelefn = self._movements_skelefn.replace('movements_', 'transmittance_')
         self.active_analysis = ''
@@ -94,11 +94,11 @@ class TAnalyser(MAnalyser):
         self.movements[eye] = intensities
 
         # Save movements
-        with open(self.MOVEMENTS_SAVEFN.format(eye), 'w') as fp:
+        with open(self._movements_savefn.format(eye), 'w') as fp:
             json.dump(intensities, fp)
 
 
     def is_measured(self):
-        fns = [self.MOVEMENTS_SAVEFN.format(eye) for eye in self.eyes]
+        fns = [self._movements_savefn.format(eye) for eye in self.eyes]
         return all([os.path.exists(fn) for fn in fns])
 

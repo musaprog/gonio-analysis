@@ -678,8 +678,11 @@ class MAnalyser(AnalyserBase):
             pos = pos[3:]
 
             if '_cam' in image_fn:
-                i_camera = int(image_fn[image_fn.index('_cam') + 4])
-                pos += f'_cam{i_camera}'
+                # Allows cameras 0-9
+                try:
+                    i_camera = int(image_fn[image_fn.index('_cam') + 4])
+                    pos += f'_cam{i_camera}'
+                except: pass
 
             # ROI belonging to the eft/right eye is determined solely by
             # the horizontal angle when only 1 ROI exists for the position

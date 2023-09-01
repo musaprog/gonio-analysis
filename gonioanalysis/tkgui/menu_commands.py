@@ -7,6 +7,7 @@ In the beginning of the module, there are some needed functions.
 
 
 import os
+import subprocess
 
 import numpy as np
 import tkinter as tk
@@ -165,7 +166,9 @@ class ImageFolderCommands(ModifiedMenuMaker):
                 '.',
                 'max_of_the_mean_response',
                 'half_rise_time',
-                'latency']
+                'latency',
+                '.',
+                'open_in_ImageJ']
 
     def max_of_the_mean_response(self):
         
@@ -199,7 +202,14 @@ class ImageFolderCommands(ModifiedMenuMaker):
 
     def measure_movement_DASH_in_absolute_coordinates(self):
         self.measure_movement(absolute_coordinates=True)
+    
 
+    def open_in_ImageJ(self):
+        '''Opens the currently selected image folder in ImageJ
+        '''
+        folder = self.core.selected_recording
+        fns = self.core.analyser.list_images(folder, absolute_path=True)
+        subprocess.Popen(['imagej', *fns,])
 
 
 class SpecimenCommands(ModifiedMenuMaker):

@@ -151,7 +151,7 @@ def latency(manalyser, image_folder, threshold=0.05, method='sigmoidal'):
 
 
 
-def _sigmoidal_fit(displacements, fs, debug=True):
+def _sigmoidal_fit(displacements, fs, debug=False):
     amplitudes = []
     speeds = []
     latencies = []
@@ -237,8 +237,13 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
     
     for i_repeat, displacement in enumerate(displacements):
         
-        amplitude, speed, halfrisetime = sigmoidal_fit([displacement], fs)
-       
+        amplitude, speed, halfrise_time = _sigmoidal_fit([displacement], fs)
+        
+        if not amplitude or not speed or not halfrise_time:
+            print(f'Fit failed for repeat={i_repeat}. Data likely not sigmoidal.')
+            continue
+
+
         speeds.append(speed[0])
         amplitudes.append(amplitude[0])
         halfrise_times.append(halfrise_time[0])

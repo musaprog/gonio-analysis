@@ -52,6 +52,14 @@ pip install gonio-analysis
 This should install all the required dependencies. On Windows, OpenCV may require
 [Visual C++ Runtime 2015](https://www.microsoft.com/download/details.aspx?id=48145) to be installed.
 
+Some Linux distributions have separated tkinter (Python interface to the Tcl/Tk GUI toolkit) and pillow's
+ImageTk module their own packages that are not installed by default. Please make sure to have them installed.
+
+```
+# Example on Debian/Ubuntu/Mint/...
+sudo apt install python3-tk python3-pil.imagetk
+```
+
 
 Launch the program by
 ```

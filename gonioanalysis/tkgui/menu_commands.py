@@ -350,7 +350,9 @@ class SpecimenCommands(ModifiedMenuMaker):
         results_string = ''
         for image_folder in self.core.analyser.list_imagefolders():
             result = kinematics.sigmoidal_fit(self.core.analyser, image_folder)[2]
-            results_string += '{}   {}'.format(image_folder, np.mean(result))
+            if result is not None:
+                result = np.mean(result)
+            results_string += '{}   {}\n'.format(image_folder, result)
         
 
         prompt_result(self.tk_root, results_string)

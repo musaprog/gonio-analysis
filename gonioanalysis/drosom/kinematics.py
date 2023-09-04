@@ -215,8 +215,10 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
     figure_savefn : string
         If given, saves a figure of the fit
 
-    Returns the following lists
-        amplitudes, speeds, halfrise_times
+    Returns
+    -------
+    amplitudes, speeds, halfrise_times : list or None
+        All Nones if image_folder has not movements
     '''
 
     if figure_savefn is not None:
@@ -230,6 +232,10 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
     pcovs = []
     
     displacements = manalyser.get_displacements_from_folder(image_folder)
+    if not displacements:
+        # Probably movements not measured
+        return None, None, None
+
     fs = manalyser.get_imaging_frequency(image_folder)
 
     timepoints = np.linspace(0, len(displacements[0])/fs, len(displacements[0]))

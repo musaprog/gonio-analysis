@@ -584,18 +584,37 @@ class MAnalyser(AnalyserBase):
         return None
 
     
-    def get_imaging_frequency(self, image_folder):
+    def get_imaging_frequency(self, image_folder, fallback_value=100.):
         '''
         Return imaging frequency (how many images per second) for an image folder
         by searching for frame_length field in the descriptions file.
 
-        Returns None if the imaging frequency could not be determined.
+        Arguments
+        ---------
+        image_folder : string or None
+            Name. If None (not recommended), returns the imaging frequency from
+            any image folder that is available (~random).
+        fallback_value : float or None
+            What to return if fs cannot be determined.
+
+        Returns
+        -------
+        fs : float
+            The imaging frequency. Default of 100 HzNone if the imaging frequency could not be determined.
         '''
-        fs = self.get_imaging_parameters(image_folder).get('frame_length', None)
+        if image_folder is None:
+            folders = self.list_imagefolders()
+        else:
+            folders = [image_folder]
         
+        for folder in folders:
+            fs = self.get_imaging_parameters(folder).get('frame_length', None)
+            if fs is not None:
+                break
+
         if fs is None:
             # FIXME
-            return 100. # Better fallback value than None?
+            return fallback_value
         else:
             return 1/float(fs)
     

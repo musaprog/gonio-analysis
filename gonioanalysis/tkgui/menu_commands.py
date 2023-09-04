@@ -175,17 +175,17 @@ class ImageFolderCommands(ModifiedMenuMaker):
     def max_of_the_mean_response(self):
         
         result = kinematics.mean_max_response(self.core.analyser, self.core.selected_recording)
-        prompt_result(self.tk_root, result)
+        prompt_result(self.tk_root, result, 'Max of the mean (pixels)')
     
 
     def half_rise_time(self):
         result = kinematics.sigmoidal_fit(self.core.analyser, self.core.selected_recording)[2]
-        prompt_result(self.tk_root, str(np.mean(result)))
+        prompt_result(self.tk_root, str(np.mean(result)), 'Half-rise time (s)')
    
 
     def latency(self):
         result = kinematics.latency(self.core.analyser, self.core.selected_recording)
-        prompt_result(self.tk_root, str(np.mean(result)))
+        prompt_result(self.tk_root, str(np.mean(result)), 'Latency (s)')
 
 
     def select_ROIs(self):
@@ -357,7 +357,7 @@ class SpecimenCommands(ModifiedMenuMaker):
             results_string += '{}   {}\n'.format(image_folder, result)
         
 
-        prompt_result(self.tk_root, results_string)
+        prompt_result(self.tk_root, results_string, 'Mean latency (s)')
 
 
 class ManySpecimenCommands(ModifiedMenuMaker):

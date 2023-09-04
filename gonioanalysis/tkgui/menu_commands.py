@@ -343,7 +343,7 @@ class SpecimenCommands(ModifiedMenuMaker):
             
     
     def mean_displacement_over_time(self):
-        self.core.adm_subprocess('current', '-A magtrace')
+        self.core.adm_subprocess('current', '-A magtrace --analysis-options mean_repeats=True milliseconds=True mean_imagefolders=True')
 
 
     def mean_latency_by_sigmoidal_fit(self):

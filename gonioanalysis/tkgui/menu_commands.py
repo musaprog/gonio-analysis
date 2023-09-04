@@ -59,7 +59,9 @@ def prompt_result(tk_root, string, title='Message'):
     tk_root.clipboard_clear()
     tk_root.clipboard_append(string)
 
-    messagebox.showinfo(title=title, message=string)
+    messagebox.showinfo(
+            title=title,
+            message=f'Following has been copied to your clipboard:\n\n{string}')
 
 
 

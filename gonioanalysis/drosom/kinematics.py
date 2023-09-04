@@ -151,7 +151,7 @@ def latency(manalyser, image_folder, threshold=0.05, method='sigmoidal'):
 
 
 
-def _sigmoidal_fit(displacements, fs, debug=True):
+def _sigmoidal_fit(displacements, fs, debug=False):
     amplitudes = []
     speeds = []
     latencies = []
@@ -215,8 +215,10 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
     figure_savefn : string
         If given, saves a figure of the fit
 
-    Returns the following lists
-        amplitudes, speeds, halfrise_times
+    Returns
+    -------
+    amplitudes, speeds, halfrise_times : list or None
+        All Nones if image_folder has not movements
     '''
 
     if figure_savefn is not None:
@@ -230,6 +232,10 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
     pcovs = []
     
     displacements = manalyser.get_displacements_from_folder(image_folder)
+    if not displacements:
+        # Probably movements not measured
+        return None, None, None
+
     fs = manalyser.get_imaging_frequency(image_folder)
 
     timepoints = np.linspace(0, len(displacements[0])/fs, len(displacements[0]))
@@ -237,8 +243,13 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
     
     for i_repeat, displacement in enumerate(displacements):
         
-        amplitude, speed, halfrisetime = sigmoidal_fit([displacement], fs)
-       
+        amplitude, speed, halfrise_time = _sigmoidal_fit([displacement], fs)
+        
+        if not amplitude or not speed or not halfrise_time:
+            print(f'Fit failed for repeat={i_repeat}. Data likely not sigmoidal.')
+            continue
+
+
         speeds.append(speed[0])
         amplitudes.append(amplitude[0])
         halfrise_times.append(halfrise_time[0])

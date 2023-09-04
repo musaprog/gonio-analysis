@@ -7,6 +7,7 @@ In the beginning of the module, there are some needed functions.
 
 
 import os
+import subprocess
 
 import numpy as np
 import tkinter as tk
@@ -58,7 +59,9 @@ def prompt_result(tk_root, string, title='Message'):
     tk_root.clipboard_clear()
     tk_root.clipboard_append(string)
 
-    messagebox.showinfo(title=title, message=string)
+    messagebox.showinfo(
+            title=title,
+            message=f'Following has been copied to your clipboard:\n\n{string}')
 
 
 
@@ -165,22 +168,24 @@ class ImageFolderCommands(ModifiedMenuMaker):
                 '.',
                 'max_of_the_mean_response',
                 'half_rise_time',
-                'latency']
+                'latency',
+                '.',
+                'open_in_ImageJ']
 
     def max_of_the_mean_response(self):
         
         result = kinematics.mean_max_response(self.core.analyser, self.core.selected_recording)
-        prompt_result(self.tk_root, result)
+        prompt_result(self.tk_root, result, 'Max of the mean (pixels)')
     
 
     def half_rise_time(self):
         result = kinematics.sigmoidal_fit(self.core.analyser, self.core.selected_recording)[2]
-        prompt_result(self.tk_root, str(np.mean(result)))
+        prompt_result(self.tk_root, str(np.mean(result)), 'Half-rise time (s)')
    
 
     def latency(self):
         result = kinematics.latency(self.core.analyser, self.core.selected_recording)
-        prompt_result(self.tk_root, str(np.mean(result)))
+        prompt_result(self.tk_root, str(np.mean(result)), 'Latency (s)')
 
 
     def select_ROIs(self):
@@ -199,7 +204,14 @@ class ImageFolderCommands(ModifiedMenuMaker):
 
     def measure_movement_DASH_in_absolute_coordinates(self):
         self.measure_movement(absolute_coordinates=True)
+    
 
+    def open_in_ImageJ(self):
+        '''Opens the currently selected image folder in ImageJ
+        '''
+        folder = self.core.selected_recording
+        fns = self.core.analyser.list_images(folder, absolute_path=True)
+        subprocess.Popen(['imagej', *fns,])
 
 
 class SpecimenCommands(ModifiedMenuMaker):
@@ -333,17 +345,19 @@ class SpecimenCommands(ModifiedMenuMaker):
             
     
     def mean_displacement_over_time(self):
-        self.core.adm_subprocess('current', '-A magtrace')
+        self.core.adm_subprocess('current', '-A magtrace --analysis-options mean_repeats=True milliseconds=True mean_imagefolders=True')
 
 
     def mean_latency_by_sigmoidal_fit(self):
         results_string = ''
         for image_folder in self.core.analyser.list_imagefolders():
             result = kinematics.sigmoidal_fit(self.core.analyser, image_folder)[2]
-            results_string += '{}   {}'.format(image_folder, np.mean(result))
+            if result is not None:
+                result = np.mean(result)
+            results_string += '{}   {}\n'.format(image_folder, result)
         
 
-        prompt_result(self.tk_root, results_string)
+        prompt_result(self.tk_root, results_string, 'Mean latency (s)')
 
 
 class ManySpecimenCommands(ModifiedMenuMaker):

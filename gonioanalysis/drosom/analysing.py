@@ -365,6 +365,10 @@ class MAnalyser(AnalyserBase):
                 else:
                     special.append((horizontal, vertical))
                 continue
+            except TypeError:
+                # Fully custom folder name
+                special.append(key)
+                continue
 
             if _return_imagefolders:
                 standard.append('pos'+key)
@@ -694,7 +698,8 @@ class MAnalyser(AnalyserBase):
                 horizontal, pitch = angles_from_fn(pos)
             except:
                 horizontal, pitch = (0, 0)
-            pos = pos[3:]
+           
+            pos = pos.removeprefix('pos')
 
             if '_cam' in image_fn:
                 # Allows cameras 0-9
@@ -788,7 +793,7 @@ class MAnalyser(AnalyserBase):
         rois = []
         for eye in ['left', 'right']:
             try:
-                roi = self.ROIs[eye][image_folder[3:]]
+                roi = self.ROIs[eye][image_folder.removeprefix('pos')]
                 rois.append(roi)
             except:
                 continue
@@ -813,7 +818,7 @@ class MAnalyser(AnalyserBase):
         except AttributeError:
             return False
 
-        if any([image_folder[3:] in self.movements[eye].keys()] for eye in ['left', 'right']):
+        if any([image_folder.removeprefix('pos') in self.movements[eye].keys()] for eye in ['left', 'right']):
             if len(self.get_displacements_from_folder(image_folder)) > 0:
                 return True
         return False
@@ -857,12 +862,12 @@ class MAnalyser(AnalyserBase):
             for image_folder, skip_repeats in self.imagefolder_skiplist.items():
                 for eye in self.eyes:
 
-                    if self.movements[eye].get(image_folder[3:], None) is None:
+                    if self.movements[eye].get(image_folder.removeprefix('pos'), None) is None:
                         continue
                     
                     # Iterate repeats reversed so we can just pop things
                     for i_repeat in sorted(skip_repeats)[::-1]:
-                        self.movements[eye][image_folder[3:]].pop(i_repeat)
+                        self.movements[eye][image_folder.removeprefix('pos')].pop(i_repeat)
 
                     
 
@@ -1071,7 +1076,7 @@ class MAnalyser(AnalyserBase):
         data = {}
         for eye in ['left', 'right']:
             try:
-                data[eye] = self.movements[eye][image_folder[3:]]
+                data[eye] = self.movements[eye][image_folder.removeprefix('pos')]
             except KeyError:
                 pass
         
@@ -1241,7 +1246,7 @@ class MAnalyser(AnalyserBase):
         if image_folder is None:
             movement_keys = set().union(*[list(self.movements[eye].keys()) for eye in eyes])
         else:
-            movement_keys = [image_folder[3:]]
+            movement_keys = [image_folder.removeprefix('pos')]
         
         for eye in eyes:
             magnitude_traces = {}

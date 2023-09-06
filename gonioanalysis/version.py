@@ -1,4 +1,4 @@
-__version__ = "0.7.1"
+__version__ = "0.7.2"
 
 
 # Need for easily checking the scipy version because of API changes

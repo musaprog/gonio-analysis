@@ -586,7 +586,7 @@ class ExamineView(tk.Frame):
         fig, ax = self.canvases[i_plot].get_figax()
 
         if i_plot == 0:
-            self.plotter.ROI(ax)
+            self.plotter.ROI(self.canvases[i_plot])
         else:
             
             ax.clear()

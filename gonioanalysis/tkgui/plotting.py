@@ -17,22 +17,19 @@ from gonioanalysis.drosom.plotting.basics import (
         )
 
 class RecordingPlotter:
-    '''
-    Plotting single image folder data on the tk_steroids.matplotlib.CanvasPlotter.
+    '''For plotting a single image folder and its data.
 
-    Tkinter intependend in sense that CanvasPlotter can easily be reimplemented on
-    any other GUI toolkit (it's just a fusion of tkinter Canvas and matplotlib figure).
+    Uses tk_steroids.matplotlib.CanvasPlotter to plot on matplotlib figures.
     
-    -----------
     Attributes
     -----------
-    self.core
+    core
         Reference to the Core instance
-    self.selected_recording
+    selected_recording
         The recording currently plotted at the plotter
-    self.i_repeat
+    i_repeat
         None if show all traces, otherwise the index of repeat to be shown
-    self.N_repeats
+    N_repeats
         The total number of repeats in the image folder.
 
     '''
@@ -113,21 +110,15 @@ class RecordingPlotter:
                 **kwargs)
 
     
-    def ROI(self, ax):
+    def ROI(self, canvas_plotter):
         '''
         Plot specimen/recording image, and the ROIs and imaging parameters on top of it.
         '''
         self._check_recording(skip_datafetch=True)
         
-        self.roi_ax = ax
-        fig = ax.get_figure()
+        fig, ax = canvas_plotter.get_figax()
         
-        try:
-            self.slider_ax
-        except AttributeError:
-            self.slider_ax = fig.add_axes([0.2, 0.01, 0.6, 0.05])
-        
-        # Get a list of image filenames and how many
+        # Plot the image
         image_fns = self.core.analyser.list_images(self.selected_recording, absolute_path=True)
         self.N_repeats = len(image_fns)
 
@@ -139,12 +130,9 @@ class RecordingPlotter:
         image_fn = image_fns[i_frame]
         self.image = tifffile.TiffFile(image_fn).asarray(key=0)
 
-        try:
-            self.range_slider
-        except AttributeError:
-            self.range_slider = matplotlib.widgets.Slider(self.slider_ax, 'Range %' , 0, 100, valinit=90, valstep=1)
-            self.range_slider.on_changed(self.update_ROI_plot)
-        
+        canvas_plotter.imshow(self.image, cmap='gray', slider=True)
+
+
         # Draw ROI rectangles
         for old_roi in self.roi_rectangles:
             try:
@@ -156,30 +144,16 @@ class RecordingPlotter:
                 continue
         self.roi_rectangles = []
         
-
         for roi in self.core.analyser.get_rois(self.selected_recording):
             patch = matplotlib.patches.Rectangle((roi[0], roi[1]), roi[2], roi[3],
                     fill=False, edgecolor='White')
             self.roi_rectangles.append(patch)
         
-        self.update_ROI_plot(self.range_slider.val)
-
         for roi in self.roi_rectangles:
             ax.add_patch(roi)
-
-
-    def update_ROI_plot(self, slider_value):
-        '''
-        This gets called when the brightness cap slider is moved.
-        '''
-        clipped = np.clip(self.image, 0, np.percentile(self.image, slider_value))
-        clipped /= np.max(clipped)
-
-        try:
-            self.roi_imshow.set_data(clipped)
-        except AttributeError:
-            self.roi_imshow = self.roi_ax.imshow(clipped, cmap='gray')
         
+
+        # Text about imaging parameters
         imaging_params = self.core.analyser.get_imaging_parameters(self.selected_recording)
         if imaging_params:
             text = '\n'.join(['{}: {}'.format(setting, value) for setting, value in imaging_params.items()])
@@ -189,9 +163,8 @@ class RecordingPlotter:
         try:
             self.roi_text.set_text(text)
         except AttributeError:
-            self.roi_text = self.roi_ax.text(0,1, text, ha='left', va='top', fontsize='small', 
-                    transform=self.roi_ax.transAxes)
-
+            self.roi_text = ax.text(0,1, text, ha='left', va='top', fontsize='small', 
+                    transform=ax.transAxes)
 
 
 def main():

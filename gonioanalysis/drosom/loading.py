@@ -159,6 +159,9 @@ def load_data(drosom_folder):
 
     # Import all tif images
     for folder in pos_folders:
+
+        if folder == 'snaps':
+            continue
         
         if folder.startswith(POSITION_INDICATOR):
             str_angles = folder[len(POSITION_INDICATOR):]     # Should go from "pos(0, 0)" to "(0, 0)"

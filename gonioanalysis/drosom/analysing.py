@@ -701,7 +701,7 @@ class MAnalyser(AnalyserBase):
            
             pos = pos.removeprefix('pos')
 
-            if '_cam' in image_fn:
+            if '_cam' in os.path.basename(image_fn):
                 # Allows cameras 0-9
                 try:
                     i_camera = int(image_fn[image_fn.index('_cam') + 4])

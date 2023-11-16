@@ -256,8 +256,11 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
 
         if figure_savefn is not None:
             ax.plot(timepoints, displacement, '-')
-            ax.plot(timepoints, _logistic_function(timepoints, *popt),
-                    '--', label='fit rep {}'.format(i_repeat))
+            ax.plot(
+                    timepoints,
+                    _logistic_function(timepoints, speed[0], amplitude[0], halfrise_time[0]),
+                    '--', label='fit rep {}'.format(i_repeat)
+                    )
     
 
     if figure_savefn:
@@ -289,7 +292,7 @@ def save_sigmoidal_fit_CSV(analysers, savefn, save_fits=False, with_extra=True,
         writer.writerow(['# t0 latency (s)', 'k rise speed (pixels/s)', 'L response amplitude (pixels)'])
         writer.writerow(['#'])
 
-        if microns:
+        if not microns:
             y_units = 'pixels'
         else:
             y_units = 'µm'
@@ -311,19 +314,22 @@ def save_sigmoidal_fit_CSV(analysers, savefn, save_fits=False, with_extra=True,
 
         for analyser in analysers:
             
-            if save_fits:
-                dirname = os.path.dirname(savefn)
-                folder = os.path.basename(dirname)
-                figure_savefn = os.path.join(dirname, folder+'_fits', 'fit_{0:07d}.png'.format(i_fit))
-                
-                if i_fit == 0:
-                    os.makedirs(os.path.dirname(figure_savefn), exist_ok=True)
-
-            else:
-                figure_savefn = False
-
             for image_folder in analyser.list_imagefolders():
-                
+                if save_fits:
+                    dirname = os.path.dirname(savefn)
+                    folder = os.path.basename(dirname)
+                    figure_savefn = os.path.join(dirname, folder+'_fits', 'fit_{0:07d}.png'.format(i_fit))
+                    
+                    if i_fit == 0:
+                        os.makedirs(os.path.dirname(figure_savefn), exist_ok=True)
+
+                else:
+                    figure_savefn = False
+
+
+                if not analyser.folder_has_movements(image_folder):
+                    continue
+
                 amplitudes, speeds, halfrise_times = sigmoidal_fit(analyser, image_folder,
                         figure_savefn=figure_savefn)
                 

@@ -503,7 +503,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
 
     def save_sinesweep_analysis_CSV(self):
         def callback(specimens):
-            analysers = self.core.get_manalysers(specimen)                
+            analysers = self.core.get_manalysers(specimens)
             sinesweep.save_sinesweep_analysis_CSV(analysers)
  
 

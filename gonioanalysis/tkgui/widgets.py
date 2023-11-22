@@ -638,8 +638,8 @@ class CompareVectormaps(tk.Frame):
     def _update_canvases(self):
         for i in range(3):
             ax = self.canvases[i].ax
-            if ax.dist != 8.5:
-                ax.dist = 8.5
+            #if ax.dist != 8.5:
+            #    ax.dist = 8.5
  
             self.canvases[i].update()
 
@@ -674,9 +674,9 @@ class CompareVectormaps(tk.Frame):
         
         plot_3d_vectormap(analyser, ax=ax, azim=azim, elev=elev,
                 mutation_scale=6, scale_length=1.2, **kwargs)
-        
-        if ax.dist != 8.5:
-            ax.dist = 8.5
+       
+        #if ax.dist != 8.5:
+        #    ax.dist = 8.5
  
         canvas.update()
 
@@ -696,8 +696,8 @@ class CompareVectormaps(tk.Frame):
         ax.clear()
         plot_3d_differencemap(*self.analysers[0:2], ax=ax, **kwargs)
         
-        if ax.dist != 8.5:
-            ax.dist = 8.5
+        #if ax.dist != 8.5:
+        #    ax.dist = 8.5
 
         self.canvases[-1].update()
 

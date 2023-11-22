@@ -212,6 +212,13 @@ class ImageFolderCommands(ModifiedMenuMaker):
         folder = self.core.selected_recording
         fns = self.core.analyser.list_images(folder, absolute_path=True)
         subprocess.Popen(['imagej', *fns,])
+    
+
+    def start_position_analysis(self):
+        self.core.adm_subprocess(
+                'current',
+                f'-A startpos --analysis-options "image_folder={self.core.selected_recording}"')
+
 
 
 class SpecimenCommands(ModifiedMenuMaker):
@@ -358,6 +365,9 @@ class SpecimenCommands(ModifiedMenuMaker):
         
 
         prompt_result(self.tk_root, results_string, 'Mean latency (s)')
+
+    def start_position_analysis(self):
+        self.core.adm_subprocess('current', '-A startpos')
 
 
 class ManySpecimenCommands(ModifiedMenuMaker):

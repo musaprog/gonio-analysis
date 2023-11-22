@@ -19,6 +19,7 @@ from gonioanalysis.drosom.analysing import MAnalyser, MAverager
 from gonioanalysis.drosom.orientation_analysis import OAnalyser
 from gonioanalysis.drosom.optic_flow import FAnalyser
 from gonioanalysis.drosom.transmittance_analysis import TAnalyser
+from gonioanalysis.drosom.startpos_analysis import StartposAnalyser
 
 # Avoid importing tkinter bits if not needed
 if '--tk_waiting_window' in sys.argv:
@@ -27,7 +28,7 @@ if '--tk_waiting_window' in sys.argv:
 
 
 Analysers = {'orientation': OAnalyser, 'motion': MAnalyser, 'flow': FAnalyser,
-        'transmittance': TAnalyser}
+             'transmittance': TAnalyser, 'startposition': StartposAnalyser}
 
 analyses = {**ANALYSER_CMDS, **DUALANALYSER_CMDS, **MULTIANALYSER_CMDS}
 
@@ -48,6 +49,8 @@ def convert_kwarg(key, value):
         value = True
     elif value.lower() == 'false':
         value = False
+    elif key == 'image_folder':
+        return value
     elif ',' in value:
         value = value.split(',')
         if all([val.replace('.', '', 1).removeprefix('-').isdigit() for val in value]):

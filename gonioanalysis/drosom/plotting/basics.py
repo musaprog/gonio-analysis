@@ -25,6 +25,7 @@ from .common import (
         plot_2d_opticflow,
         plot_guidance
         )
+from .start_position import start_heatmap, StartposAnalyser
 from gonioanalysis.directories import CODE_ROOTDIR
 from gonioanalysis.drosom.optic_flow import field_error, field_pvals
 from gonioanalysis.coordinates import rotate_vectors
@@ -204,6 +205,17 @@ def plot_xy_trajectory(manalysers, wanted_imagefolders=None, i_repeat=None,
     i_repeat : int
     mean_repeats : bool
     '''
+    if isinstance(manalysers[0], StartposAnalyser):
+        xys = []
+        for manalyser in manalysers:
+            if wanted_imagefolders:
+                image_folders = wanted_imagefolders[manalyser.name]
+            else:
+                image_folders = manalyser.list_imagefolders()
+            xys.append(start_heatmap(manalyser, image_folders, ax=ax))
+        
+        return ax, xys
+
     if ax is None:
         fig, ax = plt.subplots()
 

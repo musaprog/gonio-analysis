@@ -9,6 +9,7 @@ from gonioanalysis.directories import CODE_ROOTDIR
 from gonioanalysis.drosom.analysing import MAnalyser
 from gonioanalysis.drosom.orientation_analysis import OAnalyser
 from gonioanalysis.drosom.transmittance_analysis import TAnalyser
+from gonioanalysis.drosom.startpos_analysis import StartposAnalyser
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 
 
@@ -42,7 +43,7 @@ class Core:
         self.selected_recording = None
         
         self.analyser_class = MAnalyser
-        self.analyser_classes = [MAnalyser, OAnalyser, TAnalyser]
+        self.analyser_classes = [MAnalyser, OAnalyser, TAnalyser, StartposAnalyser]
         
         self.active_analysis = None
 
@@ -231,8 +232,10 @@ class Core:
             arguments = '--type orientation ' + arguments
         elif self.analyser_class is TAnalyser:
             arguments = '--type transmittance ' + arguments
+        elif self.analyser_class is StartposAnalyser:
+            arguments = '--type startposition ' + arguments
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f'Unkown analyser: {self.analyser_class}')
 
         command = '{} {} {} &'.format(python, pyfile, arguments)
         

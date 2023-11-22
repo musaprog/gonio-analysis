@@ -7,7 +7,7 @@ import numpy as np
 
 from gonioanalysis.drosom import plotting
 from gonioanalysis.drosom.plotting.common import save_3d_animation
-from gonioanalysis.drosom.plotting import basics, illustrate_experiments
+from gonioanalysis.drosom.plotting import basics, illustrate_experiments, start_position
 from gonioanalysis.drosom.plotting import complete_flow_analysis, error_at_flight
 from gonioanalysis.drosom.special.norpa_rescues import norpa_rescue_manyrepeats
 from gonioanalysis.drosom.special.paired import cli_group_and_compare
@@ -44,7 +44,7 @@ ANALYSER_CMDS['flow_analysis_roll'] = lambda analyser: complete_flow_analysis(an
 ANALYSER_CMDS['flow_analysis_pitch'] = lambda analyser: complete_flow_analysis(analyser, rotations, 'pitch')
 
 ANALYSER_CMDS['error_at_flight'] = error_at_flight
-
+ANALYSER_CMDS['startpos'] = start_position.start_heatmap
 
 # Functions that take two input arguments;
 # MAanalyser object and the name of the imagefolder, in this order

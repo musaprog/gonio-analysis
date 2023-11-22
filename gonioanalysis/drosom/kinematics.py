@@ -6,6 +6,14 @@ import scipy.optimize
 
 import matplotlib.pyplot as plt
 
+def _drop_trace(displacement):
+    # Improve fitting in conditions that motion noise is comparable to the
+    # motion response: Remove the point zero and drop down by the noise level
+    # at the beginning (the first three frames)
+    displacement[0] = displacement[1]
+    displacement = displacement - np.mean(displacement[:3])
+    return displacement
+
 
 
 def _logistic_function(t, k, L, t0):
@@ -107,7 +115,8 @@ def _simple_latencies(displacements, fs, threshold=0.1):
 
 
 
-def latency(manalyser, image_folder, threshold=0.05, method='sigmoidal'):
+def latency(manalyser, image_folder, threshold=0.05, method='sigmoidal',
+            fit_to_mean=False):
     '''
     Response latency ie. when the response exceedes by default 5% of
     its maximum value.
@@ -119,6 +128,9 @@ def latency(manalyser, image_folder, threshold=0.05, method='sigmoidal'):
     method : string
         Either "sigmoidal" (uses the sigmoidal fit) or
         "simple" (uses the data directly).
+    fit_to_mean : bool
+        If method=='sigmoidal', performs the fit on the image folder's mean
+        and not on the responses directly.
     
     Returns
     -------
@@ -130,11 +142,12 @@ def latency(manalyser, image_folder, threshold=0.05, method='sigmoidal'):
     
     if method == 'simple':
         # Take the mean response of the image_folder's data
-        displacements = manalyser.get_displacements_from_folder(image_folder)    
-        trace = np.mean(displacements, axis=0)    
+        displacements = manalyser.get_displacements_from_folder(image_folder)
+        trace = np.mean(displacements, axis=0)
+        trace = _drop_trace(trace)
     elif method == 'sigmoidal':
         # Make a sigmoidal fit and use the sigmoidal curve
-        params = sigmoidal_fit(manalyser, image_folder)
+        params = sigmoidal_fit(manalyser, image_folder, fit_to_mean=fit_to_mean)
         N = len(manalyser.get_displacements_from_folder(image_folder)[0])
         time = np.linspace(0, N/fs, N)
         trace = _logistic_function(time,
@@ -203,7 +216,7 @@ def _sigmoidal_fit(displacements, fs, debug=False):
 
 
 
-def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
+def sigmoidal_fit(manalyser, image_folder, figure_savefn=None, fit_to_mean=False):
     '''
 
     Assuming sigmoidal (logistic function) response.
@@ -219,6 +232,9 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
     -------
     amplitudes, speeds, halfrise_times : list or None
         All Nones if image_folder has not movements
+    fit_to_mean : bool
+        If True, calculate the mean for the image folder and perform the
+        fit on the mean.
     '''
 
     if figure_savefn is not None:
@@ -236,13 +252,15 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
         # Probably movements not measured
         return None, None, None
 
+    if fit_to_mean:
+        displacements = [np.mean(displacements, axis=0)]
+
     fs = manalyser.get_imaging_frequency(image_folder)
 
     timepoints = np.linspace(0, len(displacements[0])/fs, len(displacements[0]))
-
     
     for i_repeat, displacement in enumerate(displacements):
-        
+        _drop_trace(displacement)
         amplitude, speed, halfrise_time = _sigmoidal_fit([displacement], fs)
         
         if not amplitude or not speed or not halfrise_time:
@@ -270,8 +288,8 @@ def sigmoidal_fit(manalyser, image_folder, figure_savefn=None):
 
 
 
-def save_sigmoidal_fit_CSV(analysers, savefn, save_fits=False, with_extra=True,
-        microns=True):
+def save_sigmoidal_fit_CSV(analysers, savefn, save_fits=True, with_extra=True,
+        microns=True, fit_to_mean=False):
     '''
     Takes in analysers, performs sigmoidal_fit for each and all image_folders.
     Then saves the results as a CSV file, and by default fit images as well.
@@ -282,6 +300,9 @@ def save_sigmoidal_fit_CSV(analysers, savefn, save_fits=False, with_extra=True,
         Filename.
     save_fits : bool
         Save png images of the fits.
+    fit_to_mean : bool
+        If True, calculate the mean for the image folder and perform the
+        fit on the mean.
     '''
     
     with open(savefn, 'w') as fp:
@@ -305,7 +326,8 @@ def save_sigmoidal_fit_CSV(analysers, savefn, save_fits=False, with_extra=True,
         if with_extra:
             header.extend( ['Mean max amplitude ({})',
                 'Mean final amplitude ({})' ,
-                'Mean latency (s)',
+                'Mean latency simple (s)',
+                'Mean latency sigfit (s)',
                 'Top speed ({}/s)'] )
 
         writer.writerow([text.format(y_units) for text in header])
@@ -313,52 +335,58 @@ def save_sigmoidal_fit_CSV(analysers, savefn, save_fits=False, with_extra=True,
         i_fit = 0
 
         for analyser in analysers:
-            
-            for image_folder in analyser.list_imagefolders():
-                if save_fits:
-                    dirname = os.path.dirname(savefn)
-                    folder = os.path.basename(dirname)
-                    figure_savefn = os.path.join(dirname, folder+'_fits', 'fit_{0:07d}.png'.format(i_fit))
+            try: 
+                for image_folder in analyser.list_imagefolders():
+                    if save_fits:
+                        dirname = os.path.dirname(savefn)
+                        folder = os.path.basename(dirname)
+                        figure_savefn = os.path.join(dirname, folder+'_fits', 'fit_{0:07d}.png'.format(i_fit))
+                        
+                        if i_fit == 0:
+                            os.makedirs(os.path.dirname(figure_savefn), exist_ok=True)
+
+                    else:
+                        figure_savefn = False
                     
-                    if i_fit == 0:
-                        os.makedirs(os.path.dirname(figure_savefn), exist_ok=True)
+                    # Fixme
+                    if 'logsweep' in image_folder:
+                        continue
 
-                else:
-                    figure_savefn = False
+                    if not analyser.folder_has_movements(image_folder):
+                        continue
 
-
-                if not analyser.folder_has_movements(image_folder):
-                    continue
-
-                amplitudes, speeds, halfrise_times = sigmoidal_fit(analyser, image_folder,
-                        figure_savefn=figure_savefn)
-                
-                if microns:
-                    scaler = analyser.get_pixel_size(image_folder)
-                else:
-                    scaler = 1
-                
-                if figure_savefn:
-                    figure_savefn = os.path.basename(figure_savefn)
-
-                row = [analyser.folder, image_folder,
-                        np.mean(amplitudes)*scaler, np.std(amplitudes)*scaler,
-                        np.mean(speeds)*scaler, np.std(speeds)*scaler,
-                        np.mean(halfrise_times), np.std(halfrise_times),
-                        figure_savefn]
-
-                if with_extra:
-                    max_amplitude = scaler * mean_max_response(analyser, image_folder, maxmethod='max')
-                    end_amplitude = scaler * mean_max_response(analyser, image_folder, maxmethod='final')
-                    latency_value = np.mean(latency(analyser, image_folder))
+                    amplitudes, speeds, halfrise_times = sigmoidal_fit(analyser, image_folder,
+                            figure_savefn=figure_savefn, fit_to_mean=fit_to_mean)
                     
-                    top_speed = scaler * mean_topspeed(analyser, image_folder)
+                    if microns:
+                        scaler = analyser.get_pixel_size(image_folder)
+                    else:
+                        scaler = 1
+                    
+                    if figure_savefn:
+                        figure_savefn = os.path.basename(figure_savefn)
 
-                    row.extend([max_amplitude, end_amplitude, latency_value, top_speed])
+                    row = [analyser.folder, image_folder,
+                            np.mean(amplitudes)*scaler, np.std(amplitudes)*scaler,
+                            np.mean(speeds)*scaler, np.std(speeds)*scaler,
+                            np.mean(halfrise_times), np.std(halfrise_times),
+                            figure_savefn]
 
-                writer.writerow(row)
-        
-                i_fit += 1
+                    if with_extra:
+                        max_amplitude = scaler * mean_max_response(analyser, image_folder, maxmethod='max')
+                        end_amplitude = scaler * mean_max_response(analyser, image_folder, maxmethod='final')
+                        latency_value1 = np.mean(latency(analyser, image_folder, fit_to_mean=fit_to_mean, method='simple'))
+                        latency_value2 = np.mean(latency(analyser, image_folder, fit_to_mean=fit_to_mean, method='sigmoidal'))
+                        
+                        top_speed = scaler * mean_topspeed(analyser, image_folder)
+
+                        row.extend([max_amplitude, end_amplitude, latency_value1, latency_value2, top_speed])
+
+                    writer.writerow(row)
+            except Exception as e:
+                print(e)
+
+            i_fit += 1
 
     return None
 

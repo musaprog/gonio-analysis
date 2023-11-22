@@ -168,7 +168,9 @@ class ImageFolderCommands(ModifiedMenuMaker):
                 '.',
                 'max_of_the_mean_response',
                 'half_rise_time',
+                'half_rise_time_DASH_fit_to_mean',
                 'latency',
+                'latency_DASH_fit_to_mean',
                 '.',
                 'open_in_ImageJ']
 
@@ -178,15 +180,24 @@ class ImageFolderCommands(ModifiedMenuMaker):
         prompt_result(self.tk_root, result, 'Max of the mean (pixels)')
     
 
-    def half_rise_time(self):
-        result = kinematics.sigmoidal_fit(self.core.analyser, self.core.selected_recording)[2]
+    def half_rise_time(self, fit_to_mean=False):
+        result = kinematics.sigmoidal_fit(
+                self.core.analyser, self.core.selected_recording,
+                fit_to_mean=fit_to_mean)[2]
         prompt_result(self.tk_root, str(np.mean(result)), 'Half-rise time (s)')
-   
+    
 
-    def latency(self):
-        result = kinematics.latency(self.core.analyser, self.core.selected_recording)
+    def half_rise_time_DASH_fit_to_mean(self):
+        self.half_rise_time(fit_to_mean=True)
+
+    def latency(self, fit_to_mean=False):
+        result = kinematics.latency(
+                self.core.analyser, self.core.selected_recording,
+                fit_to_mean=fit_to_mean)
         prompt_result(self.tk_root, str(np.mean(result)), 'Latency (s)')
 
+    def latency_DASH_fit_to_mean(self):
+        self.latency(True)
 
     def select_ROIs(self):
         self.core.analyser.select_ROIs(callback_on_exit=self.core.update_gui,
@@ -391,6 +402,7 @@ class ManySpecimenCommands(ModifiedMenuMaker):
                 'export_LR_displacement_CSV',
                 'export_LR_displacement_CSV_DASH_strong_weak_eye_division',
                 'save_kinematics_analysis_CSV',
+                'save_kinematics_analysis_CSV_DASH_fit_to_mean',
                 'save_sinesweep_analysis_CSV',
                 '.',
                 'detailed_export',]
@@ -497,18 +509,21 @@ class ManySpecimenCommands(ModifiedMenuMaker):
         self.export_LR_displacement_CSV(strong_weak_division=True)
 
 
-    def save_kinematics_analysis_CSV(self):
+    def save_kinematics_analysis_CSV(self, fit_to_mean=False):
 
         def callback(specimens):
             
-            fn = tk.filedialog.asksaveasfilename(title='Save kinematics analysis', initialfile='latencies.csv')
+            fn = tk.filedialog.asksaveasfilename(title='Save kinematics analysis', initialfile='kinematics.csv')
             
             if fn:
                 analysers = self.core.get_manalysers(specimens)
-                kinematics.save_sigmoidal_fit_CSV(analysers, fn)
+                kinematics.save_sigmoidal_fit_CSV(analysers, fn, fit_to_mean=fit_to_mean)
  
-
         select_specimens(self.core, callback, with_movements=True) 
+    
+
+    def save_kinematics_analysis_CSV_DASH_fit_to_mean(self, ):
+        self.save_kinematics_analysis_CSV(fit_to_mean=True)
 
 
     def save_sinesweep_analysis_CSV(self):

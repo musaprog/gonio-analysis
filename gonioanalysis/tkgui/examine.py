@@ -632,7 +632,7 @@ class ExamineView(tk.Frame):
 
 def main():
     
-    if 'win' in sys.platform:
+    if (sys.platform in ['win32', 'cygwin', 'msys']):
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
     root = tk.Tk()

@@ -26,7 +26,7 @@ setuptools.setup(
     description="Spatial motion analysis program",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/jkemppainen/gonio-analysis",
+    url="https://github.com/musaprog/gonio-analysis",
     packages=setuptools.find_packages(),
     install_requires=install_requires, 
     classifiers=[

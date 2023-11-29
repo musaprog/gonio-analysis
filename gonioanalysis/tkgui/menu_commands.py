@@ -104,6 +104,7 @@ class FileCommands(ModifiedMenuMaker):
         '''
         menu = ['set_data_directory',
                 'add_data_directory',
+                '.',
                 'settings',
                 '.',
                 'exit']
@@ -172,6 +173,8 @@ class ImageFolderCommands(ModifiedMenuMaker):
                 'latency',
                 'latency_DASH_fit_to_mean',
                 '.',
+                'start_position_analysis',
+                '.',
                 'open_in_ImageJ']
 
     def max_of_the_mean_response(self):
@@ -238,13 +241,22 @@ class SpecimenCommands(ModifiedMenuMaker):
     '''
 
     def _force_order(self):
-        return ['set_active_analysis', 'set_vector_rotation',
+        return ['set_active_analysis',
+                'set_vector_rotation_offset',
+                'set_vertical_zero_rotation',
                 '.',
-                'select_ROIs', 'measure_movement', 'set_vertical_zero_rotation',
-                '.',
+                'select_ROIs',
+                'measure_movement',
                 'measure_movement_DASH_in_absolute_coordinates',
                 '.',
                 'mean_displacement_over_time',
+                'latency_by_sigmoidal_fit',
+                '.',
+                'vectormap_DASH_interactive_plot',
+                'vectormap_DASH_rotating_video',
+                'vectormap_DASH_export',
+                '.',
+                'start_position_analysis',
                 '.']
 
 
@@ -260,7 +272,7 @@ class SpecimenCommands(ModifiedMenuMaker):
         self.core.update_gui(changed_specimens=True) 
 
 
-    def set_vector_rotation(self):
+    def set_vector_rotation_offset(self):
 
         rotation = ask_string('Active analysis', 'Give new or existing analysis name (empty for default)', self.tk_root)
         
@@ -366,7 +378,7 @@ class SpecimenCommands(ModifiedMenuMaker):
         self.core.adm_subprocess('current', '-A magtrace --analysis-options mean_repeats=True milliseconds=True mean_imagefolders=True')
 
 
-    def mean_latency_by_sigmoidal_fit(self):
+    def latency_by_sigmoidal_fit(self):
         results_string = ''
         for image_folder in self.core.analyser.list_imagefolders():
             result = kinematics.sigmoidal_fit(self.core.analyser, image_folder)[2]

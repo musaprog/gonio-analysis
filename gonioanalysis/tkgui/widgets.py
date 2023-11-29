@@ -7,7 +7,6 @@ import threading
 
 import tkinter as tk
 from tkinter import filedialog
-import tifffile
 
 from tk_steroids.elements import (Tabs,
         ButtonsFrame,
@@ -18,6 +17,8 @@ from tk_steroids.matplotlib import CanvasPlotter
 from tk_steroids.dialogs import TickSelect
 from tk_steroids.routines import inspect_booleans
 from tk_steroids.menumaker import MenuMaker
+
+from movemeter.stacks import stackread
 
 from gonioanalysis.droso import SpecimenGroups
 from gonioanalysis.drosom.analysing import MAverager
@@ -345,10 +346,10 @@ class ZeroCorrect(tk.Frame):
         Call to update imshow plots.
         '''
         if self.reference_images:
-            self.reference_image = tifffile.imread(self.reference_images[self.i_reference])
+            self.reference_image = next(stackread(self.reference_images[self.i_reference]))
             self.reference_plotter.imshow(self.reference_image, cmap='gray', slider=True)
 
-        self.specimen_image = tifffile.imread(self.specimen_images[self.i_specimen])
+        self.specimen_image = next(stackread(self.specimen_images[self.i_specimen]))
         self.specimen_plotter.imshow(self.specimen_image, cmap='gray', slider=True)
 
     

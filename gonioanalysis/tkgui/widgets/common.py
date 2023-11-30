@@ -157,6 +157,17 @@ class ImagefolderMultisel(tk.Frame):
         analyser = self.core.get_manalyser(name)
         image_folders = analyser.list_imagefolders()
         self.imagefolders_listbox.set_selections(image_folders)
+        
+        # Bugfix: Prevent adding image_folder from the previous specimen when
+        # a new specimen has been selected but no change on the image folders
+        # Requires yet unreleased tk_steroids > v0.7.1
+        try:
+            self.imagefolders_listbox.current = None
+        except NameError:
+            # tk_steroids before the current setter: 
+            # NameError: name 'setter' is not defined. Did you mean: 'setattr'?
+            # Let the bug be...
+            pass
 
 
     def on_add_press(self, image_folder=None):
@@ -164,6 +175,7 @@ class ImagefolderMultisel(tk.Frame):
             image_folder = self.imagefolders_listbox.current
 
         if image_folder:
+
             sel = self.specimens_listbox.current + self._separator + image_folder
             
             selections = self.selected_listbox.selections + [sel]

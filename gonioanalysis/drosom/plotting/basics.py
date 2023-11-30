@@ -30,6 +30,7 @@ from gonioanalysis.directories import CODE_ROOTDIR
 from gonioanalysis.drosom.optic_flow import field_error, field_pvals
 from gonioanalysis.coordinates import rotate_vectors
 from tk_steroids.routines import extend_keywords
+from ..analysers import analyser_classes
 
 plt.rcParams.update({'font.size': 12})
 
@@ -179,11 +180,14 @@ def plot_1d_magnitude(manalyser, image_folder=None, i_repeat=None,
         ax.set_xlabel('Time (ms)')
     else:
         ax.set_xlabel('Frame')
-
-    if microns:
-        ax.set_ylabel('Displacement magnitude (µm)')
+    
+    if isinstance(manalyser, analyser_classes['transmittance']):
+        ax.set_ylabel('Brightness (counts)')
     else:
-        ax.set_ylabel('Displacement magnitude (pixels)')
+        if microns:
+            ax.set_ylabel('Displacement magnitude (µm)')
+        else:
+            ax.set_ylabel('Displacement magnitude (pixels)')
 
 
     ax.spines['right'].set_visible(False)

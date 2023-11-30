@@ -97,8 +97,33 @@ class TAnalyser(MAnalyser):
         with open(self._movements_savefn.format(eye), 'w') as fp:
             json.dump(intensities, fp)
 
+    
 
     def is_measured(self):
         fns = [self._movements_savefn.format(eye) for eye in self.eyes]
         return all([os.path.exists(fn) for fn in fns])
+
+
+    # Here the original MAnalyser method modified so that the presentation
+    # makes more sense with light transmittance analysis 
+    #
+    # 1) The first data point is often "polluted" because the stimulus LED
+    #   goes on within the first frame of imaging (thus first frame darker)
+    #   -> bring the 1st to the mean of 2nd and 3rd
+    # 2) Shift the trace in Y to always start from zero
+    #
+    def get_magnitude_traces(self, *args, **kwargs):
+        
+        magnitude_traces = super().get_magnitude_traces(*args, **kwargs)
+
+        for image_folder in magnitude_traces:
+
+            # 1) "Recompute" the first data point
+            for trace in magnitude_traces[image_folder]:
+                trace[0] = np.mean((trace[1], trace[2]))
+
+            # 2) Shift whole trace
+            magnitude_traces[image_folder] = np.array([t-t[0] for t in magnitude_traces[image_folder]])
+
+        return magnitude_traces
 

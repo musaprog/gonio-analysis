@@ -112,6 +112,190 @@ class ExamineMenubar(tk.Frame):
         self.winfo_toplevel().config(menu=self.menubar)
    
        
+class PlotView(tk.Frame):
+    '''The plot showing part of the examine view (the old rightside_frame).
+    '''
+    def __init__(self, tk_parent, core):
+
+        tk.Frame.__init__(self, tk_parent)
+        self.tk_parent = tk_parent
+        self.core = core
+
+        tab_kwargs = [{}, {}, {}, {'projection': '3d'}]
+        tab_names = ['ROI', 'Displacement', 'XY', '3D']
+        canvas_constructors = [lambda parent, kwargs=kwargs: CanvasPlotter(parent, visibility_button=False, **kwargs) for kwargs in tab_kwargs]
+        self.tabs = Tabs(self, tab_names, canvas_constructors,
+                on_select_callback=self.update_plot)
+        
+        self.tabs.grid(row=0, column=0, sticky='NWES')
+
+
+        # Make canvas plotter to stretch
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+
+        self.canvases = self.tabs.get_elements()
+        
+        # Controls for displacement plot (means etc)
+        displacementplot_options, displacementplot_defaults = inspect_booleans(
+                plot_1d_magnitude, exclude_keywords=['mean_imagefolders'])
+        self.displacement_ticks = TickboxFrame(self.canvases[1], displacementplot_options,
+                defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
+        self.displacement_ticks.grid()
+
+        xyplot_options, xyplot_defaults = inspect_booleans(
+                plot_xy_trajectory)
+        self.xy_ticks = TickboxFrame(self.canvases[2], xyplot_options,
+                defaults=xyplot_defaults, callback=lambda:self.update_plot(2))
+        self.xy_ticks.grid()
+
+
+
+        # Controls for the vector plot
+        # Controls for displacement plot (means etc)
+        vectorplot_options, vectorplot_defaults = inspect_booleans(
+                plot_3d_vectormap, exclude_keywords=[])
+        self.vectorplot_ticks = TickboxFrame(self.canvases[3], vectorplot_options,
+                defaults=vectorplot_defaults, callback=lambda:self.update_plot(3))
+        self.vectorplot_ticks.grid()
+        
+        tk.Button(self.canvases[3], text='Save animation', command=self.save_3d_animation).grid()
+
+
+
+        self.plotter = RecordingPlotter(self.core)
+                
+        # Add buttons for selecting single repeats from a recording
+        self.repetition_selector = RepetitionSelector(self, self.plotter, self.core,
+                update_command=lambda: self.on_recording_selection('current'))
+        self.repetition_selector.grid(row=1, column=0)
+        
+
+        tk.Button(self.repetition_selector, text='Copy data',
+                command=self.copy_to_clipboard).grid(row=0, column=5)
+
+        tk.Button(self.repetition_selector, text='Save view...',
+                command=self.save_view).grid(row=0, column=6)
+
+    
+    def update_plot(self, i_plot=None):
+        '''
+        i_plot : int or None
+            Index of the plot (from 0 to N-1 tabs) or None just to update the current open tab.
+        '''
+        if self.core.selected_recording is None:
+            return None
+        
+        if i_plot is None:
+            i_plot = self.tabs.i_current
+
+        fig, ax = self.canvases[i_plot].get_figax()
+
+        if i_plot == 0:
+            self.plotter.ROI(self.canvases[i_plot])
+        else:
+            
+            ax.clear()
+
+            remember_analysis = self.core.analyser.active_analysis
+
+            for analysis in [name for name, state in self.tk_parent.tickbox_analyses.states.items() if state == True]:
+                
+                self.core.analyser.active_analysis = analysis
+
+                if i_plot == 1:
+                    self.plotter.magnitude(ax, **self.displacement_ticks.states)
+                elif i_plot == 2:  
+                    self.plotter.xy(ax, **self.xy_ticks.states) 
+                elif i_plot == 3:
+                    self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
+            
+            self.core.active_analysis = remember_analysis
+
+
+        self.canvases[i_plot].update()
+        
+        self.repetition_selector.update_text()
+
+
+    def copy_to_clipboard(self, force_i_tab=None):
+        '''
+        Copies data currently visible on theopen plotter tab to the clipboard.
+        
+        force_i_tab         Copy from the specified tab index, instead of
+                            the currently opened tab
+        '''
+        formatted = ''
+        
+        # Always first clear clipboard; If something goes wrong, the user
+        # doesn't want to keep pasting old data thinking it's new.
+        self.root.clipboard_clear()
+        
+        if self.core.selected_recording is None:
+            return None
+
+        if force_i_tab is not None:
+            i_tab = int(force_i_tab)
+        else:
+            i_tab = self.tabs.i_current
+        
+        # Make sure we have the correct data in the plot by reissuing
+        # the plotting command
+        self.update_plot(i_tab)
+        
+        # Select data based on where we want to copy
+        if i_tab == 0:
+            data = self.plotter.image
+        elif i_tab == 1:
+            data = self.plotter.magnitudes
+        elif i_tab == 2:
+            data = self.plotter.xys
+            data = list(itertools.chain(*data))
+        elif i_tab == 3:
+            raise NotImplementedError('Cannot yet cliboard vectormap data')
+
+        # Format the data for tkinter clipboard copy
+        for i_frame in range(len(data[0])):
+            formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
+        
+        self.root.clipboard_append(formatted)
+        self.copy_to_csv(formatted)
+
+
+    def save_view(self):
+        '''
+        Launches a save dialog for the current plotter view.
+        '''
+        fig, ax = self.canvases[self.tabs.i_current].get_figax()
+        
+        dformats = fig.canvas.get_supported_filetypes()
+        formats = [(value, '*.'+key) for key, value in sorted(dformats.items())]
+        
+        # Make png first
+        if 'png' in dformats.keys():
+            i = formats.index((dformats['png'], '*.png'))
+            formats.insert(0, formats.pop(i))
+
+        fn = filedialog.asksaveasfilename(title='Save current view',
+                initialdir=self.last_saveplotter_dir,
+                filetypes=formats)
+
+        if fn:
+            self.last_saveplotter_dir = os.path.dirname(fn)
+
+            fig.savefig(fn, dpi=1200)
+        
+
+    def save_3d_animation(self):
+        
+        def callback():
+            self.canvases[3].update()
+        
+        fig, ax = self.canvases[3].get_figax()
+        save_3d_animation(self.core.analyser, ax=ax, interframe_callback=callback)
+
+
 
 
 class ExamineView(tk.Frame):
@@ -208,7 +392,6 @@ class ExamineView(tk.Frame):
         self.status_vertical.grid(row=3, column=0, sticky='W')
         
 
-
         # Selecting the specimen 
         tk.Label(self.leftside_frame, text='Specimens').grid(row=3, column=0)
         self.specimen_box = Listbox(self.leftside_frame, ['(select directory)'], self.on_specimen_selection)
@@ -226,70 +409,10 @@ class ExamineView(tk.Frame):
                 ['Movements measured', 'ROIs selected', 'No ROIs']).grid(row=5, column=0, sticky='NW')
 
 
-        # RIGHTSIDE frame        
-        self.rightside_frame = tk.Frame(self)
-        self.rightside_frame.grid(row=0, column=1, sticky='NWES')
-        
-        
-        tab_kwargs = [{}, {}, {}, {'projection': '3d'}]
-        tab_names = ['ROI', 'Displacement', 'XY', '3D']
-        canvas_constructors = [lambda parent, kwargs=kwargs: CanvasPlotter(parent, visibility_button=False, **kwargs) for kwargs in tab_kwargs]
-        self.tabs = Tabs(self.rightside_frame, tab_names, canvas_constructors,
-                on_select_callback=self.update_plot)
-        
-        self.tabs.grid(row=0, column=0, sticky='NWES')
-
-
-        # Make canvas plotter to stretch
-        self.rightside_frame.grid_rowconfigure(0, weight=1)
-        self.rightside_frame.grid_columnconfigure(0, weight=1)
-
-
-        self.canvases = self.tabs.get_elements()
-        
-        # Controls for displacement plot (means etc)
-        displacementplot_options, displacementplot_defaults = inspect_booleans(
-                plot_1d_magnitude, exclude_keywords=['mean_imagefolders'])
-        self.displacement_ticks = TickboxFrame(self.canvases[1], displacementplot_options,
-                defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
-        self.displacement_ticks.grid()
-
-        xyplot_options, xyplot_defaults = inspect_booleans(
-                plot_xy_trajectory)
-        self.xy_ticks = TickboxFrame(self.canvases[2], xyplot_options,
-                defaults=xyplot_defaults, callback=lambda:self.update_plot(2))
-        self.xy_ticks.grid()
-
-
-
-        # Controls for the vector plot
-        # Controls for displacement plot (means etc)
-        vectorplot_options, vectorplot_defaults = inspect_booleans(
-                plot_3d_vectormap, exclude_keywords=[])
-        self.vectorplot_ticks = TickboxFrame(self.canvases[3], vectorplot_options,
-                defaults=vectorplot_defaults, callback=lambda:self.update_plot(3))
-        self.vectorplot_ticks.grid()
-        
-        tk.Button(self.canvases[3], text='Save animation', command=self.save_3d_animation).grid()
-
-
         self.default_button_bg = self.button_rois.cget('bg')
-
-        self.plotter = RecordingPlotter(self.core)
-                
-        # Add buttons for selecting single repeats from a recording
-        self.repetition_selector = RepetitionSelector(self.rightside_frame, self.plotter, self.core,
-                update_command=lambda: self.on_recording_selection('current'))
-        self.repetition_selector.grid(row=1, column=0)
         
-
-        tk.Button(self.repetition_selector, text='Copy data',
-                command=self.copy_plotter_to_clipboard).grid(row=0, column=5)
-
-        tk.Button(self.repetition_selector, text='Save view...',
-                command=self.save_plotter_view).grid(row=0, column=6)
-
-
+        self.plot_view = PlotView(self, self.core)
+        self.plot_view.grid(row=0, column=1, sticky='NSWE')
 
 
     def _color_specimens(self, specimens):
@@ -308,14 +431,6 @@ class ExamineView(tk.Frame):
             colors.append(color)
         return colors
 
-
-    def save_3d_animation(self):
-        
-        def callback():
-            self.canvases[3].update()
-        
-        fig, ax = self.canvases[3].get_figax()
-        save_3d_animation(self.core.analyser, ax=ax, interframe_callback=callback)
 
 
     def copy_to_csv(self, formatted): 
@@ -360,76 +475,7 @@ class ExamineView(tk.Frame):
         self.copy_to_csv(formatted)       
 
 
-
-    def copy_plotter_to_clipboard(self, force_i_tab=None):
-        '''
-        Copies data currently visible on theopen plotter tab to the clipboard.
-        
-        force_i_tab         Copy from the specified tab index, instead of
-                            the currently opened tab
-        '''
-        formatted = ''
-        
-        # Always first clear clipboard; If something goes wrong, the user
-        # doesn't want to keep pasting old data thinking it's new.
-        self.root.clipboard_clear()
-        
-        if self.core.selected_recording is None:
-            return None
-
-        if force_i_tab is not None:
-            i_tab = int(force_i_tab)
-        else:
-            i_tab = self.tabs.i_current
-        
-        # Make sure we have the correct data in the plot by reissuing
-        # the plotting command
-        self.update_plot(i_tab)
-        
-        # Select data based on where we want to copy
-        if i_tab == 0:
-            data = self.plotter.image
-        elif i_tab == 1:
-            data = self.plotter.magnitudes
-        elif i_tab == 2:
-            data = self.plotter.xys
-            data = list(itertools.chain(*data))
-        elif i_tab == 3:
-            raise NotImplementedError('Cannot yet cliboard vectormap data')
-
-        # Format the data for tkinter clipboard copy
-        for i_frame in range(len(data[0])):
-            formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
-        
-        self.root.clipboard_append(formatted)
-        self.copy_to_csv(formatted)
-
-
-    
-    def save_plotter_view(self):
-        '''
-        Launches a save dialog for the current plotter view.
-        '''
-        fig, ax = self.canvases[self.tabs.i_current].get_figax()
-        
-        dformats = fig.canvas.get_supported_filetypes()
-        formats = [(value, '*.'+key) for key, value in sorted(dformats.items())]
-        
-        # Make png first
-        if 'png' in dformats.keys():
-            i = formats.index((dformats['png'], '*.png'))
-            formats.insert(0, formats.pop(i))
-
-        fn = filedialog.asksaveasfilename(title='Save current view',
-                initialdir=self.last_saveplotter_dir,
-                filetypes=formats)
-
-        if fn:
-            self.last_saveplotter_dir = os.path.dirname(fn)
-
-            fig.savefig(fn, dpi=1200)
-            
-        
+     
 
 
     def _color_recordings(self, recordings):
@@ -568,48 +614,9 @@ class ExamineView(tk.Frame):
         
 
         # Plotting only the view we have currently open
-        self.update_plot(self.tabs.i_current)
+        self.plot_view.update_plot()
         
 
-
-    def update_plot(self, i_plot):
-        '''
-        i_plot : int or None
-            Index of the plot (from 0 to N-1 tabs) or None just to update
-        '''
-        if self.core.selected_recording is None:
-            return None
-        
-        if i_plot is None:
-            i_plot = self.tabs.i_current
-
-        fig, ax = self.canvases[i_plot].get_figax()
-
-        if i_plot == 0:
-            self.plotter.ROI(self.canvases[i_plot])
-        else:
-            
-            ax.clear()
-
-            remember_analysis = self.core.analyser.active_analysis
-
-            for analysis in [name for name, state in self.tickbox_analyses.states.items() if state == True]:
-                
-                self.core.analyser.active_analysis = analysis
-
-                if i_plot == 1:
-                    self.plotter.magnitude(ax, **self.displacement_ticks.states)
-                elif i_plot == 2:  
-                    self.plotter.xy(ax, **self.xy_ticks.states) 
-                elif i_plot == 3:
-                    self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
-            
-            self.core.active_analysis = remember_analysis
-
-
-        self.canvases[i_plot].update()
-        
-        self.repetition_selector.update_text()
 
 
     def update_specimen(self, changed_specimens=False):

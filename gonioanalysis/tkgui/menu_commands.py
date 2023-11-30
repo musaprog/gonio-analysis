@@ -27,7 +27,6 @@ from gonioanalysis.drosom import kinematics
 from gonioanalysis.drosom import sinesweep
 from gonioanalysis.drosom import export
 from gonioanalysis.drosom.reports.left_right import left_right_displacements, lrfiles_summarise
-from gonioanalysis.drosom.reports.repeats import mean_repeats, repeat_stds
 from gonioanalysis.drosom.reports.stats import response_magnitudes
 from gonioanalysis.tkgui import settings
 from gonioanalysis.tkgui.run_measurement import MeasurementWindow

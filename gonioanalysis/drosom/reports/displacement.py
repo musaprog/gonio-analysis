@@ -1,3 +1,5 @@
+'''Export displacement timeseries.
+'''
 
 import os
 
@@ -11,10 +13,72 @@ from gonioanalysis.drosom.kinematics import (
 from .left_right import write_CSV_cols
 
 
-SAVEDIR = os.path.join(ANALYSES_SAVEDIR, 'repeats_exports')
+SAVEDIR = os.path.join(ANALYSES_SAVEDIR, 'displacement_exports')
 
 
-def mean_repeats(manalysers, group_name, wanted_imagefolders=None,
+def mean_folder_repeats(manalysers, group_name, wanted_imagefolders=None,
+                        microns=False,
+                        savedir=SAVEDIR):
+    '''Takes the mean of the displacements in an image folder.
+
+    If multiple sampling frequencies or recording lengths are present,
+    splits them into corresponding CSV files.
+    '''
+    
+    traces = {}
+
+    for manalyser in manalysers:
+
+        if wanted_imagefolders:
+            _image_folders = wanted_imagefolders.get(manalyser.name, [])
+        else:
+            _image_folders = manalysers.list_imagefolders()
+
+        for image_folder in _image_folders:
+ 
+            trace = manalyser.get_magnitude_traces(
+                    None, image_folder, mean_repeats=True,
+                    microns=microns)
+            trace = list(trace.values())
+            if len(trace) != 1:
+                raise RuntimeError
+            trace = trace[0]
+            trace = trace.tolist()[0]
+            
+            # Create a key from the sampling freq and amount of points
+            # X-axes are different for these so have to separate
+            fs = manalyser.get_imaging_frequency(image_folder)
+            points = len(trace)
+            key = f'{fs}-{points}'
+
+            if key not in traces:
+                traces[key] = []
+
+            trace.insert(0, image_folder)
+            traces[key].append(trace)
+
+
+    os.makedirs(savedir, exist_ok=True)
+
+    for key, trace in traces.items():
+        fs, points = key.split('-')
+
+        # Create xaxis
+        N = int(points)
+        xaxis = np.linspace(0, N/float(fs), N).tolist()
+        xaxis.insert(0, 'Time (s)')
+        trace.insert(0, xaxis)
+
+        if len(traces) != 1:
+            fn = os.path.join(savedir, f'{group_name}_{fs}Hz_{points}p.csv')
+        else:
+            fn = os.path.join(savedir, f'{group_name}.csv')
+        write_CSV_cols(fn, trace)
+
+
+
+
+def mean_parallel_repeats(manalysers, group_name, wanted_imagefolders=None,
         savedir=SAVEDIR):
     '''
     Here we mean the repeat 1 of all flies together, then
@@ -56,7 +120,7 @@ def mean_repeats(manalysers, group_name, wanted_imagefolders=None,
 
 
 
-def repeat_stds(manalysers, group_name, wanted_imagefolders=None,
+def parallel_repeat_stds(manalysers, group_name, wanted_imagefolders=None,
         savedir=SAVEDIR):
     '''
     Variation within an specimen(s) (not between specimens)

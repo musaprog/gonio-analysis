@@ -8,8 +8,8 @@ from tk_steroids.elements import DropdownList
 from .common import ImagefolderMultisel
 
 from gonioanalysis.drosom.reports.left_right import left_right_displacements, lrfiles_summarise
-from gonioanalysis.drosom.reports.repeats import mean_repeats, repeat_stds
 from gonioanalysis.drosom.reports.stats import response_magnitudes
+import gonioanalysis.drosom.reports as reports
 
 
 class ExportWizard(tk.Frame):
@@ -28,14 +28,14 @@ class ExportWizard(tk.Frame):
         self.multisel = ImagefolderMultisel(self, self.core, self.on_export_click)
         self.multisel.grid(row=3, column=0, columnspan=3, sticky='NSWE')
         
+        self._export_types = reports.export_docstrings.copy()
+
         # Export type
         tk.Label(self, text='Export type').grid(row=1, column=0)
-        self.export_selection = DropdownList(self,
-                ['Mean displacement curve CSV',
-                 'Mean over repeats CSV',
-                 'Stds over repeats CSV',
-                 'Displacement probability TIFF',
-                 'XY trajectory plot'])
+        self.export_selection = DropdownList(
+                self,
+                list(self._export_types.keys()),
+                fancynames=list(self._export_types.values()))
         self.export_selection.grid(row=2, column=0, sticky='WE')
 
         # Save location and name
@@ -69,18 +69,13 @@ class ExportWizard(tk.Frame):
 
         folder = self._folder
         group_name = str(self.name.get())
-
-
-        if 'CSV' in sel:
-            if sel == 'Mean displacement curve CSV':
-                left_right_displacements(analysers, group_name,
-                        wanted_imagefolders=wanted_imagefolders) 
-            elif sel == 'Mean over repeats CSV':
-                mean_repeats(analysers, group_name,
-                        wanted_imagefolders=wanted_imagefolders)
-            elif sel == 'Stds over repeats CSV':
-                repeat_stds(analysers, group_name,
-                        wanted_imagefolders=wanted_imagefolders)
+        
+        if sel in reports.export_functions: 
+            reports.export_functions[sel](
+                    analysers, group_name,
+                    wanted_imagefolders=wanted_imagefolders,
+                    savedir=folder
+                    )
         elif sel == 'Displacement probability TIFF':
             specimens = [';'.join([specimen, *image_folders]) for specimen, image_folders in wanted_imagefolders.items()]
             self.core.adm_subprocess(specimens, '-A magnitude_probability')
@@ -90,4 +85,5 @@ class ExportWizard(tk.Frame):
         else:
             raise ValueError('Invalid export type selection')
 
-
+        # Destroy the popup window 
+        self.tk_parent.destroy()

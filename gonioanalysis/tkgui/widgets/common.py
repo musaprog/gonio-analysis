@@ -142,8 +142,8 @@ class ImagefolderMultisel(tk.Frame):
         self.imagefolders_listbox.grid(row=0, column=1, sticky='NSWE')
 
         self.buttons_frame = ButtonsFrame(self,
-                button_names=['Add', 'Remove', 'Ok'], horizontal=False,
-                button_commands=[self.on_add_press, self.on_remove_press, self.on_ok])
+                button_names=['Add', 'Add all', 'Remove', 'Ok'], horizontal=False,
+                button_commands=[self.on_add_press, self.on_add_all, self.on_remove_press, self.on_ok])
         self.buttons_frame.grid(row=0, column=2)
 
         self.selected_listbox = Listbox(self, [], None)
@@ -159,15 +159,20 @@ class ImagefolderMultisel(tk.Frame):
         self.imagefolders_listbox.set_selections(image_folders)
 
 
-    def on_add_press(self):
-        image_folder = self.imagefolders_listbox.current
+    def on_add_press(self, image_folder=None):
+        if image_folder is None:
+            image_folder = self.imagefolders_listbox.current
+
         if image_folder:
             sel = self.specimens_listbox.current + self._separator + image_folder
             
             selections = self.selected_listbox.selections + [sel]
             self.selected_listbox.set_selections(selections)
-
     
+    def on_add_all(self):
+        for image_folder in self.imagefolders_listbox.selections:
+            self.on_add_press(image_folder)
+
     def on_remove_press(self):
         to_remove = self.selected_listbox.current
         if to_remove:

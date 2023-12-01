@@ -6,10 +6,7 @@ import platform
 
 from gonioanalysis.droso import SpecimenGroups
 from gonioanalysis.directories import CODE_ROOTDIR
-from gonioanalysis.drosom.analysing import MAnalyser
-from gonioanalysis.drosom.orientation_analysis import OAnalyser
-from gonioanalysis.drosom.transmittance_analysis import TAnalyser
-from gonioanalysis.drosom.startpos_analysis import StartposAnalyser
+from gonioanalysis.drosom.analysers import analyser_classes
 from gonioanalysis.directories import ANALYSES_SAVEDIR
 
 
@@ -42,8 +39,8 @@ class Core:
         self.analyser = None
         self.selected_recording = None
         
-        self.analyser_class = MAnalyser
-        self.analyser_classes = [MAnalyser, OAnalyser, TAnalyser, StartposAnalyser]
+        self.analyser_class = analyser_classes['motion']
+        self.analyser_classes = list(analyser_classes.values())
         
         self.active_analysis = None
 
@@ -226,16 +223,10 @@ class Core:
 
         arguments = '-D "{}" -S "{}" {}'.format(' '.join(self.data_directory), specimen_names, terminal_args)
         
-        if self.analyser_class is MAnalyser:
-            pass
-        elif self.analyser_class is OAnalyser:
-            arguments = '--type orientation ' + arguments
-        elif self.analyser_class is TAnalyser:
-            arguments = '--type transmittance ' + arguments
-        elif self.analyser_class is StartposAnalyser:
-            arguments = '--type startposition ' + arguments
-        else:
-            raise NotImplementedError(f'Unkown analyser: {self.analyser_class}')
+        # Add the type option matching the current analyser
+        for key, value in analyser_classes.items():
+            if value is self.analyser_class:
+                arguments = f'--type {key} {arguments}'
 
         command = '{} {} {} &'.format(python, pyfile, arguments)
         

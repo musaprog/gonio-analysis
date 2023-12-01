@@ -88,7 +88,10 @@ class TAnalyser(MAnalyser):
                                 i_frame += 1
                                 print("fn {}: {}/{}".format(os.path.basename(fn), i_frame+1, len(tiff.pages)))
 
-                    intensities[angle].append({'x': ints, 'y':ints})
+                    # X component carries the brightness change information
+                    # Y component is set to zero for compability (in future
+                    #   remove to save disk?)
+                    intensities[angle].append({'x': ints, 'y':[0]*len(ints)})
 
 
         self.movements[eye] = intensities
@@ -102,6 +105,21 @@ class TAnalyser(MAnalyser):
     def is_measured(self):
         fns = [self._movements_savefn.format(eye) for eye in self.eyes]
         return all([os.path.exists(fn) for fn in fns])
+
+
+    def load_analysed_movements(self, *args, **kwargs):
+        super().load_analysed_movements(*args, **kwargs)
+
+        # Nullify the Y component so that X carries the brightness change data.
+        # Otherwise, at get_magnitude traces, when calculating displacement
+        # distance, the data gets multiplied by sqrt(2).
+        #
+        # The same change is done in TAnalyser.measure_movement but this also
+        # fixes previously analysed data without reanalysing.
+        for eye in self.movements:
+            for image_folder, data in self.movements[eye].items():
+                for i_repeat in range(len(data)):
+                    data[i_repeat]['y'] = np.zeros(len(data[i_repeat]['x']))
 
 
     # Here the original MAnalyser method modified so that the presentation

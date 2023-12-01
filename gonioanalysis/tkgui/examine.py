@@ -115,10 +115,10 @@ class ExamineMenubar(tk.Frame):
 class PlotView(tk.Frame):
     '''The plot showing part of the examine view (the old rightside_frame).
     '''
-    def __init__(self, tk_parent, core):
+    def __init__(self, examine, core):
 
-        tk.Frame.__init__(self, tk_parent)
-        self.tk_parent = tk_parent
+        tk.Frame.__init__(self, examine)
+        self.examine = examine
         self.core = core
 
         tab_kwargs = [{}, {}, {}, {'projection': '3d'}]
@@ -168,7 +168,7 @@ class PlotView(tk.Frame):
                 
         # Add buttons for selecting single repeats from a recording
         self.repetition_selector = RepetitionSelector(self, self.plotter, self.core,
-                update_command=lambda: self.on_recording_selection('current'))
+                update_command=lambda: self.examine.on_recording_selection('current'))
         self.repetition_selector.grid(row=1, column=0)
         
 
@@ -200,7 +200,7 @@ class PlotView(tk.Frame):
 
             remember_analysis = self.core.analyser.active_analysis
 
-            for analysis in [name for name, state in self.tk_parent.tickbox_analyses.states.items() if state == True]:
+            for analysis in [name for name, state in self.examine.tickbox_analyses.states.items() if state == True]:
                 
                 self.core.analyser.active_analysis = analysis
 
@@ -230,7 +230,7 @@ class PlotView(tk.Frame):
         
         # Always first clear clipboard; If something goes wrong, the user
         # doesn't want to keep pasting old data thinking it's new.
-        self.root.clipboard_clear()
+        self.examine.root.clipboard_clear()
         
         if self.core.selected_recording is None:
             return None
@@ -259,8 +259,8 @@ class PlotView(tk.Frame):
         for i_frame in range(len(data[0])):
             formatted += '\t'.join([str(data[i_repeat][i_frame]) for i_repeat in range(len(data)) ]) + '\n'
         
-        self.root.clipboard_append(formatted)
-        self.copy_to_csv(formatted)
+        self.examine.root.clipboard_append(formatted)
+        self.examine.copy_to_csv(formatted)
 
 
     def save_view(self):
@@ -278,7 +278,7 @@ class PlotView(tk.Frame):
             formats.insert(0, formats.pop(i))
 
         fn = filedialog.asksaveasfilename(title='Save current view',
-                initialdir=self.last_saveplotter_dir,
+                initialdir=self.examine.last_saveplotter_dir,
                 filetypes=formats)
 
         if fn:

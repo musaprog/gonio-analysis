@@ -145,3 +145,33 @@ class TAnalyser(MAnalyser):
 
         return magnitude_traces
 
+
+
+class RelativeTAnalyser(TAnalyser):
+    '''Transmittance analysis but report relative changes.
+
+    Changes are relative to the 1st frame photon count of each repeat (the
+    1st frame photon count is corrected to be the mean of 2nd and 3rd frames).
+    
+    Uses TAnalyser measurements and vice versa so measuring either with
+    TAnalyser or RelativeTAnalyser makes both measured.
+    '''
+
+    def load_analysed_movements(self, *args, **kwargs):
+        super().load_analysed_movements(*args, **kwargs)
+
+        for eye in self.movements:
+            for image_folder, data in self.movements[eye].items():
+
+                for i_repeat in range(len(data)):
+                    for key in ['x', 'y']:
+                        start_val = np.mean((data[i_repeat][key][1], data[i_repeat][key][2]))
+                        data[i_repeat][key][0] = start_val
+                        if start_val == 0:
+                            continue
+
+                        # Add on top of a big number (1000) so that negative
+                        # changes won't die in the squaring when getting mag
+                        # traces.
+                        data[i_repeat][key] = 1000+(
+                                (np.array(data[i_repeat][key]) - start_val) / start_val)

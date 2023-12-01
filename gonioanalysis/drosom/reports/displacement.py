@@ -69,6 +69,12 @@ def mean_folder_repeats(manalysers, group_name, wanted_imagefolders=None,
         xaxis.insert(0, 'Time (s)')
         trace.insert(0, xaxis)
 
+        # Add the mean trace in the end
+        onlydata = [t[1:] for t in trace[1:]]
+        mean = np.mean(onlydata, axis=0).tolist()
+        mean.insert(0, 'Mean')
+        trace.append(mean)
+
         if len(traces) != 1:
             fn = os.path.join(savedir, f'{group_name}_{fs}Hz_{points}p.csv')
         else:

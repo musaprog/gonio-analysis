@@ -54,7 +54,7 @@ def mean_folder_repeats(manalysers, group_name, wanted_imagefolders=None,
             if key not in traces:
                 traces[key] = []
 
-            trace.insert(0, image_folder)
+            trace.insert(0, f'{manalyser.name};{image_folder}')
             traces[key].append(trace)
 
 

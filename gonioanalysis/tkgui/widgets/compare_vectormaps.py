@@ -20,7 +20,7 @@ from gonioanalysis.drosom.plotting.basics import (
         plot_3d_vectormap,
         plot_3d_differencemap,
         )
-
+from .common import select_specimens
 
 
 class RotationButtons(tk.Frame):

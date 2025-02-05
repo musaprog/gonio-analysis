@@ -263,13 +263,15 @@ class MAnalyser(AnalyserBase):
         names = []
 
         for fn in fns:
-            secondlast, last = fn.split('.')[0].split('_')[-2:]
+            # Remove ".json" file ending and split along "_"
+            secondlast, last = fn.removesuffix('.json').split('_')[-2:]
             
-            if fn.split('.')[0].split('_')[-1] in self.eyes:
+            if last in self.eyes:
+                # Last is the eye (default "noname" analysis)
                 names.append('default')
             else:
-                analysis = fn.split(self.eyes[0])[1].split('.')[0].removeprefix('_')
-                names.append(analysis)
+                # Last is the name of the analysis
+                names.append(last)
 
         return names
 

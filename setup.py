@@ -13,7 +13,7 @@ install_requires = [
         'matplotlib',
         'tk-steroids>=0.8.0',
         'roimarker>=0.2.1',
-        'movemeter>=0.7.1',
+        'movemeter>=0.7.2',
         'python-biosystfiles',
         ]
 

@@ -1,6 +1,6 @@
 <h1>GonioAnalysis - A goniometric analysis program</h1>
-Gonio Analysis is a specialised spatial motion analysis software,
-mainly for GonioImsoft's data.
+GonioAnalysis is a specialised spatial motion analysis software.
+It is targeted mainly to analyse data produced by GonioImsoft.
 
 In general, GonioAnalysis can be used for data following the hierarchy
 ```
@@ -13,35 +13,14 @@ data_directory
 └── ...
 ```
 
-but special (GonioImsoft) naming scheme is needed for some functionality.
 Tiff files or stacks are the preferred image format.
-
-*WARNING!* GonioAnalysis is still in early development!
 
 
 <h2>Installing</h2>
 
-Two installation methods are supported:
+Installing with the pip command is recommended.
 
-- The stand-alone installer (Windows only)
-- Python packaging (all platforms)
-
-
-<h3>Installer on Windows (easiest)</h3>
-
-A Windows installer bundles together the Gonio Analysis suite and all its depencies,
-including a complete Python runtime. It is ideal for users not having Python installed before.
-
-The installer can be found at
-[Releases](https://github.com/jkemppainen/gonio-analysis/releases).
-
-The installer creates a start menu shorcut called <em>Gonio Analysis</em>,
-which can be used to launch the program.
-
-To uninstall the program, use the Windows <em>Add or Remove programs</em>.
-
-
-<h3>Using pip (the python standard way)</h3>
+<h3>Option A: Using the pip-command</h3>
 
 The latest version from [PyPi](https://pypi.org/) can be installed with the command
 
@@ -52,8 +31,10 @@ pip install gonio-analysis
 This should install all the required dependencies. On Windows, OpenCV may require
 [Visual C++ Runtime 2015](https://www.microsoft.com/download/details.aspx?id=48145) to be installed.
 
-Some Linux distributions have separated tkinter (Python interface to the Tcl/Tk GUI toolkit) and pillow's
-ImageTk module their own packages that are not installed by default. Please make sure to have them installed.
+Some Linux distributions have separated tkinter
+(Python's interface to the Tcl/Tk GUI toolkit) and pillow's
+ImageTk module their own packages that are not installed by default.
+Please make sure to have them installed from your package manager.
 
 ```
 # Example on Debian/Ubuntu/Mint/...
@@ -65,7 +46,6 @@ Launch the program by
 ```
 python -m gonioanalysis.tkgui
 ```
-
 
 <h4>Managing versions using pip</h4>
 
@@ -80,6 +60,24 @@ Downgrade to a selected version
 ```
 pip install gonio-analysis==0.1.2
 ```
+
+
+<h3>Option B: Installer on Windows</h3>
+
+*There are currently some technical issues providing the installer
+for recent Gonio Analysis versions. Please consider using
+the pip command instead, as instructed above.*
+
+A Windows installer bundles together the Gonio Analysis suite and all its depencies, including a complete Python runtime. It is ideal for users not having Python installed.
+
+The installer can be found at
+[Releases](https://github.com/jkemppainen/gonio-analysis/releases).
+
+The installer creates a start menu shorcut called <em>Gonio Analysis</em>,
+which can be used to launch the program.
+
+To uninstall the program, use the Windows <em>Add or Remove programs</em>.
+
 
 
 <h2>Usage instructions</h2>
@@ -119,10 +117,3 @@ For more information, please see
 our [GHS-DPP methods @ Communications Biology](https://www.nature.com/articles/s42003-022-03142-0),
 or visit
 [the lab's website](https://cognition.group.shef.ac.uk/).
-
-Currently, it is maintained
-the original developer [jkemppainen](https://github.com/jkemppainen).
-Future efforts are mainly targeted towards ease-of-use
-(UI redesign/cleaning, exposing settings, documentation),
-bug-clearing (especially with non-GonioImsoft data)
-and performance (cross-correlation analysis).

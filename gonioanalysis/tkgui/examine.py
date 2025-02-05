@@ -585,7 +585,7 @@ class ExamineView(tk.Frame):
         self.tickbox_analyses.destroy()
         self.tickbox_analyses = TickboxFrame(self.specimen_control_frame, self.core.analyser.list_analyses(),
                 defaults=[self.core.analyser.active_analysis == an for an in self.core.analyser.list_analyses()],
-                ncols=4, callback=lambda: self.update_plot(None))
+                ncols=4, callback=lambda: self.plot_view.update_plot(None))
         self.tickbox_analyses.grid(row=5, column=0, sticky='W')
 
         self.button_rois.config(state=tk.NORMAL)

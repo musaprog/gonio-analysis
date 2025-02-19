@@ -268,8 +268,12 @@ class RepetitionSelector(tk.Frame):
         if self.plotter.i_repeat == None:
             pass
         else:
-            self.core.analyser.mark_bad(im_folder, self.plotter.i_repeat)
+            self.core.analyser.mark_bad(
+                    im_folder, self.plotter.i_repeat,
+                    i_is_relative=True)
         
+        self.move_selection(0)
+
 
     def move_selection(self, direction):
         '''

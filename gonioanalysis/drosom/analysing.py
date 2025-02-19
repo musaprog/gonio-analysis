@@ -287,19 +287,53 @@ class MAnalyser(AnalyserBase):
             json.dump(data, fp)
 
 
-    def mark_bad(self, image_folder, i_repeat):
+    def mark_bad(self, image_folder, i_repeat, i_is_relative=True):
         '''
         Marks image folder and repeat to be bad and excluded
         when loading movements.
+        
+        Arguments
+        ---------
+        i_repeat : int or string
+            The index of the repeat or "all".
+        i_is_relative : bool
+            If True, i_repeat is relative to what has been previously
+            marked bad. If False, then i_repeat is the actual
+            index of the repeat.
 
-        i_repeat : int or 'all'
+            For example: consider repeats [0,1,2,3,4,5]
+            Consider 4 has been previously marked bad, then the user
+            sees the repeats [0,1,2,3,5].
+            The task is to mark 5 bad.
+            If i_is_relative==False, then i_repeat=5 to mark 5 bad
+            If i_is_relative==True, then i_repeat=4 to mark 5 bad
         '''
         
         if self.imagefolder_skiplist.get(image_folder, None) is None:
             self.imagefolder_skiplist[image_folder] = []
-
-        self.imagefolder_skiplist[image_folder].append(i_repeat)
         
+        # Skiplist of this image_folder
+        skiplist = set(self.imagefolder_skiplist[image_folder])
+
+        print(skiplist)
+        if i_is_relative and i_repeat != 'all':
+            # Inefficient algo if the repeat count is millions or
+            # something crazy but not important
+            N = self.get_movements_from_folder(image_folder)
+            N = max([len(N.get(eye,[])) for eye in self.eyes]) + len(skiplist)
+            nonexcluded = [i for i in range(N) if i not in skiplist]
+
+            original = i_repeat
+            i_repeat = nonexcluded[i_repeat]
+
+            print(f'Mark bad: {image_folder} abs-i {i_repeat} (rel-i {original})')
+        else:
+            print(f'Mark bad: {image_folder} abs-i {i_repeat}')
+
+        skiplist.add(i_repeat)
+        self.imagefolder_skiplist[image_folder] = list(skiplist)
+         
+        # Save the complete skiplist on disk
         with open(self._skiplist_savefn, 'w') as fp:
             json.dump(self.imagefolder_skiplist, fp)
 

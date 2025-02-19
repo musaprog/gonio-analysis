@@ -52,7 +52,10 @@ from gonioanalysis.drosom.plotting.basics import (
 from gonioanalysis.drosom.analyser_commands import ANALYSER_CMDS
 from gonioanalysis.tkgui.core import Core
 from gonioanalysis.tkgui.plotting import RecordingPlotter
-from gonioanalysis.tkgui.widgets import RepetitionSelector
+from gonioanalysis.tkgui.widgets import (
+        RepetitionSelector,
+        SetPlotlimits,
+        )
 
 from gonioanalysis.tkgui.menu_commands import (
         ModifiedMenuMaker,
@@ -138,12 +141,17 @@ class PlotView(tk.Frame):
         self.canvases = self.tabs.get_elements()
         
         # Controls for displacement plot (means etc)
+        self.displacement_limits = SetPlotlimits(
+                self.canvases[1], self.canvases[1].ax)
+        self.displacement_limits.grid()
+
         displacementplot_options, displacementplot_defaults = inspect_booleans(
                 plot_1d_magnitude, exclude_keywords=['mean_imagefolders'])
         self.displacement_ticks = TickboxFrame(self.canvases[1], displacementplot_options,
                 defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
         self.displacement_ticks.grid()
 
+        # XY Plot
         xyplot_options, xyplot_defaults = inspect_booleans(
                 plot_xy_trajectory)
         self.xy_ticks = TickboxFrame(self.canvases[2], xyplot_options,
@@ -206,6 +214,7 @@ class PlotView(tk.Frame):
 
                 if i_plot == 1:
                     self.plotter.magnitude(ax, **self.displacement_ticks.states)
+                    self.displacement_limits.apply()
                 elif i_plot == 2:  
                     self.plotter.xy(ax, **self.xy_ticks.states) 
                 elif i_plot == 3:
@@ -615,8 +624,6 @@ class ExamineView(tk.Frame):
 
         # Plotting only the view we have currently open
         self.plot_view.update_plot()
-        
-
 
 
     def update_specimen(self, changed_specimens=False):

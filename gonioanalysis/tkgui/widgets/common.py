@@ -310,3 +310,60 @@ class RepetitionSelector(tk.Frame):
 
 
 
+class SetPlotlimits(tk.Frame):
+    '''Configure matplotlib XY plot options
+    '''
+
+    def __init__(self, tk_parent, ax):
+        tk.Frame.__init__(self, tk_parent)
+        
+        self.ax = ax
+        self.parent = tk_parent
+
+        self.inputs = []
+        for icol, limit in enumerate(['x0', 'x1', 'y0', 'y1']):
+            label = tk.Label(self, text=limit)
+            label.grid(row=0, column=icol*2)
+            text = tk.Text(self, height=1, width=8)
+            text.grid(row=0, column=icol*2+1)
+            self.inputs.append(text)
+
+        self.apply_button = tk.Button(
+                self, text='Apply', command=self.apply)
+        self.apply_button.grid(row=0, column=icol*2+2)
+        
+        self.apply_button = tk.Button(
+                self, text='Clear', command=self.clear)
+        self.apply_button.grid(row=0, column=icol*2+3)
+        
+
+    def apply(self, values=None):
+
+        if values is None:
+            values = []
+            for text in self.inputs:
+                value = text.get('1.0', 'end')
+
+                try:
+                    value = float(value)
+                except:
+                    value = None
+                
+                if value != 0 and not value:
+                    value = None
+
+                values.append(value)
+        
+        x0,x1,y0,y1 = values
+        self.ax.set_xlim(x0, x1)
+        self.ax.set_ylim(y0, y1)
+        
+        self.parent.update()
+
+    def clear(self):
+        for text in self.inputs:
+            text.delete('1.0', 'end')
+        
+        self.ax.autoscale()
+        self.parent.update()
+

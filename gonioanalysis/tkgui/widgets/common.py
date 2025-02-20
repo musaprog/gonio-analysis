@@ -312,6 +312,11 @@ class RepetitionSelector(tk.Frame):
 
 class SetPlotlimits(tk.Frame):
     '''Configure matplotlib XY plot options
+    
+    Attributes
+    ----------
+    parent : tk.Frame
+        The CanvasPlotter object from the tk-steroids package.
     '''
 
     def __init__(self, tk_parent, ax):
@@ -335,6 +340,10 @@ class SetPlotlimits(tk.Frame):
         self.apply_button = tk.Button(
                 self, text='Clear', command=self.clear)
         self.apply_button.grid(row=0, column=icol*2+3)
+        
+        self.toolbar_button = tk.Button(
+                self, text='Show controls', command=self.toggle_toolbar)
+        self.toolbar_button.grid(row=0, column=icol*2+4)
         
 
     def apply(self, values=None):
@@ -367,3 +376,10 @@ class SetPlotlimits(tk.Frame):
         self.ax.autoscale()
         self.parent.update()
 
+    def toggle_toolbar(self):
+        newstate = not self.parent._toolbar_visible
+        self.parent.set_toolbar_visibility(newstate)
+        if newstate:
+            self.toolbar_button.config(text='Hide controls')
+        else:
+            self.toolbar_button.config(text='Show controls')

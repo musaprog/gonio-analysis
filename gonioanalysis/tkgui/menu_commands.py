@@ -15,6 +15,7 @@ import tkinter.messagebox as messagebox
 import tkinter.filedialog as filedialog
 import tkinter.simpledialog as simpledialog
 
+from tk_steroids.elements import TickboxFrame
 from tk_steroids.dialogs import popup_tickselect, popup
 from tk_steroids.menumaker import MenuMaker
 from tk_steroids.datamanager import ListManager
@@ -243,6 +244,7 @@ class SpecimenCommands(ModifiedMenuMaker):
         return ['set_active_analysis',
                 'set_vector_rotation_offset',
                 'set_vertical_zero_rotation',
+                'set_yaw_rotation',
                 '.',
                 'select_ROIs',
                 'measure_movement',
@@ -357,6 +359,52 @@ class SpecimenCommands(ModifiedMenuMaker):
                     callback=callback)
             self.correct_frame.grid(sticky='NSEW')
 
+
+    def set_yaw_rotation(self):
+        # Try to close and destroy if any other antenna_level
+        # windows are open (by accident)
+        try:
+            self.yaw_window.destroy()
+        except:
+            # Nothing to destroy
+            pass
+        
+        if not self.core.current_specimen:
+            self._message("nospecimen")
+        else:
+            
+            self.yaw_window = tk.Toplevel()
+            self.yaw_window.title(f'Yaw rotation set -  {self.core.current_specimen}')
+            self.yaw_window.grid_columnconfigure(0, weight=1)
+            self.yaw_window.grid_rowconfigure(0, weight=1)
+
+            def on_yaw():
+                
+                yaw = self.yaw_frame.ticked[0]
+                self.core.analyser.attributes['yaw'] = int(yaw)
+                self.core.analyser.save_attributes()
+
+                self.yaw_window.destroy()
+                self.core.update_gui()
+
+            yaws = ['-90','0','90']
+            yaw = str(self.core.analyser.attributes['yaw'])
+            defaults = [False,False,False]
+            defaults[yaws.index(yaw)] = True
+
+            self.yaw_frame = TickboxFrame(
+                    self.yaw_window, yaws, defaults=defaults,
+                    single_select=True)
+            self.yaw_frame.grid(
+                    row=0, column=0, columnspan=2,
+                    sticky='NSEW')
+            
+            ok = tk.Button(self.yaw_window, text='Ok', command=on_yaw)
+            ok.grid(row=1, column=1)
+            
+            cancel = tk.Button(self.yaw_window, text='Cancel',
+                               command=self.yaw_window.destroy)
+            cancel.grid(row=1, column=0)
 
     def vectormap_DASH_interactive_plot(self):
         self.core.adm_subprocess('current', '-A vectormap')

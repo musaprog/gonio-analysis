@@ -191,12 +191,36 @@ def force_to_tplane(P0, P1, radius=1):
 #def projection_to_tplane(P)
 
 
+def yaw_correct(point, yaw, horizontal, vertical):
+    '''Transform yaw
+
+    Only special cases yaw == 90, yaw==0 or yaw == -90 are implemented.
+    Free case scenarios may require extra information about the
+    rotation zero positions
+
+    Arguments
+    ---------
+    yaw : float or int
+        Rotation of the specimen along its yaw (ie. longitudal rotation)
+    '''
+    if yaw in [90, 0, -90]:
+        return rotate_along_arbitrary(
+                np.array((0,1,0)), np.array(point), radians(yaw))
+    
+    raise NotImplementedError(f"Yaw {yaw} not supported (only -90,0,90)")
+
+
 def camera2Fly(horizontal, vertical, radius=1):
     '''
     With the given goniometer positions, calculates camera's position
     in fly's cartesian coordinate system.
     
     Input in degrees
+
+    Arguments
+    ---------
+    horizontal, vertical : float
+        Rotation of the two rotation stages, in degrees
     '''
     #print('Horizontal {}'.format(horizontal))
     #print('Vertical {}'.format(vertical))
@@ -224,7 +248,6 @@ def camera2Fly(horizontal, vertical, radius=1):
     looped = int(h / (2*pi))
     if not 0 < (h - 2*pi*looped ) < pi:
         x = -x
-
 
     return x, y, z
 

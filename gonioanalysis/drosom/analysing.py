@@ -15,6 +15,7 @@ from gonioanalysis.drosom.loading import load_data, angles_from_fn, arange_fns
 from gonioanalysis.coordinates import (
         camera2Fly,
         camvec2Fly,
+        yaw_correct,
         rotate_about_x,
         nearest_neighbour,
         mean_vector,
@@ -146,6 +147,12 @@ class MAnalyser(AnalyserBase):
         self.manalysers = [self]
         self.eyes = ("left", "right")
         self.vector_rotation = None
+
+        # Default yaw==0 when the specimen faces towards the
+        # camera (its left and right sides are equally exposed to the cam)
+        self.attributes = {
+                'yaw': 0,
+                }
         
         # Different file or folder paths
         self._rois_skelefn = 'rois_{}{}.json' # specimen_name active_analysis
@@ -154,7 +161,10 @@ class MAnalyser(AnalyserBase):
         self._crops_savefn = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._rois_skelefn.format(folder, ''))
         self._movements_savefn = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, self._movements_skelefn.format(folder, '{}', ''))
         self._link_savedir= os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'linked_data')
-        
+
+        # Save attributes like antenna level correction, yaw
+        self._attributes_savefn = os.path.join(PROCESSING_TEMPDIR, 'MAnalyser_data', folder, 'attributes.json')
+
         
         # Load some things
         if no_data_load == False:
@@ -164,6 +174,10 @@ class MAnalyser(AnalyserBase):
                 with open(self._skiplist_savefn, 'r') as fp:
                     self.imagefolder_skiplist = json.load(fp)
             
+            if os.path.isfile(self._attributes_savefn):
+                attributes = self.file_load(self._attributes_savefn)
+                self.attributes = {**self.attributes, **attributes}
+
             self.antenna_level_correction = self._getAntennaLevelCorrection(folder)
 
             self.load_linked_data()
@@ -277,14 +291,22 @@ class MAnalyser(AnalyserBase):
 
 
     def __fileOpen(self, fn):
+        return self.file_load(fn)
+
+    def __fileSave(self, fn, data):
+        return self.file_save(fn, data)
+
+    def file_load(self, fn):
         with open(fn, 'r') as fp:
             data = json.load(fp)
         return data
-
     
-    def __fileSave(self, fn, data):
+    def file_save(self, fn, data):
         with open(fn, 'w') as fp:
             json.dump(data, fp)
+ 
+    def save_attributes(self): 
+        self.file_save(self._attributes_savefn, self.attributes)
 
 
     def mark_bad(self, image_folder, i_repeat, i_is_relative=True):
@@ -531,7 +553,7 @@ class MAnalyser(AnalyserBase):
         
         return antenna_level_offset
 
-
+    
     def _correctAntennaLevel(self, angles):
         '''
         angles  In degrees, tuples, (horizontal, pitch)
@@ -1398,6 +1420,15 @@ class MAnalyser(AnalyserBase):
             point0 = camera2Fly(horizontal, pitch)
             point1 = camvec2Fly(x, y, horizontal, pitch, normalize=normalize_length)
             
+            yaw = self.attributes['yaw']
+            if yaw != 0:
+                point0 = yaw_correct(
+                        point0, yaw, horizontal, pitch)
+                point1 = yaw_correct(
+                        point1, yaw, horizontal, pitch)
+
+
+
             if correct_level:
                 rotation = -self.antenna_level_correction
                 point0 = rotate_about_x(point0, rotation)

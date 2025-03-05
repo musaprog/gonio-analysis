@@ -8,7 +8,7 @@ from gonioanalysis.droso import SpecimenGroups
 from gonioanalysis.directories import CODE_ROOTDIR
 from gonioanalysis.drosom.analysers import analyser_classes
 from gonioanalysis.directories import ANALYSES_SAVEDIR
-
+from gonioanalysis.drosom.virtual_analyser import VirtualAnalyser
 
 class Core:
     '''
@@ -48,6 +48,16 @@ class Core:
 
         self.groups = SpecimenGroups()
 
+        self.virtual_analysers = []
+
+    
+    def create_virtual_analyser(self, name, specimen_names):
+    
+        analysers = self.get_manalysers(specimen_names)
+        virt = VirtualAnalyser(name, analysers)
+        self.virtual_analysers.append(virt)
+
+        self.update_gui(changed_specimens=True)
 
     def set_data_directory(self, data_directory):
         '''
@@ -103,6 +113,7 @@ class Core:
 
         '''
         specimens = []
+        
         for data_directory in self.data_directory:
             specimens.extend( [fn for fn in os.listdir(data_directory) if os.path.isdir(os.path.join(data_directory, fn))] )
         
@@ -114,6 +125,9 @@ class Core:
         
         if with_correction is not None:
             specimens = [specimen for specimen in specimens if self.get_manalyser(specimen, no_data_load=True).get_antenna_level_correction() is not False]
+
+        for virt in self.virtual_analysers:
+            specimens.insert(0, virt.name)
 
         return sorted(specimens)
     
@@ -147,6 +161,14 @@ class Core:
         '''
         Gets manalyser for the specimen specified by the given name.
         '''
+        # Special Case. Virtual analysers are always of the virtual
+        # analyser class, no matter what analyser selected
+        virtnames = [virt.name for virt in self.virtual_analysers]
+        if specimen_name in virtnames:
+            return self.virtual_analysers[virtnames.index(specimen_name)]
+        
+        # Normal case under, nonvirtual analyser
+
         for directory in self.data_directory:
             if specimen_name in self._folders[directory]:
                 break

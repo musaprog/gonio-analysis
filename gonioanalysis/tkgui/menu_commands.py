@@ -105,6 +105,8 @@ class FileCommands(ModifiedMenuMaker):
         menu = ['set_data_directory',
                 'add_data_directory',
                 '.',
+                'create_virtual_analyser',
+                '.',
                 'settings',
                 '.',
                 'exit']
@@ -147,7 +149,14 @@ class FileCommands(ModifiedMenuMaker):
         '''
         self.set_data_directory(append=True)
 
+
+    def create_virtual_analyser(self):
+        
+        def create_virt(specimens):
+            self.core.create_virtual_analyser('VirtTest', specimens)
     
+        select_specimens(self.core, create_virt, with_movements=True)
+
     def settings(self):
         pass
 

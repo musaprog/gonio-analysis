@@ -495,27 +495,51 @@ class MAnalyser(AnalyserBase):
     def get_specimen_directory(self):
         return os.path.join(self.data_path, self.folder)
 
-    
-    def list_images(self, image_folder, absolute_path=False):
+   
+    def get_N_repeats(self, image_folder):
+        '''Returns how many repeats are there in the image folder
+        
+        Arguments
+        ---------
+        image_folder : str
+            Name of the image folder with the pos prefix
         '''
-        List all image filenames in an image folder
+        folder = image_folder.removeprefix('pos')
+        return len(self.stacks[folder])
+
+
+    def list_images(self, image_folder, i_repeat=None,
+                    absolute_path=False):
+        '''List all image filenames in an image folder
         
         FIXME: Alphabetical order not right because no zero padding
         
-        image_folder        Name of the image folder
-        absolute_path       If true, return filenames with absolute path instead of relative
+        Arguments
+        ---------
+        image_folder : str
+            Name of the image folder with the pos prefix
+        i_repeat : int or None
+            If None, return all images.
+        absolute_path : bool
+            If true, return filenames with absolute path instead of
+            relative
 
         '''
 
-        #fns = [fn for fn in os.listdir(os.path.join(self.data_path, self.folder, image_folder)) if fn.endswith('.tiff') or fn.endswith('.tif')]
-        #fns = arange_fns(fns)
-        #if absolute_path:
-        #    fns = [os.path.join(self.data_path, self.folder, image_folder, fn) for fn in fns]
-        
         fns = []
-        # Flatten out the i_repeat structure
-        for repetitions_images in self.stacks[image_folder.removeprefix('pos')]:
-            fns.extend(repetitions_images)
+        
+        folder = image_folder.removeprefix('pos')
+
+        if i_repeat is None:
+            # Flatten out the i_repeat structure
+            for ims in self.stacks[folder]:
+                fns.extend(ims)
+
+        elif isinstance(i_repeat, int):
+            fns.extend(self.stacks[folder][i_repeat])
+        else:
+            raise TypeError(
+                    f"i_repeat has to be int or None, got {i_repeat}")
 
         if not absolute_path:
             fns = [os.path.basename(fn) for fn in fns]

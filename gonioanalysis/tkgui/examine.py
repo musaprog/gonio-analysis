@@ -37,7 +37,7 @@ from tk_steroids.elements import (
         ColorExplanation,
         TickboxFrame
         )
-from tk_steroids.matplotlib import CanvasPlotter
+from tk_steroids.matplotlib import CanvasPlotter, SequenceImshow
 
 from gonioanalysis import __version__
 from gonioanalysis.directories import PROCESSING_TEMPDIR, GONIODIR
@@ -124,9 +124,14 @@ class PlotView(tk.Frame):
         self.examine = examine
         self.core = core
 
-        tab_kwargs = [{}, {}, {}, {'projection': '3d'}]
-        tab_names = ['ROI', 'Displacement', 'XY', '3D']
-        canvas_constructors = [lambda parent, kwargs=kwargs: CanvasPlotter(parent, visibility_button=False, **kwargs) for kwargs in tab_kwargs]
+        tab_kwargs = [{}, {}, {}, {}, {'projection': '3d'}]
+        tab_names = ['ROI', 'Images', 'Displacement', 'XY', '3D']
+        classes = [CanvasPlotter, SequenceImshow, CanvasPlotter, CanvasPlotter, CanvasPlotter]
+        canvas_constructors = []
+        for clas, kwargs in zip(classes, tab_kwargs):
+            con = lambda parent, cl=clas, kwargs=kwargs: cl(parent, visibility_button=False, **kwargs)
+            canvas_constructors.append(con)
+
         self.tabs = Tabs(self, tab_names, canvas_constructors,
                 on_select_callback=self.update_plot)
         
@@ -142,19 +147,19 @@ class PlotView(tk.Frame):
         
         # Controls for displacement plot (means etc)
         self.displacement_limits = SetPlotlimits(
-                self.canvases[1], self.canvases[1].ax)
+                self.canvases[2], self.canvases[2].ax)
         self.displacement_limits.grid()
 
         displacementplot_options, displacementplot_defaults = inspect_booleans(
                 plot_1d_magnitude, exclude_keywords=['mean_imagefolders'])
-        self.displacement_ticks = TickboxFrame(self.canvases[1], displacementplot_options,
+        self.displacement_ticks = TickboxFrame(self.canvases[2], displacementplot_options,
                 defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
         self.displacement_ticks.grid()
 
         # XY Plot
         xyplot_options, xyplot_defaults = inspect_booleans(
                 plot_xy_trajectory)
-        self.xy_ticks = TickboxFrame(self.canvases[2], xyplot_options,
+        self.xy_ticks = TickboxFrame(self.canvases[3], xyplot_options,
                 defaults=xyplot_defaults, callback=lambda:self.update_plot(2))
         self.xy_ticks.grid()
 
@@ -164,11 +169,11 @@ class PlotView(tk.Frame):
         # Controls for displacement plot (means etc)
         vectorplot_options, vectorplot_defaults = inspect_booleans(
                 plot_3d_vectormap, exclude_keywords=[])
-        self.vectorplot_ticks = TickboxFrame(self.canvases[3], vectorplot_options,
+        self.vectorplot_ticks = TickboxFrame(self.canvases[4], vectorplot_options,
                 defaults=vectorplot_defaults, callback=lambda:self.update_plot(3))
         self.vectorplot_ticks.grid()
         
-        tk.Button(self.canvases[3], text='Save animation', command=self.save_3d_animation).grid()
+        tk.Button(self.canvases[4], text='Save animation', command=self.save_3d_animation).grid()
 
 
 
@@ -202,6 +207,8 @@ class PlotView(tk.Frame):
 
         if i_plot == 0:
             self.plotter.ROI(self.canvases[i_plot])
+        elif i_plot == 1:
+            self.plotter.imshow(self.canvases[i_plot])
         else:
             
             ax.clear()
@@ -212,12 +219,12 @@ class PlotView(tk.Frame):
                 
                 self.core.analyser.active_analysis = analysis
 
-                if i_plot == 1:
+                if i_plot == 2:
                     self.plotter.magnitude(ax, **self.displacement_ticks.states)
                     self.displacement_limits.apply()
-                elif i_plot == 2:  
+                elif i_plot == 3:  
                     self.plotter.xy(ax, **self.xy_ticks.states) 
-                elif i_plot == 3:
+                elif i_plot == 4:
                     self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
             
             self.core.active_analysis = remember_analysis

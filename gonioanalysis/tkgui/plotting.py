@@ -10,6 +10,8 @@ import tifffile
 
 from tk_steroids.matplotlib import CanvasPlotter
 
+from movemeter.stacks import stackread
+
 from gonioanalysis.drosom.plotting.basics import (
         plot_1d_magnitude,
         plot_xy_trajectory,
@@ -109,7 +111,38 @@ class RecordingPlotter:
                 ax=ax,
                 **kwargs)
 
-    
+    def imshow(self, sequence_imshow):
+        '''Show images on a slider
+
+        Arguments
+        ---------
+        sequence_imshow : SequenceImshow
+            From tksteroids matplotlib
+        '''
+        self._check_recording(skip_datafetch=True)
+
+        self.N_repeats = self.core.analyser.get_N_repeats(
+                self.selected_recording)
+        
+        if self.i_repeat:
+            i_repeat = self.i_repeat
+        else:
+            i_repeat = 0
+ 
+        image_fns = self.core.analyser.list_images(
+                self.selected_recording, i_repeat=i_repeat,
+                absolute_path=True)
+        
+        # FIXME: Reading all in memory wont work with huge data
+        if len(image_fns) == 1:
+            # Stack
+            images = [im[::2,::2] for im in stackread(image_fns[0])]
+        else:
+            # Separate images
+            images = [stackread(fn)[0][::2,::2] for fn in image_fns]
+        sequence_imshow.imshow(images, cmap='gray', slider=True)
+
+
     def ROI(self, canvas_plotter):
         '''
         Plot specimen/recording image, and the ROIs and imaging parameters on top of it.

@@ -89,6 +89,40 @@ class AnalyserBase:
         self.va_limits = va_limits
         self.alimits_reverse = reverse
 
+    def __fileOpen(self, fn):
+        return self.file_load(fn)
+
+    def __fileSave(self, fn, data):
+        return self.file_save(fn, data)
+
+    def file_load(self, fn):
+        with open(fn, 'r') as fp:
+            data = json.load(fp)
+        return data
+    
+    def file_save(self, fn, data):
+        with open(fn, 'w') as fp:
+            json.dump(data, fp)
+    
+    def get_imagefolder(self, image_fn):
+        '''Gets the image containing folder (for example, /a/b/c/image -> c).
+
+        Arguments
+        ---------
+        image_fn : string
+            Full path to the image.
+        '''
+        return os.path.split(os.path.dirname(image_fn))[1]
+ 
+
+    def get_rotstep_size(self):
+        '''
+        Returns how many degrees one rotation encoder step was
+        (the return value * steps == rotation in degrees)
+        '''
+        return 360/DEFAULT_STEPS_PER_REVOLUTION
+
+
 
 
 class MAnalyser(AnalyserBase):
@@ -290,21 +324,7 @@ class MAnalyser(AnalyserBase):
         return names
 
 
-    def __fileOpen(self, fn):
-        return self.file_load(fn)
 
-    def __fileSave(self, fn, data):
-        return self.file_save(fn, data)
-
-    def file_load(self, fn):
-        with open(fn, 'r') as fp:
-            data = json.load(fp)
-        return data
-    
-    def file_save(self, fn, data):
-        with open(fn, 'w') as fp:
-            json.dump(data, fp)
- 
     def save_attributes(self): 
         self.file_save(self._attributes_savefn, self.attributes)
 
@@ -552,18 +572,7 @@ class MAnalyser(AnalyserBase):
         Return the name of the data (droso) folder, such as DrosoM42
         '''              
         return self.folder
-  
-
-    def get_imagefolder(self, image_fn):
-        '''Gets the image containing folder (for example, /a/b/c/image -> c).
-
-        Arguments
-        ---------
-        image_fn : string
-            Full path to the image.
-        '''
-        return os.path.split(os.path.dirname(image_fn))[1]
-    
+   
     
     @staticmethod
     def _getAntennaLevelCorrection(fly_name): 
@@ -713,14 +722,6 @@ class MAnalyser(AnalyserBase):
         # 0.8 µm in the images 979 pixels 
         return 1/1.22376
     
-
-    def get_rotstep_size(self):
-        '''
-        Returns how many degrees one rotation encoder step was
-        (the return value * steps == rotation in degrees)
-        '''
-        return 360/DEFAULT_STEPS_PER_REVOLUTION
-
 
     def get_snap_fn(self, i_snap=0, absolute_path=True):
         '''

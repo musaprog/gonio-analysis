@@ -33,6 +33,7 @@ class VirtualAnalyser(AnalyserBase):
         super().__init__()
 
         self.name = name
+        self.folder = name
 
         self.analysers = analysers
         self.eyes = analysers[0].eyes
@@ -59,28 +60,18 @@ class VirtualAnalyser(AnalyserBase):
                 analyses.append(analysis)
         return analyses
     
-    def load_ROIs(self):
-        for an in self.analysers:
-            an.load_ROIs()
+    def save_attributes(self):
+        pass
 
+    def mark_bad(self, image_folder, i_repeat, i_is_relative=True):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].mark_bad(
+                folder, i_repeat, i_is_relative=i_is_relative)
+
+    # List rotations is missing, not sure how to handle this
+    # and if it would be better to remove list_rotations alltogether
+    #def list_rotations(self)
     
-
-    def are_rois_selected(self, *args, **kwargs):
-        selected = [an.are_rois_selected() for an in self.analysers]
-        return all(selected)
-
-    def is_measured(self, *args, **kwargs):
-        measured = [an.is_measured() for an in self.analysers]
-        return all(measured)
-
-    def load_analysed_movements(self, *args, **kwargs):
-        for an in self.analysers:
-            an.load_analysed_movements(*args, **kwargs)
-
-    def get_recording_time(image_folder, i_rep=0):
-        return None
-
-
     def list_imagefolders(self, *args, **kwargs):
         folders = []
         for i_an, an in enumerate(self.analysers):
@@ -93,6 +84,73 @@ class VirtualAnalyser(AnalyserBase):
         
         return folders
 
+    def get_horizontal_vertical(self, image_folder, *args, **kwargs):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].get_horizontal_vertical(
+                folder, *args, **kwargs)
+
+    def get_specimen_directory(self):
+        '''Returns a list of the directories
+        '''
+        return [an.get_specimen_directory() for an in self.analysers]
+
+    def get_N_repeats(self, image_folder, *args, **kwargs):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].get_N_repeats(
+                folder, *args, **kwargs)
+
+    def list_images(self, image_folder, *args, **kwargs):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].list_images(
+                folder, *args, **kwargs)
+
+    def get_specimen_name(self):
+        return self.name
+   
+    def get_imaging_parameters(self, image_folder):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].get_imaging_parameters(folder)
+
+    def get_specimen_age(self):
+        '''Assumes all specimens have the same age
+        '''
+        ages = [an.get_specimen_age() for an in self.analysers]
+        # FIXME: add warning if ages do not match
+        return ages[0]
+
+    def get_specimen_sex(self):
+        '''Assumes all specimens have the same sex
+        '''
+        sexes = [an.get_specimen_sex() for an in self.analysers]
+        # FIXME: add warning if sexes do not match
+        return sexes[0]
+    
+    def get_imaging_frequency(self, image_folder, fallback_value=100):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].get_imaging_frequency(
+                folder, fallback_value)
+
+    def get_pixel_size(self, image_folder):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].get_pixel_size(folder)
+
+    def get_snap_fn(self, i_snap=0, absolute_path=True):
+        # FIXME: Only gives snaps from the first specimen
+        return self.analysers[0].get_snap_fn(
+                i_snap, absolute_path=absolute_path)
+    
+    def load_ROIs(self):
+        for an in self.analysers:
+            an.load_ROIs()
+
+    def select_ROIs(self, **kwargs):
+        for an in self.analysers:
+            an.select_ROIs(**kwargs)
+
+    def are_rois_selected(self, *args, **kwargs):
+        selected = [an.are_rois_selected() for an in self.analysers]
+        return all(selected)
+    
     def count_roi_selected_folders(self):
         count = 0
         for an in self.analysers:
@@ -107,42 +165,45 @@ class VirtualAnalyser(AnalyserBase):
         folder, i_virt = remove_virt_suffix(image_folder)
         return self.analysers[i_virt].folder_has_rois(folder)
 
-    
     def get_rois(self, image_folder):
         folder, i_virt = remove_virt_suffix(image_folder)
         return self.analysers[i_virt].get_rois(folder)
 
+    def is_measured(self, *args, **kwargs):
+        measured = [an.is_measured() for an in self.analysers]
+        return all(measured)
+    
     def folder_has_movements(self, image_folder):
         folder, i_virt = remove_virt_suffix(image_folder)
         return self.analysers[i_virt].folder_has_movements(folder)
 
-    def load_analysed_movements(self):
+    def load_analysed_movements(self, *args, **kwargs):
         for an in self.analysers:
-            an.load_analysed_movements()
+            an.load_analysed_movements(*args, **kwargs)
 
-    def list_images(self, image_folder, *args, **kwargs):
-        folder, i_virt = remove_virt_suffix(image_folder)
-        return self.analysers[i_virt].list_images(
-                folder, *args, **kwargs)
+    def get_recording_time(image_folder, i_rep=0):
+        return None
 
-    def get_specimen_name(self):
-        return self.name
+    def measure_both_eyes(self, **kwargs):
+        for an in self.analysers:
+            an.measure_both_eyes(**kwargs)
 
-    
-    def get_imaging_parameters(self, image_folder):
-        folder, i_virt = remove_virt_suffix(image_folder)
-        return self.analysers[i_virt].get_imaging_parameters(folder)
-
-    def get_imaging_frequency(self, image_folder, fallback_value=100):
-        folder, i_virt = remove_virt_suffix(image_folder)
-        return self.analysers[i_virt].get_imaging_frequency(
-                folder, fallback_value)
-
-    def get_pixel_size(self, image_folder):
-        folder, i_virt = remove_virt_suffix(image_folder)
-        return self.analysers[i_virt].get_pixel_size(folder)
-
-
+    def measure_movement(self, eye, *args, **kwargs):
+        for an in self.analysers:
+            an.measure_movement(eye, *args, **kwargs)
+   
+    def get_time_ordered(self, *args, **kwargs):
+        # FIXME: Doesn not check which eye was measured first
+        # FIXME: May break some logic that uses this method?
+        image_fns = []
+        ROIs = []
+        angles = []
+        for an in self.analysers:
+            fns, rois, angs = an.get_time_ordered(*args, **kwargs)
+            image_fns.extend(fns)
+            ROIs.extend(rois)
+            angles.extend(angs)
+        return image_fns, ROIs, angles
 
     def get_movements_from_folder(self, image_folder):
         folder, i_virt = remove_virt_suffix(image_folder)
@@ -152,6 +213,19 @@ class VirtualAnalyser(AnalyserBase):
         folder, i_virt = remove_virt_suffix(image_folder)
         return self.analysers[i_virt].get_displacements_from_folder(
                 folder)
+   
+    def get_2d_vectors(self, eye, *args, **kwargs):
+        # FIXME: Probably doesn't give sense making results
+        # with yaw combining.
+        angles = []
+        X = []
+        Y = []
+        for an in self.analysers:
+            ang, x, y = an.get_2d_vectors(eye, *args, **kwargs)
+            angles.extend(ang)
+            X.extend(x)
+            Y.extend(y)
+        return angles, X, Y
 
     def get_magnitude_traces(self, eye, image_folder=None,
                              *args, **kwargs):
@@ -163,7 +237,19 @@ class VirtualAnalyser(AnalyserBase):
                     eye, folder, *args, **kwargs)
         
         # Case B: image_folder is None
-        raise NotImplementedError('VirtualAnalyser not complete')
+        # -> append suffix virt_ian to all keys
+        traces = {}
+        for i_an, an in enumerate(self.analysers):
+            data = an.get_magnitude_traces(eye, None, *args, **kwargs)
+            for key, value in data.items():
+                traces[f'{key}_virt{i_an}'] = value
+
+        return traces
+
+    def get_moving_ROIs(self, eye, image_folder, i_repeat=0):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].get_moving_ROIs(
+                eye, folder, i_repeat=i_repeat)
         
 
     def get_3d_vectors(self, eye, *args, **kwargs):
@@ -193,4 +279,13 @@ class VirtualAnalyser(AnalyserBase):
 
         return points, vectors
 
+    
+    def get_recording_time(self, image_folder, *args, **kwargs):
+        folder, i_virt = remove_virt_suffix(image_folder)
+        return self.analysers[i_virt].get_recording_time(
+                folder, *args, **kwargs)
+    
+    def stop(self):
+        for an in self.analysers:
+            an.stop()
 

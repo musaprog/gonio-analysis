@@ -1199,31 +1199,52 @@ class MAnalyser(AnalyserBase):
         return angles, movement_dict
     
 
-    def get_2d_vectors(self, eye, mirror_horizontal=True, mirror_pitch=True,
-                       correct_level=True, repeats_separately=False,
-                       mirror_movements=False):
-        '''
-        Creates 2D vectors from the movements analysis data.
-            Vector start point: ROI's position at the first frame
-            Vector end point: ROI's position at the last frame
-
-        mirror_pitch    Should make so that the negative values are towards dorsal and positive towards frontal
-                            (this is how things on DrosoX were)
+    def get_2d_vectors(
+            self, eye, image_folder=None,
+            mirror_horizontal=True, mirror_pitch=True,
+            correct_level=True, repeats_separately=False,
+            mirror_movements=False):
+        '''Creates 2D vectors from the movements analysis data.
+        
+        Arguments
+        ---------
+        eye : string
+        image_folder : None or string
+        mirror_horizontal : bool
+        mirror_pitch : bool
+            Should make so that the negative values are towards
+            dorsal and positive towards frontal
+            (this is how things on DrosoX were)
+        correct_level : bool
+        repeats_separately : bool
         mirror_movements : bool
             If True, mirrors the movement directions (X=-X and Y=-Y)
+
+        Returns
+        -------
+        angles : list
+        X, Y : list
+            Vector start point: ROI's position at the first frame
+            Vector end point: ROI's position at the last frame
         '''
 
-        # Make the order of angles deterministic
-        sorted_angle_keys = sorted(self.movements[eye])
-
+        if image_folder is None:
+            # Make the order of angles deterministic
+            sorted_angle_keys = sorted(self.movements[eye])
+        else:
+            key = image_folder.removeprefix('pos')
+            if key in self.movements[eye]:
+                sorted_angle_keys = [key]
+            else:
+                sorted_angle_keys = []
+        
         angles = [list(ast.literal_eval(angle.split(')')[0]+')' )) for angle in sorted_angle_keys]
-        values = [self.movements[eye][angle] for angle in sorted_angle_keys]
+        values = [self.movements[eye][angle] for angle in sorted_angle_keys]    
 
         to_degrees(angles)
         
         if correct_level:
             angles = self._correctAntennaLevel(angles)
-
         
         if mirror_horizontal:
             for i in range(len(angles)):
@@ -1421,15 +1442,29 @@ class MAnalyser(AnalyserBase):
         return moving_ROI
         
     
-    def get_3d_vectors(self, eye, return_angles=False, correct_level=True, repeats_separately=False, normalize_length=0.1, strict=None, vertical_hardborder=None):
+    def get_3d_vectors(
+            self, eye, image_folder=None,
+            return_angles=False, correct_level=True,
+            repeats_separately=False, normalize_length=0.1,
+            strict=None, vertical_hardborder=None):
+        '''Returns 3D vectors and their starting points.
+        
+        Arguments
+        ---------
+        eye : string
+            "left" or "right"
+        image_folder : string or None
+            If not none, return the 3D vectors from this foldted 
+        correct_level : bool
+            Use estimated antenna levels
+        repeats_separately : bool
+        normalize_length : float
+        strict : None
+        vertical_hardborder : None
         '''
-        Returns 3D vectors and their starting points.
-    
-        correct_level           Use estimated antenna levels
-
-        va_limits       Vertical angle limits in degrees, (None, None) for no limits
-        '''
-        angles, X, Y = self.get_2d_vectors(eye, mirror_pitch=False, mirror_horizontal=True,
+        angles, X, Y = self.get_2d_vectors(
+                eye, image_folder=image_folder,
+                mirror_pitch=False, mirror_horizontal=True,
                 correct_level=False, repeats_separately=repeats_separately)
         
         

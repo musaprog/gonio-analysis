@@ -470,7 +470,9 @@ def plot_2d_vectormap(manalyser,
 
 
 @extend_keywords(vector_plot)
-def plot_3d_vectormap(manalyser, arrow_rotations = [0],
+def plot_3d_vectormap(
+        manalyser, arrow_rotations = [0],
+        image_folder=None,
         rhabdomeres=False, repeats_separately=False, vertical_hardborder=False,
         elev=None, azim=None,
         pitch_rot=None, roll_rot=None, yaw_rot=None,
@@ -486,6 +488,8 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
         Analyser object
     arrow_rotations : list of int
         Rotation of arrows in the plane of the arrows (ie. radially).
+    image_folder : None or str
+        The vector to highlight in orange
     rhabdomeres : bool
         If True, draw rhabdomere pattern where the arrows are.
     repeats_separately : bool
@@ -591,7 +595,30 @@ def plot_3d_vectormap(manalyser, arrow_rotations = [0],
             vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True,
                     repeats_separately=repeats_separately,
                     strict=True, vertical_hardborder=vertical_hardborder)
-            
+           
+            # Dirty hack to color the selected imagefolder in orange
+            if image_folder is not None:
+                hlvec = manalyser.get_3d_vectors(
+                        eye, image_folder=image_folder,
+                        correct_level=True,
+                        repeats_separately=repeats_separately,
+                        strict=True,
+                        vertical_hardborder=vertical_hardborder)
+                if len(hlvec[0]) > 0:
+                    x,y,z = hlvec[0][0]
+                    # Remove the highlighted from vectors
+                    points = vectors_3d[0].tolist()
+                    vecs = vectors_3d[1].tolist()
+                    for rmindex, (xx,yy,zz) in enumerate(points):
+                        if xx==x and yy==y and zz==z:
+                            break
+                    points.pop(rmindex)
+                    vecs.pop(rmindex)
+                    vectors_3d = [np.array(points), np.array(vecs)]
+
+                    vector_plot(ax, *hlvec, color="orange",**kwargs)
+               
+
             if manalyser_type == 'OAnalyser' and rhabdomeres:
                 
                 for point, vector in zip(*vectors_3d):

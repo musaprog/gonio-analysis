@@ -91,9 +91,13 @@ class RecordingPlotter:
 
     def vectormap(self, ax, **kwargs):
 
+        self._check_recording()
+        
         self.N_repeats = 0
         
-        ax, self.vectors = plot_3d_vectormap(self.core.analyser,
+        ax, self.vectors = plot_3d_vectormap(
+                self.core.analyser,
+                image_folder=self.selected_recording,
                 ax=ax,
                 **kwargs)
 

@@ -172,9 +172,21 @@ class VirtualAnalyser(AnalyserBase):
         vectors = []
 
         for analyser in self.analysers:
-            P, V = analyser.get_3d_vectors(eye, *args, **kwargs) 
-            points.append(P)
-            vectors.append(V)
+            
+            yaw = analyser.attributes['yaw']
+            
+            # Make sure the coloring comes up correct
+            # yaw == 0: default case, manalyser code splits L-R
+            # yaw==90 or yaw==-90: Should be only one eye recording
+            if yaw == 0:
+                P, V = analyser.get_3d_vectors(eye, *args, **kwargs)
+                points.append(P)
+                vectors.append(V)
+            elif (yaw == 90 and eye == 'left') or (yaw == -90 and eye == 'right'):
+                for aeye in analyser.eyes:
+                    P, V = analyser.get_3d_vectors(aeye, *args, **kwargs) 
+                    points.append(P)
+                    vectors.append(V)
 
         points = np.concatenate((*points,))
         vectors = np.concatenate((*vectors,))

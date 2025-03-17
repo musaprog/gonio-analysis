@@ -282,53 +282,7 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
 
     normalize       If true, return unit length vectors
     '''
-    
-    #imx = 0
-    #imy = 1
-
-    #rot = (1- cos(radians(horizontal))) * radians(vertical)
-    
-    #rot = -(radians(horizontal)/(np.pi/2)) * radians(vertical)
-    '''  
-    rot = camera_rotation(horizontal, vertical)
-
-    cimx = imx * cos(rot) - imy * sin(rot)
-    cimy = imx * sin(rot) + imy * cos(rot)
-   
-
-    # find the plane
-
-    # coordinates from the plane to 3d
-
-    #dz = cos()
-
-    x,y,z = camera2Fly(horizontal, vertical, radius=radius)
-    
-    #print('x={} y={} z={}'.format(x,y,z))
-    '''
     # Create unit vectors in camera coordinates
-    '''
-    if x == 0 and y > 0:
-        b = pi/2
-    elif x== 0 and y < 0:
-        b = pi + pi/2
-    else:
-        b = atan(y/x) # angle in xy-plane, between radial line and x-axis
-        #b = atan2(y,x)
-
-    if x < 0:
-       b += pi
-    e = acos(z/sqrt(x**2+y**2+z**2))# anti-elevation
-
-    if y < 0:
-        e += pi
-
-    uimx = np.array([-sin(b) , cos(b), 0])
-    #uimy = np.asarray([-cos(e) * sin(b) , - cos(e) * cos(b),  sin(e) ])
-    # Fixed this on 6.9.2019
-    uimy = np.array([-cos(b) * cos(e) , -sin(b) * cos(e),  sin(e) ])
-    '''
-
     x,y,z = camera2Fly(horizontal, vertical, radius=radius)
 
     uimx = np.array(camera2Fly(horizontal, vertical, radius=radius)) - np.array(camera2Fly(horizontal+1, vertical, radius=radius))
@@ -336,9 +290,6 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
 
     uimy = np.array([0, -sin(radians(vertical)), cos(radians(vertical))])
 
-    #print('vertical {}'.format(vertical))
-    #print('imx is {}'.format(imx))
-    #fx, fy, fz = np.array([x,y,z]) + uimx*cimx + uimy*cimy
     vector = uimx*imx + uimy*imy
 
     if normalize:
@@ -352,26 +303,8 @@ def camvec2Fly(imx, imy, horizontal, vertical, radius=1, normalize=False):
 
 
     fx, fy, fz = np.array([x,y,z]) + vector 
-    '''
-    if normalize:
-        uim = uimx*cimx + uimy*cimy
-        length = np.sqrt(uim[0]**2 + uim[1]**2 + uim[2]**2)
-        
-        if length != 0:
-
-            if type(normalize) == type(42) or type(normalize) == type(4.2):
-                length /= normalize
-        
-            fx, fy, fz = np.array([x,y,z]) + (uimx*cimx + uimy*cimy)/length
-    '''
-
-    #print("Elevation {}".format(degrees(e)))
-    #print('B {}'.format(b))
-    #print('uimx {}'.format(uimx))
-    #print('uimy {}'.format(uimy))
-    #print()
-
     return fx, fy, fz
+
 #
 #def findDistance(point1, point2):
 #    '''

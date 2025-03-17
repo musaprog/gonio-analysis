@@ -1458,7 +1458,9 @@ class MAnalyser(AnalyserBase):
         correct_level : bool
             Use estimated antenna levels
         repeats_separately : bool
-        normalize_length : float
+        normalize_length : float or None
+            Normalize vectors to the given length. If None,
+            does not normalize. Default 0.1
         strict : None
         vertical_hardborder : None
         '''

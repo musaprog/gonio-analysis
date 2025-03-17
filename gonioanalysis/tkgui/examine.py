@@ -124,9 +124,15 @@ class PlotView(tk.Frame):
         self.examine = examine
         self.core = core
 
-        tab_kwargs = [{}, {}, {}, {}, {'projection': '3d'}]
-        tab_names = ['ROI', 'Images', 'Displacement', 'XY', '3D']
-        classes = [CanvasPlotter, SequenceImshow, CanvasPlotter, CanvasPlotter, CanvasPlotter]
+        tab_kwargs = [
+                {}, {}, {}, {},
+                {'projection': '3d'}, {'projection': '3d'}]
+        tab_names = [
+                'ROI', 'Images', 'Displacement', 'XY',
+                '3D Dir', '3D Mag']
+        classes = [CanvasPlotter, SequenceImshow,
+                   CanvasPlotter, CanvasPlotter,
+                   CanvasPlotter, CanvasPlotter]
         canvas_constructors = []
         for clas, kwargs in zip(classes, tab_kwargs):
             con = lambda parent, cl=clas, kwargs=kwargs: cl(parent, visibility_button=False, **kwargs)
@@ -226,6 +232,8 @@ class PlotView(tk.Frame):
                     self.plotter.xy(ax, **self.xy_ticks.states) 
                 elif i_plot == 4:
                     self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
+                elif i_plot == 5:
+                    self.plotter.magnitudemap(ax)
             
             self.core.active_analysis = remember_analysis
 

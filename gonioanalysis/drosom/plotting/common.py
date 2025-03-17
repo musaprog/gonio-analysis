@@ -488,7 +488,7 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
 
 
 def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=None,
-        colormap='own'):
+        colormap='own', vlimits=None):
     '''
     3D surface plot of the error between the optic flow vectors and the actual
     eye-movements vector map.
@@ -508,11 +508,21 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
         List of scalar values at the given points, in the same order.
     colormap : string
         "own", "own-diverge" or any matplotlib colormap name
+    vlimits : tuple or None
+        If None, limits (0,1) are used
     '''
 
     if len(points) != len(values):
         raise ValueError('For sufrace_plot, points and values have to be same lenght (and in the same order)')
      
+    
+    if vlimits is None:
+        vmin = 0
+        vmax = 1
+    else:
+        vmin, vmax = vlimits
+    
+
     # Points where the error is "evaluated" (actually interpolated)
     
 
@@ -584,7 +594,7 @@ def surface_plot(ax, points, values, cb=False, phi_points=None, theta_points=Non
         culurs = matplotlib.cm.get_cmap(colormap).colors
 
     ownmap = matplotlib.colors.LinearSegmentedColormap.from_list('ownmap', culurs, 100)
-    ax.plot_surface(X, Y, Z, facecolors=ownmap(colors), linewidth=0, vmin=0, vmax=1)
+    ax.plot_surface(X, Y, Z, facecolors=ownmap(colors), linewidth=0, vmin=vmin, vmax=vmax)
 
     
     m = cm.ScalarMappable(cmap=ownmap)

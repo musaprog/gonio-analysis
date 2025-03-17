@@ -647,6 +647,58 @@ def plot_3d_vectormap(
     return ax, vectors
 
 
+def plot_3d_magnitudemap(analyser, ax=None):
+    '''Plot 3d heatmap showing the size of movement
+
+    Arguments
+    ---------
+    analyser : object
+    image_folder : None or str
+        
+    '''
+    
+    MAGS = {}
+
+    vmin = np.inf
+    vmax = -np.inf
+
+    for eye in analyser.eyes:
+        vectors_3d = analyser.get_3d_vectors(
+                eye, correct_level=True, repeats_separately=False,
+                    strict=True, vertical_hardborder=True,
+                    normalize_length=None)
+
+        points, vectors = vectors_3d
+
+        magnitudes = [np.linalg.norm(
+            p-v) for p,v in zip(points, vectors)]
+        magnitudes = [points, magnitudes]
+
+        MAGS[eye] = magnitudes
+        
+        if len(magnitudes[1]) > 0:
+            vmin = np.min([vmin, np.min(magnitudes[1])])
+            vmax = np.max([vmax, np.max(magnitudes[1])])
+
+    print(vmin)
+    print(vmax)
+
+    for eye in analyser.eyes:
+        mgs = [(m-vmin)/(vmax+vmin) for m in MAGS[eye][1]]
+        MAGS[eye][1] = np.array(mgs)
+
+    for eye in analyser.eyes:
+        m = surface_plot(ax, *MAGS[eye])
+         
+    ax.set_xlim3d((-1,1))
+    ax.set_ylim3d((-1,1))
+    ax.set_zlim3d((-1,1))
+    ax.set_box_aspect((1, 1, 1)) 
+ 
+
+    return ax, MAGS
+    
+
 def plot_3d_differencemap(manalyser1, manalyser2, ax=None, stats_map=False,
         elev=DEFAULT_ELEV, azim=DEFAULT_AZIM, colinear=True, direction=False,
         colorbar=True, colorbar_text=True, colorbar_ax=None, reverse_errors=False,

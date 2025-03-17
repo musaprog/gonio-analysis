@@ -15,7 +15,8 @@ from movemeter.stacks import stackread
 from gonioanalysis.drosom.plotting.basics import (
         plot_1d_magnitude,
         plot_xy_trajectory,
-        plot_3d_vectormap
+        plot_3d_vectormap,
+        plot_3d_magnitudemap,
         )
 
 class RecordingPlotter:
@@ -101,6 +102,13 @@ class RecordingPlotter:
                 ax=ax,
                 **kwargs)
 
+    def magnitudemap(self, ax, **kwargs):
+        
+        self.N_repeats = 0
+        
+        ax, self.vectors = plot_3d_magnitudemap(
+                self.core.analyser, ax=ax,
+                **kwargs)
 
 
     def xy(self, ax, **kwargs):

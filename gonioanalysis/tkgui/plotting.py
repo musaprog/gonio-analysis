@@ -53,6 +53,7 @@ class RecordingPlotter:
         self.N_repeats = 0
         self.i_repeat = None
 
+        self.restore_rotation = None
 
     def _check_recording(self, skip_datafetch=False):
         '''
@@ -95,21 +96,36 @@ class RecordingPlotter:
         self._check_recording()
         
         self.N_repeats = 0
-        
+       
+        if self.restore_rotation:
+            elev = None
+            azim = None
+        else:
+            elev = ax.elev
+            azim = ax.azim
+
         ax, self.vectors = plot_3d_vectormap(
                 self.core.analyser,
                 image_folder=self.selected_recording,
+                elev=elev, azim=azim,
                 ax=ax,
                 **kwargs)
 
     def magnitudemap(self, ax, **kwargs):
         
         self.N_repeats = 0
-        
+       
+        if self.restore_rotation:
+            elev = None
+            azim = None
+        else:
+            elev = ax.elev
+            azim = ax.azim
+
         ax, self.vectors = plot_3d_magnitudemap(
                 self.core.analyser, ax=ax,
+                elev=elev, azim=azim,
                 **kwargs)
-
 
     def xy(self, ax, **kwargs):
         '''

@@ -219,7 +219,7 @@ class Ax3d(gb.FrameWidget):
         
         pdx = p1[0]-p0[0]
         pdz = p1[2]-p0[2]
-        r = math.degrees(math.atan2(pdz,pdx))
+        r = math.degrees(math.atan2(pdx,pdz))
 
         arrow.set_hpr(h,-(p-90),r)
 
@@ -262,3 +262,11 @@ class Ax3d(gb.FrameWidget):
         '''
         self.nodeparent.set_hpr(-azim-90,-elev,0)
         self.show_head()
+
+    @property
+    def azim(self):
+        return -self.nodeparent.get_hpr()[0]-90
+
+    @property
+    def elev(self):
+        return -self.nodeparent.get_hpr()[1]

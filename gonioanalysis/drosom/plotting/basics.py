@@ -643,11 +643,13 @@ def plot_3d_vectormap(
     else:
         ax.view_init(elev=elev, azim=azim)
 
-
     return ax, vectors
 
 
-def plot_3d_magnitudemap(analyser, ax=None):
+def plot_3d_magnitudemap(
+        analyser,
+        elev=None, azim=None,
+        ax=None):
     '''Plot 3d heatmap showing the size of movement
 
     Arguments
@@ -695,6 +697,10 @@ def plot_3d_magnitudemap(analyser, ax=None):
     ax.set_zlim3d((-1,1))
     ax.set_box_aspect((1, 1, 1)) 
  
+    if azim is None and elev is None:
+        ax.view_init(elev=DEFAULT_ELEV, azim=DEFAULT_AZIM)
+    else:
+        ax.view_init(elev=elev, azim=azim)
 
     return ax, MAGS
     

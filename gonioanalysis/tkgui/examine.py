@@ -230,18 +230,23 @@ class PlotView(tk.Frame):
             for analysis in [name for name, state in self.examine.tickbox_analyses.states.items() if state == True]:
                 
                 self.core.analyser.active_analysis = analysis
-
+                
                 if i_plot == 2:
                     self.plotter.magnitude(ax, **self.displacement_ticks.states)
                     self.displacement_limits.apply()
                 elif i_plot == 3:  
                     self.plotter.xy(ax, **self.xy_ticks.states) 
                 elif i_plot == 4:
-                    self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
+                    self.plotter.vectormap(
+                            ax,
+                            **self.vectorplot_ticks.states)
                 elif i_plot == 5:
                     self.plotter.magnitudemap(ax)
                 elif i_plot == 6:
-                    self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
+                    self.plotter.vectormap(
+                            ax,
+                            **self.vectorplot_ticks.states)
+                
             self.core.active_analysis = remember_analysis
 
 
@@ -620,8 +625,7 @@ class ExamineView(tk.Frame):
         self.tickbox_analyses.grid(row=5, column=0, sticky='W')
 
         self.button_rois.config(state=tk.NORMAL)
-
-
+        
 
     def on_recording_selection(self, selected_recording):
         '''

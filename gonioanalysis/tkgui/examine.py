@@ -49,6 +49,7 @@ from gonioanalysis.drosom.plotting.basics import (
         plot_xy_trajectory,
         plot_3d_vectormap,
         )
+from gonioanalysis.drosom.plotting.ax3d import Cp3d
 from gonioanalysis.drosom.analyser_commands import ANALYSER_CMDS
 from gonioanalysis.tkgui.core import Core
 from gonioanalysis.tkgui.plotting import RecordingPlotter
@@ -125,17 +126,23 @@ class PlotView(tk.Frame):
         self.core = core
 
         tab_kwargs = [
-                {}, {}, {}, {},
-                {'projection': '3d'}, {'projection': '3d'}]
+                {'visibility_button': False},
+                {'visibility_button': False},
+                {'visibility_button': False},
+                {'visibility_button': False},
+                {'projection': '3d', 'visibility_button': False},
+                {'projection': '3d', 'visibility_button': False},
+                {}]
         tab_names = [
                 'ROI', 'Images', 'Displacement', 'XY',
-                '3D Dir', '3D Mag']
+                '3D Dir', '3D Mag', '3D New']
         classes = [CanvasPlotter, SequenceImshow,
                    CanvasPlotter, CanvasPlotter,
-                   CanvasPlotter, CanvasPlotter]
+                   CanvasPlotter, CanvasPlotter,
+                   Cp3d]
         canvas_constructors = []
         for clas, kwargs in zip(classes, tab_kwargs):
-            con = lambda parent, cl=clas, kwargs=kwargs: cl(parent, visibility_button=False, **kwargs)
+            con = lambda parent, cl=clas, kwargs=kwargs: cl(parent, **kwargs)
             canvas_constructors.append(con)
 
         self.tabs = Tabs(self, tab_names, canvas_constructors,
@@ -180,7 +187,6 @@ class PlotView(tk.Frame):
         self.vectorplot_ticks.grid()
         
         tk.Button(self.canvases[4], text='Save animation', command=self.save_3d_animation).grid()
-
 
 
         self.plotter = RecordingPlotter(self.core)
@@ -234,7 +240,8 @@ class PlotView(tk.Frame):
                     self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
                 elif i_plot == 5:
                     self.plotter.magnitudemap(ax)
-            
+                elif i_plot == 6:
+                    self.plotter.vectormap(ax, **self.vectorplot_ticks.states)
             self.core.active_analysis = remember_analysis
 
 

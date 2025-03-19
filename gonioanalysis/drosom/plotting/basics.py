@@ -632,11 +632,11 @@ def plot_3d_vectormap(
            
     manalyser.vector_rotation = original_rotation
 
-    
-    ax.set_xlim3d((-1,1))
-    ax.set_ylim3d((-1,1))
-    ax.set_zlim3d((-1,1))
-    ax.set_box_aspect((1, 1, 1)) 
+    if hasattr(ax, 'set_xlim3d'): 
+        ax.set_xlim3d((-1,1))
+        ax.set_ylim3d((-1,1))
+        ax.set_zlim3d((-1,1))
+        ax.set_box_aspect((1, 1, 1)) 
     
     if azim is None and elev is None:
         ax.view_init(elev=DEFAULT_ELEV, azim=DEFAULT_AZIM)

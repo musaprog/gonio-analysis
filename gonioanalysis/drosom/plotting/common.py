@@ -371,7 +371,7 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
     Plot vectors on a 3D matplotlib Axes object as arrows.
 
     ax : object
-        Matplotlib ax (axes) instance
+        Matplotlib ax (axes) instance or Ax3d
     points : array_like
         Sequence of arrow starting/tail (x,y,z) points 
     vectors : array_like
@@ -406,15 +406,17 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
     r = 0.9
 
     arrow_artists = []
-
+    
+    is_ax3d = hasattr(ax, 'add_arrow') and not hasattr(ax, 'add_artist')
 
     if hide_axes:
         ax.set_axis_off()
     
     if hide_text:
-        ax.axes.xaxis.set_ticklabels([])
-        ax.axes.yaxis.set_ticklabels([]) 
-        ax.axes.zaxis.set_ticklabels([]) 
+        if not is_ax3d:
+            ax.axes.xaxis.set_ticklabels([])
+            ax.axes.yaxis.set_ticklabels([]) 
+            ax.axes.zaxis.set_ticklabels([]) 
         ax.set_xlabel('')
         ax.set_ylabel('')
         ax.set_zlabel('')
@@ -474,15 +476,21 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
             A = point
             B = point-scaler*vector
         
-        ar = Arrow3D(*A, *B, arrowstyle="-|>", lw=1,
-                mutation_scale=mutation_scale, color=color, alpha=alpha, zorder=10)
-        ax.add_artist(ar)
-        arrow_artists.append(ar)
-
-
-    ax.set_xlim(-1.1, 1.1)
-    ax.set_ylim(-1.1,1.1)
-    ax.set_zlim(-1.1, 1.1)
+        if not is_ax3d:
+            ar = Arrow3D(
+                    *A, *B, arrowstyle="-|>", lw=1,
+                    mutation_scale=mutation_scale, color=color,
+                    alpha=alpha, zorder=10)
+            ax.add_artist(ar)
+            arrow_artists.append(ar)
+        else:
+            ax.add_arrow(*A, *B, color=color,
+                         mutation_scale=mutation_scale)
+    
+    if not is_ax3d:
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1,1.1)
+        ax.set_zlim(-1.1, 1.1)
    
     return arrow_artists
 

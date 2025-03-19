@@ -21,12 +21,13 @@ from gonioanalysis.coordinates import rotate_along_arbitrary
 named_colors = {
         'white': (1,1,1,1),
         'black': (0,0,0,1),
-        'red': (1,0,1,1),
+        'red': (1,0,0,1),
         'blue': (0,0,1,1),
         'green': (0,1,0,1),
         'orange': (1,0.5,0,1),
         'pink': (1,0.75,0.75,1),
         'gray': (0.5,0.5,0.5,1),
+        'magenta': (1,0,1,1),
         }
 
 
@@ -38,25 +39,49 @@ class WrapTk():
 class RotateButtons(gb.FrameWidget):
     '''Rotate buttons
     '''
-    def __init__(self, parent, obj):
+    def __init__(self, parent, obj, use_buttons=False):
         super().__init__(parent)
         self.parent = parent
         self.obj = obj
 
-        self.horp = gb.ButtonWidget(self, 'h+',
-                                    command=self.rhorp)
-        self.horp.grid(row=0,column=0)
-        self.horm = gb.ButtonWidget(self, 'h-',
-                                    command=self.rhorm)
-        self.horm.grid(row=0,column=1)
+        if use_buttons:
+            self.horp = gb.ButtonWidget(self, 'h+',
+                                        command=self.rhorp)
+            self.horp.grid(row=0,column=0)
+            self.horm = gb.ButtonWidget(self, 'h-',
+                                        command=self.rhorm)
+            self.horm.grid(row=0,column=1)
 
-        self.verp = gb.ButtonWidget(self, 'v+',
-                                    command=self.rverp)
-        self.verp.grid(row=0,column=2)
-        self.verm = gb.ButtonWidget(self, 'v-',
-                                    command=self.rverm)
-        self.verm.grid(row=0,column=3)
-    
+            self.verp = gb.ButtonWidget(self, 'v+',
+                                        command=self.rverp)
+            self.verp.grid(row=0,column=2)
+            self.verm = gb.ButtonWidget(self, 'v-',
+                                        command=self.rverm)
+            self.verm.grid(row=0,column=3)
+        else:
+            self.hor_slider = gb.SliderWidget(
+                    self, from_=-90, to=90)
+            self.hor_slider.grid(row=0, column=0, sticky='WE',
+                                 row_weight=0)
+            self.hor_slider.set_command(self.set_hor)
+
+            self.ver_slider = gb.SliderWidget(
+                    self, from_=-90, to=90)
+            self.ver_slider.grid(row=1, column=0, sticky='WE',
+                                 row_weight=0)
+            self.ver_slider.set_command(self.set_ver)
+
+
+    def set_ver(self, value):
+        rot = self.obj.get_hpr()
+        self.obj.set_hpr(rot[0], float(value), rot[2])
+        self.parent.update()
+
+    def set_hor(self, value):
+        rot = self.obj.get_hpr()
+        self.obj.set_hpr(float(value)+180, rot[1], rot[2])
+        self.parent.update()
+
     def rhorp(self):
         rot = self.obj.get_hpr()
         self.obj.set_hpr(rot[0]+10, rot[1], rot[2])
@@ -148,10 +173,9 @@ class Ax3d(gb.FrameWidget):
                 os.path.join(CODE_ROOTDIR, 'progdata', 'head.egg')
                 )
         self.head.np.detachNode()
-        self.head.np.setScale(3)
+        self.head.np.setScale(3.3)
         self.head.np.setColorScale((0.8,0.8,0.8,1))
-        self.head.np.setShaderAuto()
-
+        #self.head.np.setShaderAuto()
         self._enable_lights()
 
         self.scene.showbase.setBackgroundColor((1,1,1,1))
@@ -164,18 +188,18 @@ class Ax3d(gb.FrameWidget):
 
     def _enable_lights(self):
         render = self.scene._rendernp
-        render.setShaderAuto()
+        #render.setShaderAuto()
 
         ambient = AmbientLight('ambient')
         ambient.setColor((0.3, 0.3, 0.3, 1))
         ambient_np = render.attachNewNode(ambient)
         render.setLight(ambient_np)
-       
+        
         for p in [0,1]:
             pitch = -30+p*60
             for heading in [0+p*60,120+p*60,240+p*60]:
-                lamp = DirectionalLight(f'lamp-h{heading}')
-                lamp.setColor((0.6, 0.6, 0.6, 1))
+                lamp = DirectionalLight(f'lamp-h{heading}-p{p}')
+                lamp.setColor((0.4+p*0.2, 0.4+p*0.2, 0.4+p*0.2, 1))
                 lamp_np = render.attachNewNode(lamp)
                 lamp_np.setHpr(heading, pitch, 0)
                 render.setLight(lamp_np)
@@ -194,21 +218,16 @@ class Ax3d(gb.FrameWidget):
 
     def add_arrow(self, x0,y0,z0,x1,y1,z1,
                   color=None, mutation_scale=6):
+
         arrow = NodePath('arrow')
         self._arrow.np.instance_to(arrow)
 
         arrow.reparent_to(self.nodeparent.np)
 
-        dx = x1-x0
-        dy = y1-y0
-        dz = z1-z0
+        h = math.degrees(math.atan2(y0,x0))+90
 
-        dxy = math.sqrt(dx**2+dy**2)
-        dxyz = math.sqrt(dx**2+dy**2+dz**2)
-
-        h = math.degrees(math.atan2(dy,dx))
-        p = math.degrees(math.atan2(dxy, dz))
-
+        dxy0 = math.sqrt(x0**2+y0**2)
+        p = math.degrees(math.atan2(z0,dxy0))
 
         # Calculate roll by rotating the arrow to (0,1,0)
         p0 = np.array([(x0,y0,z0)])
@@ -221,20 +240,18 @@ class Ax3d(gb.FrameWidget):
         pdz = p1[2]-p0[2]
         r = math.degrees(math.atan2(pdx,pdz))
 
-        arrow.set_hpr(h,-(p-90),r)
+        arrow.set_hpr(h,-(p),-r+180) 
 
-        #arrow.flatten_strong()
-        #arrow.set_r(r)
-        #arrow.flatten_strong()
-        #arrow.set_p(-(p-90))
-        #arrow.set_h(h)
-        
         if x0 < 0:
-            shift = -0.5
+            shift = -0.6
         else:
-            shift = 0.5
-        arrow.set_pos(x0+shift,y0*0.7,z0*0.8)
-        
+            shift = 0.6 
+
+        nx0 = x0*0.8+shift
+        nx1 = x1*0.8+shift
+        ny0 = y0*0.7
+     
+        arrow.set_pos(nx0, ny0, nz0)
         colscale = named_colors.get(color, (0.9,0.9,0.9))
         arrow.setColor(colscale)  
 

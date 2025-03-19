@@ -43,4 +43,7 @@ setuptools.setup(
     # Python 3.8 final version supporting Windows 7
     # Python 3.4 final version supporting Windows XP
     python_requires='>=3.6',
+
+    include_package_data=True,
+    package_data={'gonioanalysis.progdata': ['*.egg']}
 )

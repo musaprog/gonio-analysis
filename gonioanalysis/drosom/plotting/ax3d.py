@@ -248,8 +248,8 @@ class Ax3d(gb.FrameWidget):
             shift = 0.6 
 
         nx0 = x0*0.8+shift
-        nx1 = x1*0.8+shift
         ny0 = y0*0.7
+        nz0 = z0*0.8
      
         arrow.set_pos(nx0, ny0, nz0)
         colscale = named_colors.get(color, (0.9,0.9,0.9))

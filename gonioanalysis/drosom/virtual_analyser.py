@@ -270,12 +270,19 @@ class VirtualAnalyser(AnalyserBase):
                 vectors.append(V)
             elif (yaw == 90 and eye == 'left') or (yaw == -90 and eye == 'right'):
                 for aeye in analyser.eyes:
-                    P, V = analyser.get_3d_vectors(aeye, *args, **kwargs) 
-                    points.append(P)
-                    vectors.append(V)
+                    P, V = analyser.get_3d_vectors(
+                            aeye, *args, **kwargs) 
+                    if len(P) > 0:
+                        points.append(P)
+                        vectors.append(V)
 
         points = np.concatenate((*points,))
         vectors = np.concatenate((*vectors,))
+
+        merge_distance = kwargs.get('merge_distance', 0)
+        if merge_distance:
+            points, vectors = self._merge_by_distance(
+                    points, vectors, merge_distance)
 
         return points, vectors
 

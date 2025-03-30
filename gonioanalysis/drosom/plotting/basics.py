@@ -474,6 +474,7 @@ def plot_3d_vectormap(
         manalyser, arrow_rotations = [0],
         image_folder=None,
         rhabdomeres=False, repeats_separately=False, vertical_hardborder=False,
+        merge_distance=None,
         elev=None, azim=None,
         pitch_rot=None, roll_rot=None, yaw_rot=None,
         animation=None, animation_type=None, animation_variable=None, i_frame=0,
@@ -497,6 +498,9 @@ def plot_3d_vectormap(
         with it's own arrow.
     vertical_hardborder : bool
         For MAverager, interpolate dorsal and ventral separetly
+    merge_distance : None or float
+        If not None, merge (mean) vectors that are closer than the given
+        distance
     elev, azim : float or None
         Plot elevation and azim
     animation : None
@@ -565,9 +569,11 @@ def plot_3d_vectormap(
         manalyser.vector_rotation = 0
         for eye in manalyser.eyes:
 
-            vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True,
+            vectors_3d = manalyser.get_3d_vectors(
+                    eye, correct_level=True,
                     repeats_separately=repeats_separately,
-                    strict=True, vertical_hardborder=vertical_hardborder)
+                    strict=True, vertical_hardborder=vertical_hardborder,
+                    merge_distance=merge_distance)
 
             if eye == 'left':
                 mirror_lr = True
@@ -592,9 +598,11 @@ def plot_3d_vectormap(
             if rotation is not None or rotation != 0:
                 manalyser.vector_rotation = rotation
             
-            vectors_3d = manalyser.get_3d_vectors(eye, correct_level=True,
+            vectors_3d = manalyser.get_3d_vectors(
+                    eye, correct_level=True,
                     repeats_separately=repeats_separately,
-                    strict=True, vertical_hardborder=vertical_hardborder)
+                    strict=True, vertical_hardborder=vertical_hardborder,
+                    merge_distance=merge_distance)
            
             # Dirty hack to color the selected imagefolder in orange
             if image_folder is not None:
@@ -603,7 +611,8 @@ def plot_3d_vectormap(
                         correct_level=True,
                         repeats_separately=repeats_separately,
                         strict=True,
-                        vertical_hardborder=vertical_hardborder)
+                        vertical_hardborder=vertical_hardborder,
+                        merge_distance=merge_distance)
                 if len(hlvec[0]) > 0:
                     x,y,z = hlvec[0][0]
                     # Remove the highlighted from vectors

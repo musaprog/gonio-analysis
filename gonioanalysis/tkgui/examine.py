@@ -115,7 +115,47 @@ class ExamineMenubar(tk.Frame):
 
         self.winfo_toplevel().config(menu=self.menubar)
    
-       
+
+class VectormapControls(tk.Frame):
+    '''Controls for the vectormap plots
+    '''
+
+    def __init__(self, parent, command=None):
+        super().__init__(parent)
+        
+        # Controls for the vector plot
+        # Controls for displacement plot (means etc)
+        vectorplot_options, vectorplot_defaults = inspect_booleans(
+                plot_3d_vectormap, exclude_keywords=[])
+
+        self.ticks = TickboxFrame(
+                self, vectorplot_options,
+                defaults=vectorplot_defaults,
+                callback=command,
+                ncols=4)
+        self.ticks.grid(row=0, column=0, columnspan=2)
+
+        self.merge_slider = tk.Scale(
+                self, from_=0, to=1, resolution=0.01,
+                orient=tk.HORIZONTAL,
+                command=command)
+        self.merge_slider.grid(row=1, column=1, sticky='WE')
+        tk.Label(self, text='Merge by distance').grid(
+                row=1, column=0)
+        
+        self.columnconfigure(1, weight=1)
+
+
+    @property
+    def merge_distance(self):
+        return float(self.merge_slider.get())
+
+    @property
+    def settings(self):
+        return {**self.ticks.states,
+                'merge_distance': self.merge_distance}
+        
+
 class PlotView(tk.Frame):
     '''The plot showing part of the examine view (the old rightside_frame).
     '''
@@ -177,15 +217,17 @@ class PlotView(tk.Frame):
         self.xy_ticks.grid()
 
 
-
-        # Controls for the vector plot
-        # Controls for displacement plot (means etc)
-        vectorplot_options, vectorplot_defaults = inspect_booleans(
-                plot_3d_vectormap, exclude_keywords=[])
-        self.vectorplot_ticks = TickboxFrame(self.canvases[4], vectorplot_options,
-                defaults=vectorplot_defaults, callback=lambda:self.update_plot(3))
-        self.vectorplot_ticks.grid()
+        # Vectormap options
+        self.vplot1_opts = VectormapControls(
+                self.canvases[4], command=lambda x: self.update_plot())
+        self.vplot1_opts.grid(sticky='WE')
+        self.vplot2_opts = VectormapControls(
+                self.canvases[6].tk, command=lambda x: self.update_plot())
+        self.vplot2_opts.grid(sticky='WE')
         
+        # Hide vplot2.ticks for now; Does not properly make sense yet
+        self.vplot2_opts.ticks.grid_remove()
+
         tk.Button(self.canvases[4], text='Save animation', command=self.save_3d_animation).grid()
 
 
@@ -202,8 +244,10 @@ class PlotView(tk.Frame):
 
         tk.Button(self.repetition_selector, text='Save view...',
                 command=self.save_view).grid(row=0, column=6)
+        
+        self.columnconfigure(0, weight=1)
 
-    
+   
     def update_plot(self, i_plot=None):
         '''
         i_plot : int or None
@@ -214,7 +258,6 @@ class PlotView(tk.Frame):
         
         if i_plot is None:
             i_plot = self.tabs.i_current
-
         fig, ax = self.canvases[i_plot].get_figax()
 
         if i_plot == 0:
@@ -238,14 +281,12 @@ class PlotView(tk.Frame):
                     self.plotter.xy(ax, **self.xy_ticks.states) 
                 elif i_plot == 4:
                     self.plotter.vectormap(
-                            ax,
-                            **self.vectorplot_ticks.states)
+                            ax, **self.vplot1_opts.settings)
                 elif i_plot == 5:
                     self.plotter.magnitudemap(ax)
                 elif i_plot == 6:
                     self.plotter.vectormap(
-                            ax,
-                            **self.vectorplot_ticks.states)
+                            ax, **self.vplot2_opts.settings)
                 
             self.core.active_analysis = remember_analysis
 

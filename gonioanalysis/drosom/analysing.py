@@ -122,7 +122,44 @@ class AnalyserBase:
         '''
         return 360/DEFAULT_STEPS_PER_REVOLUTION
 
+    
+    def _merge_by_distance(self, points, vectors, merge_distance):
+        '''3D vectors merge by distance
+        '''
+        # FIXME: Suboptimal performance in this implementation)
 
+        i_point = -1
+        while True:
+            i_point += 1
+            N = len(points)
+            
+            if i_point >= N:
+                break
+            
+            # Calculate distance of i_point to other points (and
+            # itself)
+            dists = np.linalg.norm(points[i_point]-points, axis=1)
+            
+            # Look points that fill the merge distance
+            imerge = [i for i in range(N) if (
+                dists[i]<merge_distance)]
+            
+            if not imerge:
+                continue
+            
+            # Calculate merged at i_point
+            points[i_point] = np.mean(
+                    [points[i] for i in imerge], axis=0)
+            vectors[i_point] = np.mean(
+                    [vectors[i] for i in imerge], axis=0)
+
+            # Remove merged
+            points = np.array([points[i] for i in range(N) if (
+                i not in imerge or i==i_point)])
+            vectors = np.array([vectors[i] for i in range(N) if (
+                i not in imerge or i==i_point)])
+    
+        return points, vectors
 
 
 class MAnalyser(AnalyserBase):
@@ -1209,6 +1246,7 @@ class MAnalyser(AnalyserBase):
         Arguments
         ---------
         eye : string
+            "left" or "right"
         image_folder : None or string
         mirror_horizontal : bool
         mirror_pitch : bool
@@ -1446,7 +1484,8 @@ class MAnalyser(AnalyserBase):
             self, eye, image_folder=None,
             return_angles=False, correct_level=True,
             repeats_separately=False, normalize_length=0.1,
-            strict=None, vertical_hardborder=None):
+            strict=None, vertical_hardborder=None,
+            merge_distance=None):
         '''Returns 3D vectors and their starting points.
         
         Arguments
@@ -1463,13 +1502,50 @@ class MAnalyser(AnalyserBase):
             does not normalize. Default 0.1
         strict : None
         vertical_hardborder : None
+        merge_distance : None or float
+            If not None, merge (take mean) vectors that are closer
+            than the given distance.
+
+        Returns
+        -------
+        points
+        vectors
         '''
-        angles, X, Y = self.get_2d_vectors(
-                eye, image_folder=image_folder,
-                mirror_pitch=False, mirror_horizontal=True,
-                correct_level=False, repeats_separately=repeats_separately)
         
-        
+        yaw = self.attributes['yaw']
+
+        # Dirty fix yeat again... When yaw +90 or -90, assume that
+        # all vectors are from either the left or the right eye
+        # Needed for
+        #   - correct L/R coloring when yaw +90, -90
+        #   - merge distance to work with 3 part scans
+        #
+        if yaw == 0:
+            # Normal case
+            angles, X, Y = self.get_2d_vectors(
+                    eye, image_folder=image_folder,
+                    mirror_pitch=False, mirror_horizontal=True,
+                    correct_level=False, repeats_separately=repeats_separately)
+        else:
+            if (eye == 'left' and yaw == -90) or (eye == 'right' and yaw == 90):
+                return [[],[]]
+            
+            angles, X, Y = self.get_2d_vectors(
+                    'right', image_folder=image_folder,
+                    mirror_pitch=False, mirror_horizontal=True,
+                    correct_level=False, repeats_separately=repeats_separately)           
+            
+            angles2, X2, Y2 = self.get_2d_vectors(
+                    'left', image_folder=image_folder,
+                    mirror_pitch=False, mirror_horizontal=True,
+                    correct_level=False, repeats_separately=repeats_separately)
+            angles += angles2
+            X += X2
+            Y += Y2
+            #angles = np.concatenate((angles, angles2))
+            #X = np.concatenate((X,X2))
+            #Y = np.concatenate((Y,Y2))
+
         N = len(angles)
 
         points = np.zeros((N,3))
@@ -1482,7 +1558,6 @@ class MAnalyser(AnalyserBase):
             point0 = camera2Fly(horizontal, pitch)
             point1 = camvec2Fly(x, y, horizontal, pitch, normalize=normalize_length)
             
-            yaw = self.attributes['yaw']
             if yaw != 0:
                 point0 = yaw_correct(
                         point0, yaw, horizontal, pitch)
@@ -1508,6 +1583,11 @@ class MAnalyser(AnalyserBase):
                 upper=self.va_limits[1], reverse=self.alimits_reverse)
         points = points[booleans]
         vectors = vectors[booleans]
+
+             
+        if merge_distance:
+            points, vectors = self._merge_by_distance(
+                    points, vectors, merge_distance)
 
         if return_angles:
             return points, vectors, angles

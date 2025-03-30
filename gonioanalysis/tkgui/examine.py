@@ -228,6 +228,12 @@ class PlotView(tk.Frame):
         # Hide vplot2.ticks for now; Does not properly make sense yet
         self.vplot2_opts.ticks.grid_remove()
 
+
+        self.canvases[4].get_figax()[1].elev = 10 
+        self.canvases[4].get_figax()[1].azim = 70
+        self.canvases[6].get_figax()[1].elev = 10
+        self.canvases[6].get_figax()[1].azim = 70
+
         tk.Button(self.canvases[4], text='Save animation', command=self.save_3d_animation).grid()
 
 

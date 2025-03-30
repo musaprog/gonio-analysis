@@ -284,6 +284,17 @@ class Ax3d(gb.FrameWidget):
     def azim(self):
         return -self.nodeparent.get_hpr()[0]-90
 
+    @azim.setter
+    def azim(self, value):
+        h,p,r = self.nodeparent.get_hpr()
+        self.nodeparent.set_hpr(-value-90, p, r)
+    
     @property
     def elev(self):
         return -self.nodeparent.get_hpr()[1]
+
+    @elev.setter
+    def elev(self, value):
+        h,p,r = self.nodeparent.get_hpr()
+        return self.nodeparent.set_hpr(h, value, r)
+

@@ -1807,6 +1807,9 @@ class MAverager(AnalyserBase):
                 vec = analyser.get_3d_vectors(eye, correct_level=True,
                         normalize_length=normalize_length, **kwargs)
                 
+                # Case no vectors (point is empty)
+                if len(vec[0]) == 0:
+                    continue
 
                 vectors_3d.append(vec)
             

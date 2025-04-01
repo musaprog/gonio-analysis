@@ -10,6 +10,7 @@ from panda3d.core import (
         NodePath,
         DirectionalLight,
         AmbientLight,
+        Filename,
         )
 import devjoni.guibase as gb
 from devjoni.hosguibase.render3d import SceneWidget, SceneObject
@@ -121,11 +122,6 @@ class Cp3d(gb.FrameWidget):
         self.ax3d.nodeparent = self.obj
         self.ax3d.nodeparent.set_hpr(180,0,0)
 
-        #self.obj.load_model(
-        #        os.path.join(CODE_ROOTDIR, 'progdata', 'monkey.egg')
-        #        )
-
-
         self.buttons = RotateButtons(self, self.obj)
         self.buttons.grid(row=1, column=0)
 
@@ -154,7 +150,9 @@ class Ax3d(gb.FrameWidget):
         self._arrow = SceneObject('arrow')
         self._arrow.scene = self.scene
         self._arrow.load_model(
-                os.path.join(CODE_ROOTDIR, 'progdata', 'arrow.egg')
+                Filename.fromOsSpecific(
+                    os.path.join(CODE_ROOTDIR, 'progdata', 'arrow.egg')
+                    )
                 )
         self._arrow.np.set_scale(0.05)
         self._arrow.np.setTwoSided(True)
@@ -170,7 +168,9 @@ class Ax3d(gb.FrameWidget):
         self.head = SceneObject('head')
         self.head.scene = self.scene
         self.head.load_model(
-                os.path.join(CODE_ROOTDIR, 'progdata', 'head.egg')
+                Filename.fromOsSpecific(
+                    os.path.join(CODE_ROOTDIR, 'progdata', 'head.egg')
+                    )
                 )
         self.head.np.detachNode()
         self.head.np.setScale(3.3)

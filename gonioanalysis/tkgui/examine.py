@@ -206,14 +206,14 @@ class PlotView(tk.Frame):
         displacementplot_options, displacementplot_defaults = inspect_booleans(
                 plot_1d_magnitude, exclude_keywords=['mean_imagefolders'])
         self.displacement_ticks = TickboxFrame(self.canvases[2], displacementplot_options,
-                defaults=displacementplot_defaults, callback=lambda:self.update_plot(1))
+                defaults=displacementplot_defaults, callback=self.update_plot)
         self.displacement_ticks.grid()
 
         # XY Plot
         xyplot_options, xyplot_defaults = inspect_booleans(
                 plot_xy_trajectory)
         self.xy_ticks = TickboxFrame(self.canvases[3], xyplot_options,
-                defaults=xyplot_defaults, callback=lambda:self.update_plot(2))
+                defaults=xyplot_defaults, callback=self.update_plot)
         self.xy_ticks.grid()
 
 

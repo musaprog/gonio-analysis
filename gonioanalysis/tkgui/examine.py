@@ -331,12 +331,14 @@ class PlotView(tk.Frame):
         if i_tab == 0:
             data = self.plotter.image
         elif i_tab == 1:
-            data = self.plotter.magnitudes
+            data = self.plotter.canvas_plotter.image
         elif i_tab == 2:
+            data = self.plotter.magnitudes
+        elif i_tab == 3:
             data = self.plotter.xys
             data = list(itertools.chain(*data))
-        elif i_tab == 3:
-            raise NotImplementedError('Cannot yet cliboard vectormap data')
+        elif i_tab >= 4:
+            raise NotImplementedError('Cannot yet cliboard 3D data')
 
         # Format the data for tkinter clipboard copy
         for i_frame in range(len(data[0])):

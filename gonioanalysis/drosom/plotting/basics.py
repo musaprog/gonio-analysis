@@ -681,6 +681,9 @@ def plot_3d_magnitudemap(
 
         points, vectors = vectors_3d
 
+        if len(points) == 0:
+            continue
+
         magnitudes = [np.linalg.norm(
             p-v) for p,v in zip(points, vectors)]
         magnitudes = [points, magnitudes]
@@ -694,11 +697,11 @@ def plot_3d_magnitudemap(
     print(vmin)
     print(vmax)
 
-    for eye in analyser.eyes:
+    for eye in MAGS.keys():
         mgs = [(m-vmin)/(vmax+vmin) for m in MAGS[eye][1]]
         MAGS[eye][1] = np.array(mgs)
 
-    for eye in analyser.eyes:
+    for eye in MAGS.keys():
         m = surface_plot(ax, *MAGS[eye])
          
     ax.set_xlim3d((-1,1))

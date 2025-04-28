@@ -231,6 +231,8 @@ class PlotView(tk.Frame):
 
         self.canvases[4].get_figax()[1].elev = 10 
         self.canvases[4].get_figax()[1].azim = 70
+        self.canvases[5].get_figax()[1].elev = 10 
+        self.canvases[5].get_figax()[1].azim = 70       
         self.canvases[6].get_figax()[1].elev = 10
         self.canvases[6].get_figax()[1].azim = 70
 

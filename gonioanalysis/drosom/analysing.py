@@ -123,7 +123,8 @@ class AnalyserBase:
         return 360/DEFAULT_STEPS_PER_REVOLUTION
 
     
-    def _merge_by_distance(self, points, vectors, merge_distance):
+    def _merge_by_distance(self, points, vectors, merge_distance,
+                           colist=None):
         '''3D vectors merge by distance
         '''
         # FIXME: Suboptimal performance in this implementation)
@@ -158,8 +159,12 @@ class AnalyserBase:
                 i not in imerge or i==i_point)])
             vectors = np.array([vectors[i] for i in range(N) if (
                 i not in imerge or i==i_point)])
+            
+            if colist is not None:
+                colist = [colist[i] for i in range(N
+                    ) if i not in imerge or i==i_point]
     
-        return points, vectors
+        return points, vectors, colist
 
 
 class MAnalyser(AnalyserBase):
@@ -1482,7 +1487,8 @@ class MAnalyser(AnalyserBase):
     
     def get_3d_vectors(
             self, eye, image_folder=None,
-            return_angles=False, correct_level=True,
+            return_angles=False, return_imagefolders=False,
+            correct_level=True,
             repeats_separately=False, normalize_length=0.1,
             strict=None, vertical_hardborder=None,
             merge_distance=None):
@@ -1526,15 +1532,20 @@ class MAnalyser(AnalyserBase):
                     eye, image_folder=image_folder,
                     mirror_pitch=False, mirror_horizontal=True,
                     correct_level=False, repeats_separately=repeats_separately)
+            imfs = sorted(self.movements[eye])
         else:
             if (eye == 'left' and yaw == -90) or (eye == 'right' and yaw == 90):
-                return [[],[]]
+                if return_angles or return_imagefolders:
+                    return [[],[],[]]
+                else:
+                    return [[],[]]
             
             angles, X, Y = self.get_2d_vectors(
                     'right', image_folder=image_folder,
                     mirror_pitch=False, mirror_horizontal=True,
                     correct_level=False, repeats_separately=repeats_separately)           
-            
+            imfs = sorted(self.movements['right'])
+
             angles2, X2, Y2 = self.get_2d_vectors(
                     'left', image_folder=image_folder,
                     mirror_pitch=False, mirror_horizontal=True,
@@ -1542,6 +1553,9 @@ class MAnalyser(AnalyserBase):
             angles += angles2
             X += X2
             Y += Y2
+
+            imfs += sorted(self.movements['left'])
+
             #angles = np.concatenate((angles, angles2))
             #X = np.concatenate((X,X2))
             #Y = np.concatenate((Y,Y2))
@@ -1584,15 +1598,24 @@ class MAnalyser(AnalyserBase):
         points = points[booleans]
         vectors = vectors[booleans]
 
-             
-        if merge_distance:
-            points, vectors = self._merge_by_distance(
-                    points, vectors, merge_distance)
-
+        
         if return_angles:
-            return points, vectors, angles
+            colist = [ang for boolean, ang in zip(
+                booleans, angles) if boolean]
+        elif return_imagefolders:
+            colist = [imf for boolean, imf in zip(
+                booleans, imfs) if boolean]
         else:
+            colist = None
+
+        if merge_distance:
+            points, vectors, colist = self._merge_by_distance(
+                    points, vectors, merge_distance, colist=colist)
+
+        if colist is None:
             return points, vectors
+        else:
+            return points, vectors, colist
 
 
     def get_recording_time(self, image_folder, i_rep=0):

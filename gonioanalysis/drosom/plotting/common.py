@@ -362,11 +362,12 @@ def plot_vrot_lines(ax, vrots, n_verts=16, camerapos=None):
         ax.plot(pnts[:,0], pnts[:,1], pnts[:,2], style, lw=1, color=color)
 
 
-def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_length=1,
-        i_pulsframe=None, guidance=False, camerapos=None, draw_sphere=True,
-        vrot_lines=False,
-        hide_axes=False, hide_text=False,
-        **kwargs):
+def vector_plot(ax, points, vectors, color='black', mutation_scale=6,
+                scale_length=1, i_pulsframe=None, guidance=False,
+                camerapos=None, draw_sphere=True,
+                vrot_lines=False,
+                hide_axes=False, hide_text=False,
+                **kwargs):
     '''
     Plot vectors on a 3D matplotlib Axes object as arrows.
 
@@ -376,7 +377,7 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
         Sequence of arrow starting/tail (x,y,z) points 
     vectors : array_like
         Arrow lengts and directions, sequence of (x,y,z)
-    color : string
+    color : string or sequence of colors
         Matplotlib valid color for the drawn arrows
     mutation_scale : float
         Size of the arrow head basically
@@ -455,7 +456,12 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
 
     scaler *= scale_length
 
-    for point, vector in zip(points, vectors):
+    if isinstance(color[0], (list, tuple)):
+        colorlist = color
+    else:
+        colorlist = None
+
+    for i, (point, vector) in enumerate(zip(points, vectors)):
 
         if camerapos:
             vec_arr = point
@@ -476,6 +482,9 @@ def vector_plot(ax, points, vectors, color='black', mutation_scale=6, scale_leng
             A = point
             B = point-scaler*vector
         
+        if colorlist is not None:
+            color = colorlist[i]
+
         if not is_ax3d:
             ar = Arrow3D(
                     *A, *B, arrowstyle="-|>", lw=1,

@@ -31,11 +31,12 @@ from gonioanalysis.drosom.optic_flow import field_error, field_pvals
 from gonioanalysis.coordinates import rotate_vectors
 from tk_steroids.routines import extend_keywords
 from ..analysers import analyser_classes
+import gonioanalysis.drosom.kinematics as kinematics
 
 plt.rcParams.update({'font.size': 12})
 
-EYE_COLORS = {'right': 'blue', 'left': 'red'}
-REPEAT_COLORS = ['green', 'orange', 'pink']
+EYE_COLORS = {'right': (0.1,0.1,0.9), 'left': (0.9,0.1,0.1)}
+REPEAT_COLORS = [(0.1,0.9,0.1), (1,0.5,0), (1,0.5,0.5)]
 
 
 DEFAULT_ELEV = 10
@@ -270,7 +271,9 @@ def plot_xy_trajectory(manalysers, wanted_imagefolders=None, i_repeat=None,
             sm.set_array(time)
 
             fig = ax.get_figure()
-            ax.xy_colorbar = fig.colorbar(sm, ticks=time, boundaries=time, ax=ax, orientation='horizontal')
+            ax.xy_colorbar = fig.colorbar(
+                    sm, ticks=time, boundaries=time, ax=ax,
+                    orientation='horizontal')
             ax.xy_colorbar.set_label('Frame')
         else:
             pass
@@ -469,14 +472,19 @@ def plot_2d_vectormap(manalyser,
         ax.spines[key].set_visible(False)
 
 
+
+
+
 @extend_keywords(vector_plot)
 def plot_3d_vectormap(
         manalyser, arrow_rotations = [0],
         image_folder=None,
-        rhabdomeres=False, repeats_separately=False, vertical_hardborder=False,
-        merge_distance=None,
+        rhabdomeres=False, repeats_separately=False,
+        vertical_hardborder=False,
+        merge_distance=None, color_type='leftright',
         elev=None, azim=None,
         pitch_rot=None, roll_rot=None, yaw_rot=None,
+        show_colorbar=False,
         animation=None, animation_type=None, animation_variable=None, i_frame=0,
         ax=None, **kwargs):
     '''
@@ -501,8 +509,15 @@ def plot_3d_vectormap(
     merge_distance : None or float
         If not None, merge (mean) vectors that are closer than the given
         distance
+    color_type : string
+        "leftright": Color only based on left-right
+        "magnitude": Color based on the end magnitude
+        "latency": Color based on the latency
+        "topspeed": Color based on the top speed
     elev, azim : float or None
         Plot elevation and azim
+    show_colorbar : bool
+        If true, show colorbar
     animation : None
     animation_type : None
     animation_variable : None
@@ -586,24 +601,59 @@ def plot_3d_vectormap(
                         camerapos=camerapos,
                         resolution=9, edgecolor=None, facecolor='gray')
 
-    for i_rotation, rotation in enumerate(arrow_rotations):
 
+    # Get 3D vectors and scaler values
+    all_vectors_3d = [{} for i in range(len(arrow_rotations))]
+    all_scalers = [{} for i in range(len(arrow_rotations))]
+
+    for i_rotation, rotation in enumerate(arrow_rotations):
         for eye in manalyser.eyes:
-            if isinstance(colors, dict):
-                colr = colors[eye]
-            elif isinstance(colors, list):
-                colr = colors[i_rotation]
-            
+           
             # Set arrow/vector rotation
             if rotation is not None or rotation != 0:
                 manalyser.vector_rotation = rotation
             
-            vectors_3d = manalyser.get_3d_vectors(
+            p_, v_, imfs = manalyser.get_3d_vectors(
                     eye, correct_level=True,
                     repeats_separately=repeats_separately,
-                    strict=True, vertical_hardborder=vertical_hardborder,
-                    merge_distance=merge_distance)
-           
+                    strict=True,
+                    vertical_hardborder=vertical_hardborder,
+                    merge_distance=merge_distance,
+                    return_imagefolders=True)
+            vectors_3d = [p_, v_]
+        
+            # Vector magnitudes separately
+            if color_type == "leftright":
+                sca = None
+            elif color_type == "magnitude":
+                sca = []
+                for image_folder in imfs:
+                    sca.append(
+                            kinematics.mean_max_response(manalyser,
+                                                         image_folder)
+                            )
+            elif color_type == 'topspeed':
+                sca = []
+                for image_folder in imfs:
+                    sca.append(
+                            kinematics.mean_topspeed(manalyser,
+                                                     image_folder)
+                            )
+            elif color_type == 'latency':
+                sca = []
+                for image_folder in imfs:
+                    sca.append(
+                            kinematics.latency(manalyser, image_folder,
+                                               method='simple')[0]
+                            )
+            else:
+                raise ValueError(f'Unkown color_type: {color_type}')
+
+               
+
+            all_vectors_3d[i_rotation][eye] = vectors_3d
+            all_scalers[i_rotation][eye] = sca
+
             # Dirty hack to color the selected imagefolder in orange
             if image_folder is not None:
                 hlvec = manalyser.get_3d_vectors(
@@ -624,21 +674,91 @@ def plot_3d_vectormap(
                     points.pop(rmindex)
                     vecs.pop(rmindex)
                     vectors_3d = [np.array(points), np.array(vecs)]
-
+                
                     vector_plot(ax, *hlvec, color="orange",**kwargs)
                
 
+    # Find scaler range
+    minsca = 9999999
+    maxsca = -9999999
+    for i_rotation, rotation in enumerate(arrow_rotations):
+        for eye in manalyser.eyes:
+            scalers = all_scalers[i_rotation][eye]
+            if scalers is None or len(scalers) == 0:
+                continue
+            minsca = min(minsca, min(all_scalers[i_rotation][eye]))
+            maxsca = max(maxsca, max(all_scalers[i_rotation][eye]))
+    
+    print(f'minsca {minsca}')
+    print(f'maxsca {maxsca}')
+
+    # Create colors
+    all_colors = [{} for i in range(len(arrow_rotations))]
+    
+    for i_rotation, rotation in enumerate(arrow_rotations):
+        for eye in manalyser.eyes:
+
+            sca = all_scalers[i_rotation][eye]
+
+            if sca is None:
+                if isinstance(colors, dict):
+                    colr = colors[eye]
+                elif isinstance(colors, list):
+                    colr = colors[i_rotation]
+            elif len(sca) != 0:
+                sca = (np.array(sca)-minsca)/(maxsca-minsca)
+                colr = [0,1,1]
+                colr = [(abs(colr[0]*float(s)), abs(colr[1]*float(s)), abs(colr[2]*float(s)), 1) for s in sca]
+            else:
+                colr = None
+
+            all_colors[i_rotation][eye] = colr
+
+    for i_rotation, rotation in enumerate(arrow_rotations):
+        for eye in manalyser.eyes:
+
+            vectors_3d = all_vectors_3d[i_rotation][eye]
+            sca = all_scalers[i_rotation][eye]
+            colr = all_colors[i_rotation][eye]
+            
+            if len(vectors_3d[0]) == 0:
+                continue
+
             if manalyser_type == 'OAnalyser' and rhabdomeres:
-                
                 for point, vector in zip(*vectors_3d):
                     add_line(ax, *point, *vector, color=REPEAT_COLORS[i_rotation])
             else:
-                vector_plot(ax, *vectors_3d, color=colr,
-                        **kwargs
-                        )
-               
-            vectors[eye] = vectors_3d
-           
+                vector_plot(ax, *vectors_3d, color=colr,**kwargs)
+            
+    if hasattr(ax, 'scene'):
+        if show_colorbar: 
+            if color_type == 'leftright':
+                ax.set_colorbar(((1,0,0),(0,0,1)),
+                                (minsca, maxsca),
+                                ('left', 'right')
+                                )
+            else:
+                
+                if color_type == 'latency':
+                    lab = (str(round(maxsca*1000,0))+' ms',
+                           str(round(minsca*1000,0))+' ms',
+                           )
+                elif color_type == 'magnitude':
+                    lab = (str(round(maxsca,1))+' µm',
+                           str(round(minsca,1))+' µm',
+                           )
+                elif color_type == 'topspeed':
+                    lab = (str(round(maxsca,1))+' µm/s',
+                           str(round(minsca,1))+' µm/s',
+                           )
+
+                ax.set_colorbar(((0,0,0),(0,1,1)),
+                                (minsca, maxsca),
+                                lab,
+                                )
+        else:
+            ax.clear_colorbar()
+
     manalyser.vector_rotation = original_rotation
 
     if hasattr(ax, 'set_xlim3d'): 
@@ -694,8 +814,6 @@ def plot_3d_magnitudemap(
             vmin = np.min([vmin, np.min(magnitudes[1])])
             vmax = np.max([vmax, np.max(magnitudes[1])])
 
-    print(vmin)
-    print(vmax)
 
     for eye in MAGS.keys():
         mgs = [(m-vmin)/(vmax+vmin) for m in MAGS[eye][1]]

@@ -11,7 +11,12 @@ from panda3d.core import (
         DirectionalLight,
         AmbientLight,
         Filename,
+        PNMImage,
+        Texture,
+        TextNode,
         )
+from direct.gui.DirectGui import DirectFrame, DirectLabel
+
 import devjoni.guibase as gb
 from devjoni.hosguibase.render3d import SceneWidget, SceneObject
 
@@ -180,6 +185,10 @@ class Ax3d(gb.FrameWidget):
 
         self.scene.showbase.setBackgroundColor((1,1,1,1))
 
+
+        self.bar = None
+
+
     def show_head(self):
         self.head.np.reparentTo(self.nodeparent.np)
 
@@ -252,10 +261,59 @@ class Ax3d(gb.FrameWidget):
         nz0 = z0*0.8
      
         arrow.set_pos(nx0, ny0, nz0)
-        colscale = named_colors.get(color, (0.9,0.9,0.9))
-        arrow.setColor(colscale)  
+        if isinstance(color, str):
+            colscale = named_colors.get(color, (0.9,0.9,0.9))
+            arrow.setColor(colscale)  
+        else:
+            arrow.setColor(color[0], color[1], color[2])  
 
         self.arrows.append(arrow)
+
+    def _create_colorbar(self, colors, values):
+        Nc = len(colors)
+        Nv = len(values)
+        if Nc != Nv:
+            raise ValueError(
+                    f'colors and values different lengths ({Nc}, {Nv})')
+
+        bar = PNMImage(x_size=1, y_size=Nc, num_channels=3, maxval=255)
+        for i, col in enumerate(colors):
+            bar.setXel(0,i,col[0], col[1], col[2])
+        return bar
+
+
+    def set_colorbar(self, colors, values, labels, vertical=True):
+        self.clear_colorbar()
+
+        bar = DirectFrame(parent=self.scene.showbase.aspect2d,
+                          scale=(0.025,1,0.5),
+                          pos=(0.7,0,0))
+        bar.setR(180)
+        
+        N = len(labels)
+        for i, label in enumerate(labels):
+            text = DirectLabel(
+                    parent=bar, text=label,
+                    scale=(2,1,0.11), frameColor=(0,0,0,0),
+                    text_align=TextNode.ARight)
+            text.set_transparency(True)
+            text.setR(180)
+            text.set_pos(1.5,0,-1 + i*(4/N) + 0.025)
+
+        barim = self._create_colorbar(colors, values)
+        bartex = Texture()
+        bartex.load(barim)
+        bartex.setWrapU(Texture.WM_clamp)
+        bartex.setWrapV(Texture.WM_clamp)
+
+        bar['image'] = bartex
+        self.bar = bar
+
+    def clear_colorbar(self):
+        if self.bar is not None:
+            self.bar.destroy()
+            self.bar = None
+        
 
     def plot_surface(self, X, Y, Z, color=None):
         pass

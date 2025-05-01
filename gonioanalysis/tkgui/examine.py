@@ -120,13 +120,16 @@ class VectormapControls(tk.Frame):
     '''Controls for the vectormap plots
     '''
 
-    def __init__(self, parent, command=None):
+    def __init__(self, parent, command=None, exclude_keywords=None):
         super().__init__(parent)
+
+        if exclude_keywords is None:
+            exclude_keywords = []
         
         # Controls for the vector plot
         # Controls for displacement plot (means etc)
         vectorplot_options, vectorplot_defaults = inspect_booleans(
-                plot_3d_vectormap, exclude_keywords=[])
+                plot_3d_vectormap, exclude_keywords=exclude_keywords)
 
         self.ticks = TickboxFrame(
                 self, vectorplot_options,
@@ -135,13 +138,23 @@ class VectormapControls(tk.Frame):
                 ncols=4)
         self.ticks.grid(row=0, column=0, columnspan=2)
 
+        
+        colortypes = ['leftright', 'magnitude', 'latency', 'topspeed']
+        self.color_type = TickboxFrame(
+                self, colortypes,
+                defaults = [True, False, False, False],
+                single_select=True,
+                callback=command, ncols=len(colortypes)
+                )
+        self.color_type.grid(row=1,column=1,columnspan=2)
+
         self.merge_slider = tk.Scale(
                 self, from_=0, to=1, resolution=0.01,
                 orient=tk.HORIZONTAL,
-                command=command)
-        self.merge_slider.grid(row=1, column=1, sticky='WE')
+                command=lambda x: command())
+        self.merge_slider.grid(row=2, column=1, sticky='WE')
         tk.Label(self, text='Merge by distance').grid(
-                row=1, column=0)
+                row=2, column=0)
         
         self.columnconfigure(1, weight=1)
 
@@ -219,15 +232,16 @@ class PlotView(tk.Frame):
 
         # Vectormap options
         self.vplot1_opts = VectormapControls(
-                self.canvases[4], command=lambda x: self.update_plot())
-        self.vplot1_opts.grid(sticky='WE')
+                self.canvases[4], command=lambda: self.update_plot())
+        self.vplot1_opts.grid(row=2, column=0, sticky='WE')
         self.vplot2_opts = VectormapControls(
-                self.canvases[6].tk, command=lambda x: self.update_plot())
-        self.vplot2_opts.grid(sticky='WE')
+                self.canvases[6].tk, command=lambda: self.update_plot(),
+                exclude_keywords=[
+                    'rhabdomeres', 'vrot_lines', 'hide_axes', 'hide_text',
+                    'draw_sphere', 'guidance'
+                    ])
+        self.vplot2_opts.grid(row=2, column=0, sticky='WE')
         
-        # Hide vplot2.ticks for now; Does not properly make sense yet
-        self.vplot2_opts.ticks.grid_remove()
-
 
         self.canvases[4].get_figax()[1].elev = 10 
         self.canvases[4].get_figax()[1].azim = 70
@@ -289,12 +303,17 @@ class PlotView(tk.Frame):
                     self.plotter.xy(ax, **self.xy_ticks.states) 
                 elif i_plot == 4:
                     self.plotter.vectormap(
-                            ax, **self.vplot1_opts.settings)
+                            ax,
+                            color_type=self.vplot1_opts.color_type.ticked[0],
+                            **self.vplot1_opts.settings,
+                            )
                 elif i_plot == 5:
                     self.plotter.magnitudemap(ax)
                 elif i_plot == 6:
                     self.plotter.vectormap(
-                            ax, **self.vplot2_opts.settings)
+                            ax,
+                            color_type=self.vplot2_opts.color_type.ticked[0],
+                            **self.vplot2_opts.settings)
                 
             self.core.active_analysis = remember_analysis
 

@@ -735,7 +735,7 @@ def plot_3d_vectormap(
             if color_type == 'leftright':
                 ax.set_colorbar(((1,0,0),(0,0,1)),
                                 (minsca, maxsca),
-                                ('left', 'right')
+                                ('right', 'left')
                                 )
             else:
                 

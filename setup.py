@@ -15,7 +15,7 @@ install_requires = [
         'roimarker>=0.2.1',
         'movemeter>=0.7.2',
         'python-biosystfiles',
-        'devjoni-hosguibase>=0.0.6',
+        'devjoni-hosguibase>=0.0.7',
         'Panda3D>=1.10.0'
         ]
 

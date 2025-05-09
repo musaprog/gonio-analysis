@@ -256,8 +256,9 @@ class VirtualAnalyser(AnalyserBase):
         
         points = []
         vectors = []
+        colist = []
 
-        for analyser in self.analysers:
+        for i_an, analyser in enumerate(self.analysers):
             
             yaw = analyser.attributes['yaw']
             
@@ -265,26 +266,49 @@ class VirtualAnalyser(AnalyserBase):
             # yaw == 0: default case, manalyser code splits L-R
             # yaw==90 or yaw==-90: Should be only one eye recording
             if yaw == 0:
-                P, V = analyser.get_3d_vectors(eye, *args, **kwargs)
+                vecdata = analyser.get_3d_vectors(eye, *args, **kwargs)
+                if len(vecdata) == 2:
+                    P, V = vecdata
+                else:
+                    P, V, CL = vecdata
+                    if kwargs.get('return_imagefolders', False):
+                        CL = [insert_virt_suffix(
+                            cl ,i_an) for cl in CL]
+                    colist.extend(CL)
+
                 points.append(P)
                 vectors.append(V)
             elif (yaw == 90 and eye == 'left') or (yaw == -90 and eye == 'right'):
                 for aeye in analyser.eyes:
-                    P, V = analyser.get_3d_vectors(
-                            aeye, *args, **kwargs) 
+                    vecdata = analyser.get_3d_vectors(
+                            aeye, *args, **kwargs)
+                    if len(vecdata) == 2:
+                        P, V = vecdata
+                    else:
+                        P, V, CL = vecdata
+                        if kwargs.get('return_imagefolders', False):
+                            CL = [insert_virt_suffix(
+                                cl ,i_an) for cl in CL]
+                        colist.extend(CL)
                     if len(P) > 0:
                         points.append(P)
                         vectors.append(V)
 
         points = np.concatenate((*points,))
         vectors = np.concatenate((*vectors,))
+        if len(colist) == 0:
+            colist = None
 
         merge_distance = kwargs.get('merge_distance', 0)
         if merge_distance:
-            points, vectors = self._merge_by_distance(
-                    points, vectors, merge_distance)
-
-        return points, vectors
+            points, vectors, colist = self._merge_by_distance(
+                    points, vectors, merge_distance, colist=colist)
+        
+                     
+        if colist is None:
+            return points, vectors
+        else:
+            return points, vectors, colist
 
     
     def get_recording_time(self, image_folder, *args, **kwargs):
